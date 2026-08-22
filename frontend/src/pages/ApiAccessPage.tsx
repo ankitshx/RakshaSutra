@@ -10,9 +10,9 @@ import {
   CheckCircle2,
   Terminal,
   Activity,
-  Loader2,
   Eye,
-  EyeOff
+  EyeOff,
+  ShieldCheck
 } from 'lucide-react';
 
 export const ApiAccessPage: React.FC = () => {
@@ -22,7 +22,6 @@ export const ApiAccessPage: React.FC = () => {
   const [copiedCurl, setCopiedCurl] = useState(false);
   const [showKey, setShowKey] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
-  const [isUpgradingQuota, setIsUpgradingQuota] = useState(false);
   const [activeCodeLang, setActiveCodeLang] = useState<'curl' | 'python' | 'javascript'>('curl');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
@@ -56,20 +55,6 @@ export const ApiAccessPage: React.FC = () => {
     }
   };
 
-  const handleRequestUpgrade = async () => {
-    setIsUpgradingQuota(true);
-    try {
-      const res = await api.requestQuotaUpgrade('Developer Integration');
-      setActionMessage(res.message || 'Usage quota extended to 50 scan uses!');
-      setTimeout(() => setActionMessage(null), 3500);
-      loadQuotaData();
-    } catch (err: any) {
-      alert(err.message || 'Failed to upgrade quota.');
-    } finally {
-      setIsUpgradingQuota(false);
-    }
-  };
-
   const copyApiKey = () => {
     if (quotaData?.api_key) {
       navigator.clipboard.writeText(quotaData.api_key);
@@ -78,7 +63,7 @@ export const ApiAccessPage: React.FC = () => {
     }
   };
 
-  const apiKeyDisplay = quotaData?.api_key || 'rs_demo_developer_key_8899aabbcc';
+  const apiKeyDisplay = quotaData?.api_key || 'rs_developer_key_public_access_2026';
 
   const codeSnippets = {
     curl: `curl -X POST "http://127.0.0.1:8000/api/v1/scans/url" \\
@@ -130,9 +115,7 @@ checkThreat("http://login-sbi-pan-update.xyz/verify.php");`
     setTimeout(() => setCopiedCurl(false), 2500);
   };
 
-  const scansUsed = quotaData?.uses_count ?? quotaData?.scans_used ?? 1;
-  const scansLimit = quotaData?.total_allowed_uses === 'Unlimited' || quotaData?.monthly_quota === 'Unlimited' ? 'Unlimited' : (quotaData?.total_allowed_uses ?? quotaData?.monthly_quota ?? 10);
-  const pct = scansLimit === 'Unlimited' ? 5 : Math.min(100, Math.round((scansUsed / Number(scansLimit)) * 100));
+  const scansUsed = quotaData?.scans_used ?? 5;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-10 space-y-8 font-mono">
@@ -142,10 +125,10 @@ checkThreat("http://login-sbi-pan-update.xyz/verify.php");`
           <Terminal className="w-3.5 h-3.5" /> Developer Threat API Portal
         </div>
         <h1 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-          API Keys & Usage Quota (10 Uses / User)
+          API Keys & Developer Integration
         </h1>
         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-2xl">
-          Integrate real-time URL heuristic scanners and phishing analyzers directly into your applications, Telegram bots, or backend microservices.
+          Integrate real-time URL heuristic scanners, phishing analyzers, and website security audits directly into your applications, Telegram bots, or backend microservices.
         </p>
       </div>
 
@@ -156,7 +139,7 @@ checkThreat("http://login-sbi-pan-update.xyz/verify.php");`
         </div>
       )}
 
-      {/* Grid: API Key & Quota Telemetry */}
+      {/* Grid: API Key & Telemetry */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {/* Left Column: API Key Box */}
         <div className="md:col-span-7 p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-6 flex flex-col justify-between">
@@ -165,7 +148,7 @@ checkThreat("http://login-sbi-pan-update.xyz/verify.php");`
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
                 <KeyRound className="w-4 h-4 text-cyan-500" /> Active Secret API Key
               </span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
+              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
                 ACTIVE
               </span>
             </div>
@@ -216,63 +199,52 @@ checkThreat("http://login-sbi-pan-update.xyz/verify.php");`
           </div>
         </div>
 
-        {/* Right Column: Quota Telemetry */}
+        {/* Right Column: Telemetry & Unlimited Access Status */}
         <div className="md:col-span-5 p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-6 flex flex-col justify-between">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <Activity className="w-4 h-4 text-cyan-500" /> Usage Limit (10 Scans / User)
+                <Activity className="w-4 h-4 text-cyan-500" /> Platform Access Status
               </span>
-              <span className="text-xs text-slate-500">Limit: 10 Total</span>
+              <span className="text-xs text-emerald-400 font-bold flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5" /> Unlimited Free Tier
+              </span>
             </div>
 
-            {/* Quota Progress */}
-            <div className="space-y-2">
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-600 dark:text-slate-400">Total Uses Completed:</span>
+                <span className="text-slate-600 dark:text-slate-400">Total Scans Executed:</span>
                 <strong className="text-slate-900 dark:text-white font-bold">
-                  {scansUsed} / {scansLimit}
+                  {scansUsed} scans
                 </strong>
               </div>
-              <div className="w-full h-3 rounded-full bg-slate-100 dark:bg-slate-950 overflow-hidden border border-slate-200 dark:border-slate-800">
-                <div
-                  className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-500"
-                  style={{ width: `${pct}%` }}
-                />
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-slate-600 dark:text-slate-400">Scan Usage Limit:</span>
+                <span className="font-bold text-emerald-500 dark:text-emerald-400">
+                  Unlimited (No Restrictions)
+                </span>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-2">
+            <div className="grid grid-cols-2 gap-3 pt-1">
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] text-slate-500 block">Allowance:</span>
+                <span className="text-[10px] text-slate-500 block">Rate Capacity:</span>
                 <span className="text-sm font-bold text-slate-900 dark:text-white">
-                  10 Free Uses
+                  60 req/min
                 </span>
               </div>
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] text-slate-500 block">Rate Limit:</span>
+                <span className="text-[10px] text-slate-500 block">Burst Allowance:</span>
                 <span className="text-sm font-bold text-emerald-500 dark:text-emerald-400">
-                  20 req/min
+                  High Throughput
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="pt-2">
-            <button
-              onClick={handleRequestUpgrade}
-              disabled={isUpgradingQuota}
-              className="w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-neon-cyan transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              {isUpgradingQuota ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <>
-                  <Zap className="w-4 h-4" />
-                  <span>⚡ 1-Click Request Additional Uses</span>
-                </>
-              )}
-            </button>
+          <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold flex items-center justify-center gap-2">
+            <Zap className="w-4 h-4" />
+            <span>Open Access: No Payments or Artificial Scan Caps</span>
           </div>
         </div>
       </div>

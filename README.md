@@ -63,7 +63,7 @@ ADMIN_PASSWORD=YourStrongSecretPassword123!
 * **🤖 Raksha AI Copilot:** Interactive defensive AI assistant with 4 incident containment playbooks.
 * **🏢 Website Security Audit:** TLS certificate validation and HTTP security headers compliance (A+ to F grades).
 * **🎨 Dual Themes:** Dark Obsidian Cyber Mode & High-Contrast Light Mode.
-* **🔑 Developer Threat API & Quotas:** Rate limit quotas (10 uses allowance per user) with Developer API key manager.
+* **🔑 Developer Threat API:** Open programmatic threat detection with live API key manager and multi-language code snippets.
 * **🔐 Official Admin SOC Portal:** Custom IOC threat signature manager, SSRF defense audit logs, and user access control.
 
 ---
