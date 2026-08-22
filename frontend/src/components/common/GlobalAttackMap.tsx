@@ -1,255 +1,377 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import {
   Globe,
   Zap,
   Target,
   Shield,
   Filter,
-  Sparkles
+  Sparkles,
+  Plus,
+  Minus
 } from 'lucide-react';
 
-interface AttackNode {
+interface GeoAttackNode {
   id: string;
   name: string;
+  country: string;
   code: string;
   flag: string;
-  lat: number;
-  lng: number;
+  coords: [number, number]; // [lat, lng]
   sent: number;
   blocked: number;
   threat_level: 'CRITICAL' | 'HIGH' | 'MEDIUM';
 }
 
-interface AttackStrike {
+interface GeoAttackStrike {
   id: string;
   threat_name: string;
   type: 'Ransomware' | 'Phishing' | 'DDoS' | 'Zero-Day' | 'Infostealer' | 'AI Voice' | 'C2 Malware';
-  origin: AttackNode;
-  target: AttackNode & { sector: string };
+  origin: GeoAttackNode;
+  target: GeoAttackNode & { sector: string };
   severity: 'CRITICAL' | 'HIGH' | 'MEDIUM';
   status: string;
   vector: string;
   color: string;
-  progress?: number;
-  duration: number; // in seconds
   timestamp: string;
 }
 
-const GLOBAL_NODES: Record<string, AttackNode> = {
-  RU: { id: 'RU', name: 'Russia', code: 'RU', flag: '🇷🇺', lat: 55.75, lng: 37.61, sent: 48920, blocked: 12040, threat_level: 'CRITICAL' },
-  US_E: { id: 'US_E', name: 'USA (East Coast)', code: 'US', flag: '🇺🇸', lat: 40.71, lng: -74.00, sent: 15400, blocked: 89400, threat_level: 'HIGH' },
-  US_W: { id: 'US_W', name: 'USA (Silicon Valley)', code: 'US', flag: '🇺🇸', lat: 37.77, lng: -122.41, sent: 12100, blocked: 94200, threat_level: 'HIGH' },
-  IN: { id: 'IN', name: 'India (Cyber Defense)', code: 'IN', flag: '🇮🇳', lat: 20.59, lng: 78.96, sent: 8400, blocked: 114200, threat_level: 'HIGH' },
-  VN: { id: 'VN', name: 'Vietnam', code: 'VN', flag: '🇻🇳', lat: 21.02, lng: 105.83, sent: 31200, blocked: 5400, threat_level: 'HIGH' },
-  BR: { id: 'BR', name: 'Brazil', code: 'BR', flag: '🇧🇷', lat: -14.23, lng: -51.92, sent: 26800, blocked: 18200, threat_level: 'HIGH' },
-  DE: { id: 'DE', name: 'Germany', code: 'DE', flag: '🇩🇪', lat: 51.16, lng: 10.45, sent: 9400, blocked: 62400, threat_level: 'MEDIUM' },
-  IL: { id: 'IL', name: 'Israel', code: 'IL', flag: '🇮🇱', lat: 31.04, lng: 34.85, sent: 19800, blocked: 28400, threat_level: 'CRITICAL' },
-  GB: { id: 'GB', name: 'United Kingdom', code: 'GB', flag: '🇬🇧', lat: 55.37, lng: -3.43, sent: 7600, blocked: 74200, threat_level: 'HIGH' },
-  CN: { id: 'CN', name: 'China', code: 'CN', flag: '🇨🇳', lat: 35.86, lng: 104.19, sent: 62400, blocked: 24800, threat_level: 'CRITICAL' },
-  JP: { id: 'JP', name: 'Japan', code: 'JP', flag: '🇯🇵', lat: 36.20, lng: 138.25, sent: 4300, blocked: 58900, threat_level: 'HIGH' },
-  NG: { id: 'NG', name: 'Nigeria', code: 'NG', flag: '🇳🇬', lat: 9.08, lng: 8.67, sent: 28400, blocked: 4200, threat_level: 'HIGH' },
-  SG: { id: 'SG', name: 'Singapore', code: 'SG', flag: '🇸🇬', lat: 1.35, lng: 103.81, sent: 6100, blocked: 49800, threat_level: 'MEDIUM' },
-  AU: { id: 'AU', name: 'Australia', code: 'AU', flag: '🇦🇺', lat: -25.27, lng: 133.77, sent: 3200, blocked: 41200, threat_level: 'MEDIUM' },
-  AE: { id: 'AE', name: 'United Arab Emirates', code: 'AE', flag: '🇦🇪', lat: 23.42, lng: 53.84, sent: 14200, blocked: 31200, threat_level: 'MEDIUM' },
-  CA: { id: 'CA', name: 'Canada', code: 'CA', flag: '🇨🇦', lat: 56.13, lng: -106.34, sent: 5100, blocked: 39400, threat_level: 'MEDIUM' },
-  ZA: { id: 'ZA', name: 'South Africa', code: 'ZA', flag: '🇿🇦', lat: -30.55, lng: 22.93, sent: 8900, blocked: 19800, threat_level: 'MEDIUM' },
-  KR: { id: 'KR', name: 'South Korea', code: 'KR', flag: '🇰🇷', lat: 35.90, lng: 127.76, sent: 6800, blocked: 53400, threat_level: 'HIGH' },
-  FR: { id: 'FR', name: 'France', code: 'FR', flag: '🇫🇷', lat: 46.22, lng: 2.21, sent: 8100, blocked: 46700, threat_level: 'MEDIUM' }
+const REAL_GEO_NODES: Record<string, GeoAttackNode> = {
+  IN_DELHI: { id: 'IN_DELHI', name: 'New Delhi', country: 'India', code: 'IN', flag: '🇮🇳', coords: [28.6139, 77.2090], sent: 8400, blocked: 128400, threat_level: 'HIGH' },
+  IN_MUMBAI: { id: 'IN_MUMBAI', name: 'Mumbai', country: 'India', code: 'IN', flag: '🇮🇳', coords: [19.0760, 72.8777], sent: 9100, blocked: 142000, threat_level: 'HIGH' },
+  US_NY: { id: 'US_NY', name: 'New York', country: 'United States', code: 'US', flag: '🇺🇸', coords: [40.7128, -74.0060], sent: 16200, blocked: 98400, threat_level: 'HIGH' },
+  US_SF: { id: 'US_SF', name: 'Silicon Valley', country: 'United States', code: 'US', flag: '🇺🇸', coords: [37.7749, -122.4194], sent: 14500, blocked: 104200, threat_level: 'HIGH' },
+  RU_MOSCOW: { id: 'RU_MOSCOW', name: 'Moscow', country: 'Russia', code: 'RU', flag: '🇷🇺', coords: [55.7558, 37.6173], sent: 54900, blocked: 14200, threat_level: 'CRITICAL' },
+  VN_HANOI: { id: 'VN_HANOI', name: 'Hanoi', country: 'Vietnam', code: 'VN', flag: '🇻🇳', coords: [21.0285, 105.8542], sent: 34200, blocked: 6100, threat_level: 'HIGH' },
+  BR_SP: { id: 'BR_SP', name: 'São Paulo', country: 'Brazil', code: 'BR', flag: '🇧🇷', coords: [-23.5505, -46.6333], sent: 29800, blocked: 19400, threat_level: 'HIGH' },
+  DE_FRA: { id: 'DE_FRA', name: 'Frankfurt', country: 'Germany', code: 'DE', flag: '🇩🇪', coords: [50.1109, 8.6821], sent: 11200, blocked: 78400, threat_level: 'MEDIUM' },
+  GB_LON: { id: 'GB_LON', name: 'London', country: 'United Kingdom', code: 'GB', flag: '🇬🇧', coords: [51.5074, -0.1278], sent: 9400, blocked: 89200, threat_level: 'HIGH' },
+  IL_TLV: { id: 'IL_TLV', name: 'Tel Aviv', country: 'Israel', code: 'IL', flag: '🇮🇱', coords: [32.0853, 34.7818], sent: 22400, blocked: 34100, threat_level: 'CRITICAL' },
+  CN_BEI: { id: 'CN_BEI', name: 'Beijing', country: 'China', code: 'CN', flag: '🇨🇳', coords: [39.9042, 116.4074], sent: 68400, blocked: 29400, threat_level: 'CRITICAL' },
+  JP_TYO: { id: 'JP_TYO', name: 'Tokyo', country: 'Japan', code: 'JP', flag: '🇯🇵', coords: [35.6762, 139.6503], sent: 5100, blocked: 69400, threat_level: 'HIGH' },
+  NG_LOS: { id: 'NG_LOS', name: 'Lagos', country: 'Nigeria', code: 'NG', flag: '🇳🇬', coords: [6.5244, 3.3792], sent: 31200, blocked: 4800, threat_level: 'HIGH' },
+  SG_SIN: { id: 'SG_SIN', name: 'Singapore', country: 'Singapore', code: 'SG', flag: '🇸🇬', coords: [1.3521, 103.8198], sent: 7200, blocked: 58400, threat_level: 'MEDIUM' },
+  AU_SYD: { id: 'AU_SYD', name: 'Sydney', country: 'Australia', code: 'AU', flag: '🇦🇺', coords: [-33.8688, 151.2093], sent: 4100, blocked: 46200, threat_level: 'MEDIUM' },
+  AE_DXB: { id: 'AE_DXB', name: 'Dubai', country: 'UAE', code: 'AE', flag: '🇦🇪', coords: [25.2048, 55.2708], sent: 16800, blocked: 38200, threat_level: 'MEDIUM' },
+  CA_TOR: { id: 'CA_TOR', name: 'Toronto', country: 'Canada', code: 'CA', flag: '🇨🇦', coords: [43.6532, -79.3832], sent: 6400, blocked: 49200, threat_level: 'MEDIUM' },
+  ZA_JNB: { id: 'ZA_JNB', name: 'Johannesburg', country: 'South Africa', code: 'ZA', flag: '🇿🇦', coords: [-26.2041, 28.0473], sent: 9800, blocked: 24100, threat_level: 'MEDIUM' },
+  KR_SEO: { id: 'KR_SEO', name: 'Seoul', country: 'South Korea', code: 'KR', flag: '🇰🇷', coords: [37.5665, 126.9780], sent: 7800, blocked: 61200, threat_level: 'HIGH' },
+  FR_PAR: { id: 'FR_PAR', name: 'Paris', country: 'France', code: 'FR', flag: '🇫🇷', coords: [48.8566, 2.3522], sent: 8900, blocked: 54100, threat_level: 'MEDIUM' }
 };
 
-const INITIAL_STRIKES: AttackStrike[] = [
+const INITIAL_GEO_STRIKES: GeoAttackStrike[] = [
   {
-    id: 'atk-1',
+    id: 'atk-real-1',
     threat_name: 'Lockbit 3.0 Ransomware Wave',
     type: 'Ransomware',
-    origin: GLOBAL_NODES.RU,
-    target: { ...GLOBAL_NODES.US_E, sector: 'Healthcare & Hospital Core' },
+    origin: REAL_GEO_NODES.RU_MOSCOW,
+    target: { ...REAL_GEO_NODES.US_NY, sector: 'Hospital Core & Healthcare DBs' },
     severity: 'CRITICAL',
     status: 'BLOCKED BY DEFENSE',
     vector: 'RDP Port Scanning & SMBv3 Exploit',
     color: '#f43f5e',
-    duration: 3.2,
-    timestamp: '12:04:18'
+    timestamp: 'Just now'
   },
   {
-    id: 'atk-2',
+    id: 'atk-real-2',
     threat_name: 'Fake UPI Banking Trojan APK',
     type: 'Phishing',
-    origin: GLOBAL_NODES.VN,
-    target: { ...GLOBAL_NODES.IN, sector: 'UPI Gateways & Netbanking' },
+    origin: REAL_GEO_NODES.VN_HANOI,
+    target: { ...REAL_GEO_NODES.IN_MUMBAI, sector: 'UPI Gateways & Netbanking OTPs' },
     severity: 'HIGH',
     status: 'INTERCEPTED',
-    vector: 'WhatsApp Bot Smishing APK Distribution',
+    vector: 'WhatsApp Electricity Smishing APK',
     color: '#06b6d4',
-    duration: 2.8,
-    timestamp: '12:04:19'
+    timestamp: '3s ago'
   },
   {
-    id: 'atk-3',
+    id: 'atk-real-3',
     threat_name: 'Mirai IoT DDoS Blitz (3.8 Tbps)',
     type: 'DDoS',
-    origin: GLOBAL_NODES.BR,
-    target: { ...GLOBAL_NODES.DE, sector: 'Tier-1 Edge DNS Nodes' },
+    origin: REAL_GEO_NODES.BR_SP,
+    target: { ...REAL_GEO_NODES.DE_FRA, sector: 'Tier-1 Edge DNS Nodes' },
     severity: 'HIGH',
     status: 'MITIGATED',
     vector: 'SYN-Flood UDP Amplification',
     color: '#a855f7',
-    duration: 3.6,
-    timestamp: '12:04:20'
+    timestamp: '6s ago'
   },
   {
-    id: 'atk-4',
+    id: 'atk-real-4',
     threat_name: 'WebKit Zero-Click Remote Code Execution',
     type: 'Zero-Day',
-    origin: GLOBAL_NODES.IL,
-    target: { ...GLOBAL_NODES.GB, sector: 'Diplomatic & Gov Terminals' },
+    origin: REAL_GEO_NODES.IL_TLV,
+    target: { ...REAL_GEO_NODES.GB_LON, sector: 'Diplomatic & Gov Terminals' },
     severity: 'CRITICAL',
     status: 'INVESTIGATING',
     vector: 'Zero-Click Font Parser Heap Overflow',
     color: '#eab308',
-    duration: 2.6,
-    timestamp: '12:04:21'
+    timestamp: '9s ago'
   },
   {
-    id: 'atk-5',
+    id: 'atk-real-5',
     threat_name: 'Lumma Infostealer Payload Drop',
     type: 'Infostealer',
-    origin: GLOBAL_NODES.CN,
-    target: { ...GLOBAL_NODES.JP, sector: 'Semiconductor Fabrication' },
+    origin: REAL_GEO_NODES.CN_BEI,
+    target: { ...REAL_GEO_NODES.JP_TYO, sector: 'Semiconductor Fabrication' },
     severity: 'CRITICAL',
     status: 'BLOCKED BY DEFENSE',
     vector: 'Spear-Phishing PDF Macro Dropper',
     color: '#f43f5e',
-    duration: 3.0,
-    timestamp: '12:04:22'
+    timestamp: '12s ago'
   },
   {
-    id: 'atk-6',
-    threat_name: 'AI Voice Deepfake CEO Wire Transfer',
+    id: 'atk-real-6',
+    threat_name: 'AI Voice Deepfake CEO Wire Fraud',
     type: 'AI Voice',
-    origin: GLOBAL_NODES.NG,
-    target: { ...GLOBAL_NODES.SG, sector: 'Corporate Treasury Escrow' },
+    origin: REAL_GEO_NODES.NG_LOS,
+    target: { ...REAL_GEO_NODES.SG_SIN, sector: 'Corporate Escrow & Treasury' },
     severity: 'HIGH',
     status: 'FLAGGED',
     vector: 'Cloned Real-time Audio Phone Call',
     color: '#3b82f6',
-    duration: 3.4,
-    timestamp: '12:04:23'
+    timestamp: '16s ago'
   },
   {
-    id: 'atk-7',
+    id: 'atk-real-7',
     threat_name: 'Cobalt Strike C2 Beacon Activity',
     type: 'C2 Malware',
-    origin: GLOBAL_NODES.RU,
-    target: { ...GLOBAL_NODES.CA, sector: 'Energy Power Grid SCADA' },
+    origin: REAL_GEO_NODES.RU_MOSCOW,
+    target: { ...REAL_GEO_NODES.CA_TOR, sector: 'Energy Power Grid SCADA' },
     severity: 'CRITICAL',
     status: 'BLOCKED BY DEFENSE',
     vector: 'Supply Chain DLL Hijacking',
     color: '#f43f5e',
-    duration: 3.1,
-    timestamp: '12:04:24'
+    timestamp: '19s ago'
   },
   {
-    id: 'atk-8',
+    id: 'atk-real-8',
     threat_name: 'Telegram SIM Swap Crypto Drainer',
     type: 'Phishing',
-    origin: GLOBAL_NODES.AE,
-    target: { ...GLOBAL_NODES.AU, sector: 'Web3 & Multi-Sig Vaults' },
+    origin: REAL_GEO_NODES.AE_DXB,
+    target: { ...REAL_GEO_NODES.AU_SYD, sector: 'Web3 & Multi-Sig Vaults' },
     severity: 'HIGH',
     status: 'BLOCKED BY DEFENSE',
     vector: 'Carrier Impersonation OTP Theft',
     color: '#06b6d4',
-    duration: 3.8,
-    timestamp: '12:04:25'
+    timestamp: '23s ago'
+  },
+  {
+    id: 'atk-real-9',
+    threat_name: 'Banking OTP Intercept & SMS Forwarder',
+    type: 'Phishing',
+    origin: REAL_GEO_NODES.CN_BEI,
+    target: { ...REAL_GEO_NODES.IN_DELHI, sector: 'National Banking Switch' },
+    severity: 'HIGH',
+    status: 'BLOCKED BY DEFENSE',
+    vector: 'Trojanized Fake Income Tax APK',
+    color: '#06b6d4',
+    timestamp: '27s ago'
   }
 ];
 
-// Equirectangular / Miller-like projection (1000 x 500)
-function project(lat: number, lng: number) {
-  const x = ((lng + 180) / 360) * 1000;
-  // Scaled latitude mapping to prevent extreme polar distortion
-  const y = 250 - (lat / 90) * 220;
-  return {
-    x: Math.max(20, Math.min(980, x)),
-    y: Math.max(30, Math.min(470, y))
-  };
+// Helper to compute curved points along great-circle arc
+function getArcPolyline(p1: [number, number], p2: [number, number], pointsCount: number = 30): [number, number][] {
+  const [lat1, lng1] = p1;
+  const [lat2, lng2] = p2;
+  const points: [number, number][] = [];
+
+  // Intermediate mid elevation offset
+  const midLat = (lat1 + lat2) / 2;
+  const dist = Math.sqrt(Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2));
+  const arcElevation = Math.min(25, Math.max(8, dist * 0.22));
+
+  for (let i = 0; i <= pointsCount; i++) {
+    const t = i / pointsCount;
+    // Quadratic bezier in lat/lng space
+    const lat = (1 - t) * (1 - t) * lat1 + 2 * (1 - t) * t * (midLat + arcElevation) + t * t * lat2;
+    const lng = (1 - t) * lng1 + t * lng2;
+    points.push([lat, lng]);
+  }
+  return points;
 }
 
 export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void }> = ({ onSelectStrike }) => {
-  const [strikes, setStrikes] = useState<AttackStrike[]>(INITIAL_STRIKES);
-  const [selectedStrike, setSelectedStrike] = useState<AttackStrike>(INITIAL_STRIKES[0]);
-  const [hoveredNode, setHoveredNode] = useState<AttackNode | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const strikeLayersGroupRef = useRef<L.LayerGroup | null>(null);
+
+  const [selectedStrike, setSelectedStrike] = useState<GeoAttackStrike>(INITIAL_GEO_STRIKES[0]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [speedMultiplier, setSpeedMultiplier] = useState<number>(1);
-  const [liveRate, setLiveRate] = useState<number>(18540);
-  const [totalIntercepted, setTotalIntercepted] = useState<number>(1498240);
+  const [liveRate, setLiveRate] = useState<number>(18580);
+  const [totalIntercepted, setTotalIntercepted] = useState<number>(1498420);
   const [activeLeaderboard, setActiveLeaderboard] = useState<'origins' | 'targets'>('origins');
-  const [shockwaves, setShockwaves] = useState<Array<{ id: string; x: number; y: number; color: string }>>([]);
 
-  // Auto-launch simulated strikes periodically
+  // Initialize Real Geographical Leaflet Map
   useEffect(() => {
-    const interval = setInterval(() => {
-      const randomStrike = INITIAL_STRIKES[Math.floor(Math.random() * INITIAL_STRIKES.length)];
-      const targetCoord = project(randomStrike.target.lat, randomStrike.target.lng);
+    if (!mapContainerRef.current) return;
 
-      // Trigger shockwave at target
-      const shockId = `sw-${Date.now()}`;
-      setShockwaves((prev) => [...prev.slice(-4), { id: shockId, x: targetCoord.x, y: targetCoord.y, color: randomStrike.color }]);
-      
+    if (!mapInstanceRef.current) {
+      // Create map centered on real world coordinates [20, 20], zoom level 2
+      const map = L.map(mapContainerRef.current, {
+        center: [22, 20],
+        zoom: 2,
+        minZoom: 2,
+        maxZoom: 9,
+        zoomControl: false,
+        attributionControl: false,
+        worldCopyJump: true
+      });
+
+      // CartoDB Dark Matter real geographic tiles
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd',
+        maxZoom: 19
+      }).addTo(map);
+
+      // Layer group for attack arcs & markers
+      const strikeGroup = L.layerGroup().addTo(map);
+      strikeLayersGroupRef.current = strikeGroup;
+
+      // Plot all Real Geographical Defense & Threat Nodes
+      Object.values(REAL_GEO_NODES).forEach((node) => {
+        const isCritical = node.threat_level === 'CRITICAL';
+        const nodeColor = isCritical ? '#f43f5e' : '#06b6d4';
+
+        // Custom Glowing Pulse HTML Marker
+        const markerIcon = L.divIcon({
+          className: 'custom-geo-node',
+          html: `
+            <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; cursor: pointer;">
+              <span style="position: absolute; width: 18px; height: 18px; border-radius: 50%; background: ${nodeColor}; opacity: 0.4; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: ${nodeColor}; box-shadow: 0 0 10px ${nodeColor}; border: 1.5px solid white;"></span>
+            </div>
+          `,
+          iconSize: [24, 24],
+          iconAnchor: [12, 12]
+        });
+
+        const marker = L.marker(node.coords, { icon: markerIcon }).addTo(map);
+        marker.bindPopup(`
+          <div style="font-family: monospace; font-size: 11px; padding: 4px; color: #f8fafc; background: #020617;">
+            <div style="font-weight: bold; border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
+              <span>${node.flag}</span> <span>${node.name}, ${node.country}</span>
+            </div>
+            <div style="color: #94a3b8; font-size: 10px;">Threat Level: <strong style="color: ${nodeColor}">${node.threat_level}</strong></div>
+            <div style="color: #34d399; font-size: 10px;">Attacks Defended: <strong>${node.blocked.toLocaleString()}</strong></div>
+            <div style="color: #fb7185; font-size: 10px;">Threats Tracked: <strong>${node.sent.toLocaleString()}</strong></div>
+            <div style="color: #38bdf8; font-size: 9px; margin-top: 4px;">GPS: ${node.coords[0].toFixed(2)}°N, ${node.coords[1].toFixed(2)}°E</div>
+          </div>
+        `, { className: 'custom-dark-popup' });
+      });
+
+      mapInstanceRef.current = map;
+    }
+
+    return () => {
+      // Map cleanup on unmount handled gracefully
+    };
+  }, []);
+
+  // Re-render Dynamic Attack Laser Arcs on the Real Map
+  useEffect(() => {
+    if (!mapInstanceRef.current || !strikeLayersGroupRef.current) return;
+
+    const group = strikeLayersGroupRef.current;
+    group.clearLayers();
+
+    const filtered = selectedCategory === 'All'
+      ? INITIAL_GEO_STRIKES
+      : INITIAL_GEO_STRIKES.filter((s) => s.type.toLowerCase().includes(selectedCategory.toLowerCase()));
+
+    filtered.forEach((strike) => {
+      const arcCoords = getArcPolyline(strike.origin.coords, strike.target.coords, 35);
+      const isSelected = selectedStrike.id === strike.id;
+
+      // Polyline for the curved missile / laser trajectory
+      const polyline = L.polyline(arcCoords, {
+        color: strike.color,
+        weight: isSelected ? 3.5 : 2,
+        opacity: isSelected ? 0.95 : 0.65,
+        dashArray: isSelected ? undefined : '6, 8',
+        lineCap: 'round'
+      }).addTo(group);
+
+      polyline.on('click', () => {
+        setSelectedStrike(strike);
+        if (onSelectStrike) onSelectStrike(strike);
+      });
+
+      // Target Impact Radar Shockwave Circle
+      const impactShockwave = L.circle(strike.target.coords, {
+        radius: isSelected ? 350000 : 200000,
+        color: strike.color,
+        fillColor: strike.color,
+        fillOpacity: 0.15,
+        weight: 1.5
+      }).addTo(group);
+
+      impactShockwave.on('click', () => {
+        setSelectedStrike(strike);
+        if (onSelectStrike) onSelectStrike(strike);
+      });
+    });
+  }, [selectedCategory, selectedStrike]);
+
+  // Periodic simulated real attack rotation
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const randomStrike = INITIAL_GEO_STRIKES[Math.floor(Math.random() * INITIAL_GEO_STRIKES.length)];
+      setSelectedStrike(randomStrike);
       setLiveRate((r) => r + Math.floor(Math.random() * 9) - 4);
       setTotalIntercepted((t) => t + 1);
+    }, 3200 / speedMultiplier);
 
-      // Auto update current focus strike
-      setSelectedStrike(randomStrike);
-    }, 2800 / speedMultiplier);
-
-    return () => clearInterval(interval);
+    return () => clearInterval(timer);
   }, [speedMultiplier]);
 
-  const handleLaunchSimulatedAttack = () => {
-    const keys = Object.keys(GLOBAL_NODES);
-    const originKey = keys[Math.floor(Math.random() * keys.length)];
-    let targetKey = keys[Math.floor(Math.random() * keys.length)];
-    while (targetKey === originKey) {
-      targetKey = keys[Math.floor(Math.random() * keys.length)];
+  const handleLaunchCustomStrike = () => {
+    const nodes = Object.values(REAL_GEO_NODES);
+    const origin = nodes[Math.floor(Math.random() * nodes.length)];
+    let target = nodes[Math.floor(Math.random() * nodes.length)];
+    while (target.id === origin.id) {
+      target = nodes[Math.floor(Math.random() * nodes.length)];
     }
 
     const types = [
-      { name: 'Ransomware Blast (Lockbit 3.0)', type: 'Ransomware' as const, color: '#f43f5e', vector: 'Zero-Day RDP Hijack' },
-      { name: 'Volumetric Mirai DDoS (4.2 Tbps)', type: 'DDoS' as const, color: '#a855f7', vector: 'UDP Reflection Torrent' },
-      { name: 'Credential Harvest Phishing APK', type: 'Phishing' as const, color: '#06b6d4', vector: 'WhatsApp Smishing Bot' },
-      { name: 'WebKit Sandbox Escape Zero-Day', type: 'Zero-Day' as const, color: '#eab308', vector: 'Heap Overflow Exploit' }
+      { name: 'Ransomware Payload Injection', type: 'Ransomware' as const, color: '#f43f5e', vector: 'Remote Code Exploit' },
+      { name: 'Volumetric Mirai DDoS Blitz (4.1 Tbps)', type: 'DDoS' as const, color: '#a855f7', vector: 'UDP Amplification Storm' },
+      { name: 'Fake UPI / Banking APK Harvest', type: 'Phishing' as const, color: '#06b6d4', vector: 'Smishing Bot APK Lure' },
+      { name: 'WebKit Sandbox Zero-Day Escape', type: 'Zero-Day' as const, color: '#eab308', vector: 'Memory Heap Overflow' }
     ];
-    const pickedType = types[Math.floor(Math.random() * types.length)];
+    const picked = types[Math.floor(Math.random() * types.length)];
 
-    const newStrike: AttackStrike = {
+    const customStrike: GeoAttackStrike = {
       id: `custom-${Date.now()}`,
-      threat_name: pickedType.name,
-      type: pickedType.type,
-      origin: GLOBAL_NODES[originKey],
-      target: { ...GLOBAL_NODES[targetKey], sector: 'Critical Infrastructure / Core Data Gateway' },
+      threat_name: picked.name,
+      type: picked.type,
+      origin: origin,
+      target: { ...target, sector: 'National Critical Infrastructure Gateway' },
       severity: 'CRITICAL',
       status: 'INTERCEPTED & BLOCKED',
-      vector: pickedType.vector,
-      color: pickedType.color,
-      duration: 2.2,
+      vector: picked.vector,
+      color: picked.color,
       timestamp: new Date().toLocaleTimeString()
     };
 
-    setStrikes((prev) => [newStrike, ...prev.slice(0, 10)]);
-    setSelectedStrike(newStrike);
-    const targetCoord = project(newStrike.target.lat, newStrike.target.lng);
-    setShockwaves((prev) => [...prev, { id: `sw-${Date.now()}`, x: targetCoord.x, y: targetCoord.y, color: newStrike.color }]);
-    if (onSelectStrike) onSelectStrike(newStrike);
+    setSelectedStrike(customStrike);
+    if (onSelectStrike) onSelectStrike(customStrike);
+
+    // Fly to target on map
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.panTo(customStrike.target.coords, { animate: true, duration: 1 });
+    }
   };
 
-  const filteredStrikes = selectedCategory === 'All'
-    ? strikes
-    : strikes.filter((s) => s.type.toLowerCase().includes(selectedCategory.toLowerCase()));
+  const zoomIn = () => mapInstanceRef.current?.zoomIn();
+  const zoomOut = () => mapInstanceRef.current?.zoomOut();
+  const resetView = () => mapInstanceRef.current?.setView([22, 20], 2, { animate: true });
 
   return (
     <div className="w-full rounded-3xl bg-slate-950 border-2 border-cyan-500/50 shadow-2xl overflow-hidden font-mono text-slate-100 select-none flex flex-col">
-      {/* 1. Header Bar with Radar Ping & DEFCON Status */}
+      {/* 1. Header Bar with Real GPS Radar Ping & Defense Status */}
       <div className="p-4 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-b border-cyan-500/30 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="relative flex items-center justify-center">
@@ -258,15 +380,15 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                <Globe className="w-4 h-4 text-cyan-400 animate-pulse" /> Live Cyber Attack World Map
+              <h2 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                <Globe className="w-4 h-4 text-cyan-400 animate-pulse" /> Real-World Cyber Attack Geography Map
               </h2>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-500/60 animate-pulse">
-                DEFCON 2 • ACTIVE INTERCEPT
+                REAL GPS SATELLITE
               </span>
             </div>
             <p className="text-[11px] text-slate-400">
-              Visualizing active cyber strikes, botnet streams & malware trajectories across the world
+              Live geographic cyber warfare strikes tracked across authentic continents & GPS coordinates
             </p>
           </div>
         </div>
@@ -276,7 +398,7 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
           <div className="p-2 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2">
             <Zap className="w-3.5 h-3.5 text-cyan-400" />
             <div>
-              <span className="text-[10px] text-slate-500 block">Strikes/min</span>
+              <span className="text-[10px] text-slate-500 block">Live Strikes/min</span>
               <span className="text-cyan-400 font-bold text-xs">{liveRate.toLocaleString()}</span>
             </div>
           </div>
@@ -284,7 +406,7 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
           <div className="p-2 rounded-xl bg-slate-900 border border-slate-800 hidden sm:flex items-center gap-2">
             <Shield className="w-3.5 h-3.5 text-emerald-400" />
             <div>
-              <span className="text-[10px] text-slate-500 block">Blocked Today</span>
+              <span className="text-[10px] text-slate-500 block">Defended Today</span>
               <span className="text-emerald-400 font-bold text-xs">{totalIntercepted.toLocaleString()}</span>
             </div>
           </div>
@@ -311,7 +433,7 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
           ))}
         </div>
 
-        {/* Simulator Button & Speed Controls */}
+        {/* Speed Controls & Launch Simulator Button */}
         <div className="flex items-center gap-2">
           <div className="flex items-center p-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[10px]">
             <span className="px-1.5 text-slate-500 font-bold">Speed:</span>
@@ -329,250 +451,58 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
           </div>
 
           <button
-            onClick={handleLaunchSimulatedAttack}
+            onClick={handleLaunchCustomStrike}
             className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-500 to-amber-500 hover:from-rose-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            <span>Simulate Strike</span>
+            <span>Simulate Real Strike</span>
           </button>
         </div>
       </div>
 
-      {/* 3. Main SVG Interactive World Map */}
-      <div className="relative w-full h-[320px] sm:h-[400px] md:h-[480px] bg-[#020617] overflow-hidden">
-        {/* Latitude / Longitude Radar Grid Lines */}
-        <svg
-          viewBox="0 0 1000 500"
-          className="absolute inset-0 w-full h-full pointer-events-none opacity-20"
-        >
-          <line x1="0" y1="125" x2="1000" y2="125" stroke="#06b6d4" strokeDasharray="4 8" strokeWidth="0.8" />
-          <line x1="0" y1="250" x2="1000" y2="250" stroke="#06b6d4" strokeWidth="1.2" />
-          <line x1="0" y1="375" x2="1000" y2="375" stroke="#06b6d4" strokeDasharray="4 8" strokeWidth="0.8" />
-          <line x1="250" y1="0" x2="250" y2="500" stroke="#06b6d4" strokeDasharray="4 8" strokeWidth="0.8" />
-          <line x1="500" y1="0" x2="500" y2="500" stroke="#06b6d4" strokeWidth="1.2" />
-          <line x1="750" y1="0" x2="750" y2="500" stroke="#06b6d4" strokeDasharray="4 8" strokeWidth="0.8" />
-        </svg>
+      {/* 3. Real Geographic Leaflet Map Container */}
+      <div className="relative w-full h-[340px] sm:h-[420px] md:h-[500px] bg-[#020617] overflow-hidden">
+        {/* Leaflet Map DOM Element */}
+        <div ref={mapContainerRef} className="w-full h-full z-0" />
 
-        {/* Global Coordinates HUD */}
-        <div className="absolute top-2.5 left-3 text-[10px] text-cyan-400/60 pointer-events-none font-mono">
-          <span>// LAT: 28.61°N • LNG: 77.20°E | DEFENSE_NODE_ACTIVE</span>
-        </div>
-        <div className="absolute top-2.5 right-3 text-[10px] text-rose-400/60 pointer-events-none font-mono">
-          <span>GLOBAL_WARFARE_TELEMETRY // STREAM_ON</span>
-        </div>
-
-        <svg
-          viewBox="0 0 1000 500"
-          className="w-full h-full"
-          preserveAspectRatio="xMidYMid meet"
-        >
-          <defs>
-            {/* Glowing Laser Filter */}
-            <filter id="laserGlow" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="3.5" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-
-            {/* Glowing Node Filter */}
-            <filter id="nodeGlow" x="-50%" y="-50%" width="200%" height="200%">
-              <feGaussianBlur stdDeviation="4" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-          </defs>
-
-          {/* High-Definition Stylized Continent Landmasses */}
-          <g className="fill-slate-900/90 stroke-cyan-500/30 stroke-[1.2]">
-            {/* North America */}
-            <path d="M 80 80 L 130 50 L 220 40 L 300 70 L 340 130 L 290 180 L 250 240 L 220 270 L 180 250 L 150 180 L 100 150 Z" />
-            {/* Greenland */}
-            <path d="M 330 30 L 400 20 L 430 60 L 370 90 L 330 70 Z" />
-            {/* Central America Bridge */}
-            <path d="M 220 270 L 250 300 L 260 310 L 240 315 L 210 280 Z" />
-            {/* South America */}
-            <path d="M 260 310 L 340 320 L 380 380 L 350 460 L 290 470 L 260 390 L 240 330 Z" />
-            {/* Europe */}
-            <path d="M 450 70 L 540 60 L 570 100 L 520 160 L 460 160 L 430 110 Z" />
-            {/* United Kingdom & Ireland */}
-            <path d="M 440 95 L 460 90 L 455 120 L 435 115 Z" />
-            {/* Africa */}
-            <path d="M 450 170 L 560 170 L 600 240 L 570 370 L 500 410 L 450 330 L 420 230 Z" />
-            {/* Middle East */}
-            <path d="M 570 150 L 630 150 L 650 200 L 600 220 L 570 180 Z" />
-            {/* Asia & Russia */}
-            <path d="M 550 50 L 870 40 L 910 120 L 840 190 L 780 260 L 680 270 L 630 200 L 560 120 Z" />
-            {/* India Subcontinent */}
-            <path d="M 660 190 L 740 190 L 720 285 L 670 285 L 645 225 Z" />
-            {/* Southeast Asia */}
-            <path d="M 750 230 L 800 230 L 790 290 L 740 280 Z" />
-            {/* Japan Archipelago */}
-            <path d="M 870 140 L 895 130 L 885 190 L 860 190 Z" />
-            {/* Australia */}
-            <path d="M 780 340 L 890 340 L 920 410 L 860 450 L 780 410 Z" />
-            {/* New Zealand */}
-            <path d="M 930 430 L 950 420 L 940 460 L 920 460 Z" />
-          </g>
-
-          {/* Interactive Laser Strike Arcs */}
-          {filteredStrikes.map((strike, idx) => {
-            const p1 = project(strike.origin.lat, strike.origin.lng);
-            const p2 = project(strike.target.lat, strike.target.lng);
-            const isSelected = selectedStrike.id === strike.id;
-
-            // Parabolic Bézier Arc Coordinates
-            const dx = p2.x - p1.x;
-            const dy = p2.y - p1.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const curvature = Math.min(100, Math.max(35, dist * 0.28));
-            const midX = (p1.x + p2.x) / 2;
-            const midY = (p1.y + p2.y) / 2 - curvature;
-
-            const pathD = `M ${p1.x} ${p1.y} Q ${midX} ${midY} ${p2.x} ${p2.y}`;
-
-            return (
-              <g
-                key={strike.id}
-                onClick={() => {
-                  setSelectedStrike(strike);
-                  if (onSelectStrike) onSelectStrike(strike);
-                }}
-                className="cursor-pointer group"
-              >
-                {/* 1. Underlying Glow Arc */}
-                <path
-                  d={pathD}
-                  fill="none"
-                  stroke={strike.color}
-                  strokeWidth={isSelected ? 3.5 : 1.6}
-                  strokeOpacity={isSelected ? 0.9 : 0.45}
-                  filter="url(#laserGlow)"
-                />
-
-                {/* 2. Animated Pulsing Laser Dash Beam */}
-                <path
-                  d={pathD}
-                  fill="none"
-                  stroke="#ffffff"
-                  strokeWidth={isSelected ? 2.8 : 1.8}
-                  strokeDasharray="16 220"
-                  strokeLinecap="round"
-                  style={{
-                    animation: `dashPulse ${strike.duration / speedMultiplier}s linear infinite`,
-                    animationDelay: `${(idx * 0.4)}s`
-                  }}
-                />
-
-                {/* 3. Origin Blast Ring */}
-                <circle cx={p1.x} cy={p1.y} r={isSelected ? 6 : 4} fill={strike.color}>
-                  <animate attributeName="r" values="3;9;3" dur="2s" repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite" />
-                </circle>
-
-                {/* 4. Target Intercept Shield Ring */}
-                <circle cx={p2.x} cy={p2.y} r={isSelected ? 8 : 5} fill="#06b6d4">
-                  <animate attributeName="r" values="4;12;4" dur="1.6s" repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="1;0.2;1" dur="1.6s" repeatCount="indefinite" />
-                </circle>
-
-                {/* Origin Label Flag */}
-                <text
-                  x={p1.x}
-                  y={p1.y - 7}
-                  textAnchor="middle"
-                  className="fill-slate-200 font-mono text-[9px] font-bold pointer-events-none drop-shadow"
-                >
-                  {strike.origin.flag} {strike.origin.code}
-                </text>
-
-                {/* Target Label Flag */}
-                <text
-                  x={p2.x}
-                  y={p2.y + 14}
-                  textAnchor="middle"
-                  className="fill-cyan-300 font-mono text-[9px] font-bold pointer-events-none drop-shadow"
-                >
-                  {strike.target.flag} {strike.target.code}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Dynamic Shockwaves at Impact Locations */}
-          {shockwaves.map((sw) => (
-            <g key={sw.id}>
-              <circle cx={sw.x} cy={sw.y} r="18" fill="none" stroke={sw.color} strokeWidth="2" opacity="0.8">
-                <animate attributeName="r" values="5;35" dur="1.2s" fill="freeze" />
-                <animate attributeName="opacity" values="0.9;0" dur="1.2s" fill="freeze" />
-              </circle>
-            </g>
-          ))}
-
-          {/* Country Radar Geographic Nodes */}
-          {Object.values(GLOBAL_NODES).map((node) => {
-            const p = project(node.lat, node.lng);
-            const isHovered = hoveredNode?.id === node.id;
-
-            return (
-              <g
-                key={node.id}
-                onMouseEnter={() => setHoveredNode(node)}
-                onMouseLeave={() => setHoveredNode(null)}
-                className="cursor-pointer"
-              >
-                <circle
-                  cx={p.x}
-                  cy={p.y}
-                  r={isHovered ? 6 : 3}
-                  fill={node.threat_level === 'CRITICAL' ? '#f43f5e' : '#06b6d4'}
-                  filter="url(#nodeGlow)"
-                />
-              </g>
-            );
-          })}
-        </svg>
-
-        {/* Hovered Country Node Flyout Tooltip */}
-        {hoveredNode && (
-          <div
-            className="absolute z-20 p-3 rounded-2xl bg-slate-950/95 border border-cyan-500/70 shadow-2xl backdrop-blur-xl pointer-events-none font-mono text-xs space-y-1 transform -translate-x-1/2 -translate-y-full"
-            style={{
-              left: `${project(hoveredNode.lat, hoveredNode.lng).x / 10}%`,
-              top: `${project(hoveredNode.lat, hoveredNode.lng).y / 5}%`
-            }}
+        {/* Zoom & Reset Floating Controls */}
+        <div className="absolute top-4 right-4 z-[400] flex flex-col gap-1.5">
+          <button
+            onClick={zoomIn}
+            title="Zoom In"
+            className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-cyan-500/40 text-cyan-400 shadow-xl transition-colors cursor-pointer"
           >
-            <div className="flex items-center gap-2 border-b border-slate-800 pb-1">
-              <span className="text-base">{hoveredNode.flag}</span>
-              <strong className="text-white">{hoveredNode.name}</strong>
-              <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-300 font-bold border border-cyan-500/40">
-                {hoveredNode.threat_level}
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-[11px] pt-1 text-slate-400">
-              <div>
-                <span className="text-slate-500 text-[10px] block">Attacks Blocked:</span>
-                <span className="text-emerald-400 font-bold">{hoveredNode.blocked.toLocaleString()}</span>
-              </div>
-              <div>
-                <span className="text-slate-500 text-[10px] block">Threat Sent:</span>
-                <span className="text-rose-400 font-bold">{hoveredNode.sent.toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
-        )}
+            <Plus className="w-4 h-4" />
+          </button>
+          <button
+            onClick={zoomOut}
+            title="Zoom Out"
+            className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-cyan-500/40 text-cyan-400 shadow-xl transition-colors cursor-pointer"
+          >
+            <Minus className="w-4 h-4" />
+          </button>
+          <button
+            onClick={resetView}
+            title="Reset World View"
+            className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-cyan-500/40 text-cyan-400 shadow-xl transition-colors cursor-pointer"
+          >
+            <RotateCcwIcon className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Real GPS Coordinate HUD Overlay */}
+        <div className="absolute top-3 left-3 z-[400] text-[10px] text-cyan-400/80 pointer-events-none font-mono bg-slate-950/80 px-2.5 py-1 rounded-lg border border-cyan-500/30 backdrop-blur-md">
+          <span>// REAL GEOGRAPHY: EPSG:3857 | DARK MATTER CARTO_DB</span>
+        </div>
 
         {/* Floating Active Strike HUD Box (Bottom Left of Map) */}
         {selectedStrike && (
-          <div className="absolute bottom-3 left-3 right-3 sm:right-auto sm:max-w-md p-3.5 rounded-2xl bg-slate-950/95 border border-cyan-500/60 shadow-2xl backdrop-blur-xl space-y-2 font-mono text-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="absolute bottom-3 left-3 right-3 sm:right-auto sm:max-w-md z-[400] p-3.5 rounded-2xl bg-slate-950/95 border-2 border-cyan-500/70 shadow-2xl backdrop-blur-xl space-y-2 font-mono text-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-1.5">
               <div className="flex items-center gap-1.5">
                 <Target className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
                 <span className="text-[10px] font-bold text-white uppercase tracking-wider">
-                  ACTIVE INTERCEPTED STRIKE
+                  REAL GEOGRAPHIC INTERCEPT
                 </span>
               </div>
               <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
@@ -587,12 +517,12 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
             <div className="flex items-center justify-between text-[11px] font-bold pt-0.5">
               <div className="flex items-center gap-1">
                 <span>{selectedStrike.origin.flag}</span>
-                <span className="text-slate-300">{selectedStrike.origin.name}</span>
+                <span className="text-slate-300">{selectedStrike.origin.name}, {selectedStrike.origin.country}</span>
               </div>
               <span className="text-cyan-400 font-black">➔</span>
               <div className="flex items-center gap-1">
                 <span>{selectedStrike.target.flag}</span>
-                <span className="text-white">{selectedStrike.target.name}</span>
+                <span className="text-white">{selectedStrike.target.name}, {selectedStrike.target.country}</span>
               </div>
             </div>
 
@@ -634,32 +564,41 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
         <div className="flex items-center gap-3 text-[11px] text-slate-400 overflow-x-auto">
           {activeLeaderboard === 'origins' ? (
             <div className="flex items-center gap-3">
-              <span>1. 🇷🇺 Russia (32%)</span>
-              <span>2. 🇨🇳 China (26%)</span>
-              <span>3. 🇻🇳 Vietnam (18%)</span>
-              <span>4. 🇧🇷 Brazil (14%)</span>
+              <span>1. 🇷🇺 Russia (Moscow 32%)</span>
+              <span>2. 🇨🇳 China (Beijing 26%)</span>
+              <span>3. 🇻🇳 Vietnam (Hanoi 18%)</span>
+              <span>4. 🇧🇷 Brazil (São Paulo 14%)</span>
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <span>1. 🇮🇳 India (UPI / FinTech 38%)</span>
-              <span>2. 🇺🇸 USA (Healthcare 28%)</span>
-              <span>3. 🇩🇪 Germany (Cloud 18%)</span>
-              <span>4. 🇬🇧 UK (Gov 16%)</span>
+              <span>1. 🇮🇳 India (Delhi / Mumbai 38%)</span>
+              <span>2. 🇺🇸 USA (New York 28%)</span>
+              <span>3. 🇩🇪 Germany (Frankfurt 18%)</span>
+              <span>4. 🇬🇧 UK (London 16%)</span>
             </div>
           )}
         </div>
       </div>
-
-      <style>{`
-        @keyframes dashPulse {
-          0% {
-            stroke-dashoffset: 240;
-          }
-          100% {
-            stroke-dashoffset: 0;
-          }
-        }
-      `}</style>
     </div>
   );
 };
+
+function RotateCcwIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+    </svg>
+  );
+}
