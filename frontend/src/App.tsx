@@ -15,6 +15,7 @@ import { AwarenessPage } from './pages/AwarenessPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ScanHistoryPage } from './pages/ScanHistoryPage';
 import { AdminPage } from './pages/AdminPage';
+import { PricingPage } from './pages/PricingPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ScanReportDetailPage } from './pages/ScanReportDetailPage';
@@ -59,27 +60,18 @@ const MainApp: React.FC = () => {
         {activeTab === 'message-scanner' && (
           <MessageAnalyzerPage onAskAI={handleAskAIWithScan} />
         )}
-        {activeTab === 'website-analyzer' && (
-          <WebsiteAnalyzerPage />
-        )}
-        {activeTab === 'threat-intel' && (
-          <ThreatIntelPage />
-        )}
-        {activeTab === 'raksha-ai' && (
-          <RakshaAiPage />
-        )}
-        {activeTab === 'awareness' && (
-          <AwarenessPage />
-        )}
+        {activeTab === 'website-scanner' && <WebsiteAnalyzerPage />}
+        {activeTab === 'threat-intel' && <ThreatIntelPage />}
+        {activeTab === 'raksha-ai' && <RakshaAiPage />}
+        {activeTab === 'awareness' && <AwarenessPage />}
         {activeTab === 'dashboard' && (
           <DashboardPage onSelectScan={handleSelectScanFromAnywhere} />
         )}
+        {activeTab === 'pricing' && <PricingPage />}
         {activeTab === 'history' && (
           <ScanHistoryPage onSelectScan={handleSelectScanFromAnywhere} />
         )}
-        {activeTab === 'admin' && (
-          <AdminPage />
-        )}
+        {activeTab === 'admin' && <AdminPage />}
         {activeTab === 'login' && (
           <LoginPage
             onSuccess={() => setActiveTab('dashboard')}
@@ -101,16 +93,16 @@ const MainApp: React.FC = () => {
         )}
       </main>
 
-      {/* Persistent Floating AI Copilot Drawer */}
+      {/* Persistent Floating AI Threat Assistant & Emergency Playbook */}
       <FloatingAiAssistant onOpenFullPage={() => setActiveTab('raksha-ai')} />
 
-      {/* Cyber Footer */}
+      {/* Footer */}
       <Footer setActiveTab={setActiveTab} />
     </div>
   );
 };
 
-export default function App() {
+export function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
@@ -119,3 +111,5 @@ export default function App() {
     </ThemeProvider>
   );
 }
+
+export default App;
