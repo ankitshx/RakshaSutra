@@ -27,9 +27,10 @@ def run_live_verification():
         
         # 2. Auth Flow
         print("\n[2/10] Verifying JWT Authentication & Bcrypt Salt Verification...")
+        from app.core.config import settings
         login_res = client.post("/api/v1/auth/login", json={
-            "email": "admin@sharma1.org",
-            "password": "Admin@victus2005!"
+            "email": settings.ADMIN_EMAIL,
+            "password": settings.ADMIN_PASSWORD
         })
         assert login_res.status_code == 200, f"Admin login failed: {login_res.text}"
         auth_data = login_res.json()

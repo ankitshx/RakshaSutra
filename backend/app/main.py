@@ -69,22 +69,24 @@ def startup_seed_data():
     """Seed initial demo admin and baseline threat indicators if empty."""
     db = SessionLocal()
     try:
-        # Seed official admin user: admin@sharma1.org
-        admin = db.query(User).filter(User.email == "admin@sharma1.org").first()
+        # Seed default admin user from environment configuration
+        admin_email = settings.ADMIN_EMAIL
+        admin_pass = settings.ADMIN_PASSWORD
+        admin = db.query(User).filter(User.email == admin_email).first()
         if not admin:
             admin = User(
-                email="admin@sharma1.org",
-                hashed_password=get_password_hash("Admin@victus2005!"),
-                full_name="Security Operations Lead (Sharma)",
+                email=admin_email,
+                hashed_password=get_password_hash(admin_pass),
+                full_name="Security Operations Lead",
                 role="admin",
                 is_active=True,
-                api_key="rs_sharma_admin_key_2026"
+                api_key="rs_admin_telemetry_key_secure"
             )
             db.add(admin)
             db.commit()
-            logger.info("Created official Admin account: admin@sharma1.org")
+            logger.info("Configured default Admin account from environment configuration.")
         else:
-            admin.hashed_password = get_password_hash("Admin@victus2005!")
+            admin.hashed_password = get_password_hash(admin_pass)
             admin.role = "admin"
             db.commit()
 

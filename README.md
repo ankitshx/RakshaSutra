@@ -17,7 +17,7 @@ RakshaSutra includes a unified multi-stage **Dockerfile** that packages the comp
 4. Connect your GitHub repository: `ankitshx/RakshaSutra`.
 5. Choose **Dockerfile** as the build type.
 6. Check **Allow unauthenticated invocations** (Public Access).
-7. Click **Create** — Google Cloud will build and give you a public HTTPS URL (e.g. `https://rakshasutra-xyz-uc.a.run.app`)!
+7. Click **Create** — Google Cloud will build and provide a public HTTPS URL (e.g. `https://rakshasutra-xyz-uc.a.run.app`)!
 
 Or using Google Cloud SDK:
 ```bash
@@ -40,13 +40,18 @@ gcloud run deploy rakshasutra \
 
 ---
 
-## 🔑 Official Administrator Credentials
+## 🔐 Security & Administrator Configuration
 
-| Parameter | Official Value |
-| :--- | :--- |
-| **Admin Email** | `admin@sharma1.org` |
-| **Admin Password** | `Admin@victus2005!` |
-| **Security Role** | `Super Admin (Full SOC Access)` |
+Administrator credentials and sensitive API keys are configured strictly via private environment variables or a local `.env` file (which is excluded from Git tracking):
+
+```bash
+# Copy template configuration
+cp .env.example .env
+
+# Set your private credentials in .env:
+ADMIN_EMAIL=your_private_admin@domain.com
+ADMIN_PASSWORD=YourStrongSecretPassword123!
+```
 
 ---
 
@@ -58,6 +63,7 @@ gcloud run deploy rakshasutra \
 * **🤖 Raksha AI Copilot:** Interactive defensive AI assistant with 4 incident containment playbooks.
 * **🏢 Website Security Audit:** TLS certificate validation and HTTP security headers compliance (A+ to F grades).
 * **🎨 Dual Themes:** Dark Obsidian Cyber Mode & High-Contrast Light Mode.
+* **🔑 Developer Threat API & Quotas:** Rate limit quotas (10 uses allowance per user) with Developer API key manager.
 * **🔐 Official Admin SOC Portal:** Custom IOC threat signature manager, SSRF defense audit logs, and user access control.
 
 ---

@@ -33,11 +33,6 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onSuccess, onSwitchToRegist
     }
   };
 
-  const handleDemoAdmin = () => {
-    setEmail('admin@sharma1.org');
-    setPassword('Admin@victus2005!');
-  };
-
   return (
     <div className="max-w-md mx-auto py-12 px-4 space-y-6">
       <div className="text-center space-y-2">
@@ -111,19 +106,12 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onSuccess, onSwitchToRegist
           </button>
         </form>
 
-        <div className="pt-2 border-t border-slate-800 text-center space-y-2">
-          <button
-            onClick={handleDemoAdmin}
-            type="button"
-            className="w-full py-2 rounded-lg bg-slate-950 hover:bg-slate-800 border border-slate-800 text-[11px] font-mono text-cyan-400 font-bold transition-colors cursor-pointer"
-          >
-            ⚡ Auto-Fill Official Admin Credentials
-          </button>
+        <div className="pt-2 border-t border-slate-800 text-center">
           <p className="text-xs text-slate-400">
             Don't have an account?{' '}
             <button
               onClick={onSwitchToRegister}
-              className="text-cyan-400 font-bold hover:underline"
+              className="text-cyan-400 font-bold hover:underline cursor-pointer"
             >
               Create Account
             </button>

@@ -82,7 +82,7 @@ def enforce_api_quota(
     if used >= limit:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Scan Limit Reached: You have completed all {limit} free uses ({used}/{limit}). Please contact admin@sharma1.org to request additional scan uses."
+            detail=f"Scan Limit Reached: You have completed all {limit} free uses ({used}/{limit}). Please contact the platform administrator to request additional scan uses."
         )
 
     user.scans_used = used + 1

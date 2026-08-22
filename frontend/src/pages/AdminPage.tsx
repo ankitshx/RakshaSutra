@@ -13,19 +13,27 @@ import {
   Loader2,
   LogIn,
   ShieldCheck,
-  Server
+  Server,
+  Mail,
+  KeyRound,
+  Shield
 } from 'lucide-react';
 
 export const AdminPage: React.FC = () => {
   const { user, isAdmin, login } = useAuth();
   const [activeTab, setActiveTab] = useState<'health' | 'ioc' | 'events' | 'users'>('health');
   
+  // Admin Login State
+  const [adminEmailInput, setAdminEmailInput] = useState('');
+  const [adminPasswordInput, setAdminPasswordInput] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+
   // Data states
   const [health, setHealth] = useState<any>(null);
   const [events, setEvents] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [iocRules, setIocRules] = useState<any[]>([]);
-  const [loginLoading, setLoginLoading] = useState(false);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
   // New IOC Form state
@@ -62,14 +70,21 @@ export const AdminPage: React.FC = () => {
     }
   };
 
-  const handleQuickAdminLogin = async () => {
+  const handleAdminLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminEmailInput || !adminPasswordInput) {
+      setLoginError('Please provide both administrator email and password.');
+      return;
+    }
+
     setLoginLoading(true);
+    setLoginError(null);
     try {
-      await login('admin@sharma1.org', 'Admin@victus2005!');
-      setActionSuccess('Successfully authenticated as Super Administrator (admin@sharma1.org)!');
+      await login(adminEmailInput, adminPasswordInput);
+      setActionSuccess('Successfully authenticated into SOC Administration Console.');
       setTimeout(() => setActionSuccess(null), 3000);
     } catch (err: any) {
-      alert(err.message || 'Failed to authenticate admin');
+      setLoginError(err.message || 'Invalid administrator credentials.');
     } finally {
       setLoginLoading(false);
     }
@@ -127,18 +142,100 @@ export const AdminPage: React.FC = () => {
     }
   };
 
+  // If not logged in as Admin, show Secure Authentication Gate
+  if (!isAdmin) {
+    return (
+      <div className="max-w-md mx-auto py-16 px-4 space-y-6 font-mono">
+        <div className="text-center space-y-2">
+          <div className="w-12 h-12 rounded-2xl bg-cyan-950 border border-cyan-500/50 flex items-center justify-center text-cyan-400 mx-auto shadow-neon-cyan">
+            <Lock className="w-6 h-6" />
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-500/40">
+            Restricted SOC Access
+          </span>
+          <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">
+            Administrator Command Gate
+          </h2>
+          <p className="text-xs text-slate-500">
+            Sign in with authorized administrator credentials to manage threat IOC rules, system telemetry, and user roles.
+          </p>
+        </div>
+
+        <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
+          {loginError && (
+            <div className="p-3.5 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 text-xs flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{loginError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleAdminLoginSubmit} className="space-y-4 text-xs">
+            <div className="space-y-1">
+              <label className="block font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Administrator Email
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                <input
+                  type="email"
+                  value={adminEmailInput}
+                  onChange={(e) => setAdminEmailInput(e.target.value)}
+                  placeholder="admin@domain.com"
+                  required
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="block font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
+                Security Password
+              </label>
+              <div className="relative">
+                <KeyRound className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                <input
+                  type="password"
+                  value={adminPasswordInput}
+                  onChange={(e) => setAdminPasswordInput(e.target.value)}
+                  placeholder="••••••••••••"
+                  required
+                  className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loginLoading}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 text-slate-950 font-black uppercase tracking-wider shadow-neon-cyan transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+            >
+              {loginLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <LogIn className="w-4 h-4" />
+                  <span>Authenticate SOC Admin</span>
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
-      {/* Official Credentials Banner */}
+      {/* Official SOC Command Header */}
       <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 border-2 border-cyan-500/50 shadow-2xl text-slate-100 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="p-3 rounded-2xl bg-cyan-950 border border-cyan-500/40 text-cyan-400 shadow-neon-cyan">
-              <Lock className="w-6 h-6" />
+              <Shield className="w-6 h-6" />
             </div>
             <div>
               <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-cyan-950 text-cyan-400 border border-cyan-500/40">
-                Official SOC Portal
+                Authorized SOC Portal
               </span>
               <h2 className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight pt-0.5">
                 RakshaSutra Administrator Command Center
@@ -146,36 +243,9 @@ export const AdminPage: React.FC = () => {
             </div>
           </div>
 
-          {!isAdmin ? (
-            <button
-              onClick={handleQuickAdminLogin}
-              disabled={loginLoading}
-              className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 text-slate-950 font-extrabold text-xs uppercase tracking-wider shadow-neon-cyan transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              {loginLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
-              <span>⚡ 1-Click Admin Login</span>
-            </button>
-          ) : (
-            <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 px-3 py-1.5 rounded-xl bg-emerald-950/60 border border-emerald-500/40">
-              <CheckCircle2 className="w-4 h-4" />
-              <span>Logged In: {user?.email}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Credentials Breakdown Box */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1 font-mono text-xs">
-          <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
-            <span className="text-slate-400 text-[11px] block">Admin Email:</span>
-            <span className="text-cyan-400 font-bold text-sm select-all">admin@sharma1.org</span>
-          </div>
-          <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
-            <span className="text-slate-400 text-[11px] block">Admin Password:</span>
-            <span className="text-cyan-400 font-bold text-sm select-all">Admin@victus2005!</span>
-          </div>
-          <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-1">
-            <span className="text-slate-400 text-[11px] block">Security Privilege:</span>
-            <span className="text-emerald-400 font-bold text-sm">Super Admin (Full Access)</span>
+          <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 px-3.5 py-2 rounded-xl bg-emerald-950/60 border border-emerald-500/40">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Super Admin Active ({user?.email})</span>
           </div>
         </div>
       </div>
