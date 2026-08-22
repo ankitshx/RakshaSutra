@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
+import { GlobalAttackMap } from './GlobalAttackMap';
 import {
   Radio,
   ShieldAlert,
@@ -10,7 +11,9 @@ import {
   Zap,
   CheckCircle2,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Map,
+  List
 } from 'lucide-react';
 
 interface LiveAttackItem {
@@ -140,6 +143,7 @@ export const LiveGlobalThreatFeed: React.FC<LiveThreatFeedProps> = ({ onSelectTh
   const [activeAttacksRate, setActiveAttacksRate] = useState<number>(18480);
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
   const [isLiveStreaming, setIsLiveStreaming] = useState<boolean>(true);
+  const [viewMode, setViewMode] = useState<'map' | 'split'>('split');
 
   useEffect(() => {
     loadInitialData();
@@ -198,19 +202,41 @@ export const LiveGlobalThreatFeed: React.FC<LiveThreatFeedProps> = ({ onSelectTh
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                <Radio className="w-4 h-4 text-cyan-400 animate-pulse" /> Live Global Cyber Attacks
+                <Radio className="w-4 h-4 text-cyan-400 animate-pulse" /> Live Global Attack Map
               </h2>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-950 text-rose-400 border border-rose-500/40">
                 LIVE
               </span>
             </div>
             <p className="text-[11px] text-slate-400">
-              Active strikes & malware prevailing worldwide
+              Visualizing active cyber strikes worldwide
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* View Mode Toggle: Map vs Split */}
+          <div className="flex items-center p-1 rounded-xl bg-slate-900 border border-slate-800 text-[11px]">
+            <button
+              onClick={() => setViewMode('split')}
+              title="Split Map & Stream"
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                viewMode === 'split' ? 'bg-cyan-500 text-slate-950 font-bold' : 'text-slate-400'
+              }`}
+            >
+              <List className="w-3.5 h-3.5" />
+            </button>
+            <button
+              onClick={() => setViewMode('map')}
+              title="Full Map View"
+              className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                viewMode === 'map' ? 'bg-cyan-500 text-slate-950 font-bold' : 'text-slate-400'
+              }`}
+            >
+              <Map className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
           <button
             onClick={() => setIsLiveStreaming(!isLiveStreaming)}
             title={isLiveStreaming ? 'Pause live stream' : 'Resume live stream'}
@@ -233,122 +259,136 @@ export const LiveGlobalThreatFeed: React.FC<LiveThreatFeedProps> = ({ onSelectTh
 
       {isExpanded && (
         <>
-          {/* Live Telemetry Status Bar */}
-          <div className="px-4 py-3 bg-slate-950/80 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-slate-400 text-[11px]">Global Threat Level:</span>
-              <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-500/50">
-                DEFCON 2 • ELEVATED
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <span className="text-slate-400 text-[11px]">Active Attack Rate:</span>
-              <span className="text-cyan-400 font-bold text-[11px] flex items-center gap-1">
-                <Zap className="w-3 h-3 text-cyan-400" />
-                {activeAttacksRate.toLocaleString()} strikes/min
-              </span>
-            </div>
+          {/* Animated Interactive World Attack Map */}
+          <div className="p-2 sm:p-3 bg-slate-950/80 border-b border-slate-800/80">
+            <GlobalAttackMap
+              onSelectStrike={(strike) => {
+                if (onSelectThreat) onSelectThreat(strike.threat_name);
+              }}
+            />
           </div>
 
-          {/* Filter Pills */}
-          <div className="px-4 py-2.5 bg-slate-900/60 border-b border-slate-800/60 flex items-center gap-1.5 overflow-x-auto text-[11px]">
-            <Filter className="w-3 h-3 text-slate-400 shrink-0 mr-1" />
-            {['All', 'Phishing', 'Ransomware', 'DDoS', 'Zero-Day', 'Malware'].map((f) => (
-              <button
-                key={f}
-                onClick={() => setSelectedFilter(f)}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all whitespace-nowrap cursor-pointer ${
-                  selectedFilter === f
-                    ? 'bg-cyan-500 text-slate-950 shadow-sm'
-                    : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
-                }`}
-              >
-                {f}
-              </button>
-            ))}
-          </div>
-
-          {/* Live Stream List */}
-          <div className={`divide-y divide-slate-800/60 overflow-y-auto ${compact ? 'max-h-[380px]' : 'max-h-[500px]'} scrollbar-thin scrollbar-thumb-slate-800`}>
-            {filteredAttacks.length === 0 ? (
-              <div className="p-6 text-center text-xs text-slate-500">
-                No active strikes matching filter.
-              </div>
-            ) : (
-              filteredAttacks.map((item) => (
-                <div
-                  key={item.id}
-                  onClick={() => onSelectThreat && onSelectThreat(item.threat_name)}
-                  className="p-3.5 sm:p-4 hover:bg-slate-800/40 transition-colors group cursor-pointer space-y-2 animate-in fade-in slide-in-from-top-2 duration-300"
-                >
-                  {/* Origin ➔ Target & Type */}
-                  <div className="flex items-center justify-between gap-2 text-xs">
-                    <div className="flex items-center gap-1.5 font-bold">
-                      <span className="text-base" title={`Origin: ${item.origin_country}`}>
-                        {item.origin_flag}
-                      </span>
-                      <span className="text-slate-400 text-[11px]">{item.origin_code}</span>
-                      <ArrowRight className="w-3 h-3 text-cyan-400 group-hover:translate-x-0.5 transition-transform" />
-                      <span className="text-base" title={`Target: ${item.target_country}`}>
-                        {item.target_flag}
-                      </span>
-                      <span className="text-white text-[11px]">{item.target_code}</span>
-                    </div>
-
-                    <div className="flex items-center gap-1.5">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                        item.severity === 'CRITICAL'
-                          ? 'bg-rose-950 text-rose-300 border border-rose-600/50'
-                          : 'bg-amber-950 text-amber-300 border border-amber-600/50'
-                      }`}>
-                        {item.type}
-                      </span>
-                      <span className="text-[10px] text-slate-500">{item.time_ago}</span>
-                    </div>
-                  </div>
-
-                  {/* Threat Description */}
-                  <div>
-                    <h3 className="text-xs font-bold text-slate-100 group-hover:text-cyan-400 transition-colors flex items-center justify-between">
-                      <span>{item.threat_name}</span>
-                    </h3>
-                    <p className="text-[11px] text-slate-400 line-clamp-1 pt-0.5">
-                      Target: <span className="text-slate-300 font-semibold">{item.target_sector}</span>
-                    </p>
-                  </div>
-
-                  {/* Vector & Status */}
-                  <div className="flex items-center justify-between text-[10px] pt-1 text-slate-400">
-                    <span className="truncate max-w-[200px] text-slate-500">
-                      ⚡ {item.vector}
-                    </span>
-                    <span className={`font-bold flex items-center gap-1 shrink-0 ${
-                      item.status === 'BLOCKED' || item.status === 'INTERCEPTED'
-                        ? 'text-emerald-400'
-                        : item.status === 'MITIGATED'
-                        ? 'text-cyan-400'
-                        : 'text-amber-400'
-                    }`}>
-                      {item.status === 'BLOCKED' && <CheckCircle2 className="w-3 h-3 text-emerald-400" />}
-                      {item.status === 'INTERCEPTED' && <ShieldAlert className="w-3 h-3 text-emerald-400" />}
-                      {item.status}
-                    </span>
-                  </div>
+          {/* If Split mode is active, show the feed list underneath the map */}
+          {viewMode === 'split' && (
+            <>
+              {/* Live Telemetry Status Bar */}
+              <div className="px-4 py-2.5 bg-slate-950/90 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-3 text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 text-[11px]">Global Threat Level:</span>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-500/50">
+                    DEFCON 2 • ELEVATED
+                  </span>
                 </div>
-              ))
-            )}
-          </div>
 
-          {/* Footer Summary / Targeted Sectors */}
-          <div className="p-3.5 bg-slate-950 border-t border-slate-800 space-y-2 text-xs">
-            <div className="flex items-center justify-between text-[11px]">
-              <span className="text-slate-400 flex items-center gap-1">
-                <Globe className="w-3.5 h-3.5 text-cyan-400" /> Top Targeted Today:
-              </span>
-              <span className="text-slate-300 font-bold">Banking (38%) • Health (24%)</span>
-            </div>
-          </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 text-[11px]">Attack Rate:</span>
+                  <span className="text-cyan-400 font-bold text-[11px] flex items-center gap-1">
+                    <Zap className="w-3 h-3 text-cyan-400" />
+                    {activeAttacksRate.toLocaleString()} strikes/min
+                  </span>
+                </div>
+              </div>
+
+              {/* Filter Pills */}
+              <div className="px-4 py-2 bg-slate-900/60 border-b border-slate-800/60 flex items-center gap-1.5 overflow-x-auto text-[11px]">
+                <Filter className="w-3 h-3 text-slate-400 shrink-0 mr-1" />
+                {['All', 'Phishing', 'Ransomware', 'DDoS', 'Zero-Day', 'Malware'].map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setSelectedFilter(f)}
+                    className={`px-2.5 py-1 rounded-lg font-bold transition-all whitespace-nowrap cursor-pointer ${
+                      selectedFilter === f
+                        ? 'bg-cyan-500 text-slate-950 shadow-sm'
+                        : 'bg-slate-950 text-slate-400 hover:text-white border border-slate-800'
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
+              </div>
+
+              {/* Live Stream List */}
+              <div className={`divide-y divide-slate-800/60 overflow-y-auto ${compact ? 'max-h-[220px]' : 'max-h-[280px]'} scrollbar-thin scrollbar-thumb-slate-800`}>
+                {filteredAttacks.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-slate-500">
+                    No active strikes matching filter.
+                  </div>
+                ) : (
+                  filteredAttacks.map((item) => (
+                    <div
+                      key={item.id}
+                      onClick={() => onSelectThreat && onSelectThreat(item.threat_name)}
+                      className="p-3 hover:bg-slate-800/40 transition-colors group cursor-pointer space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300"
+                    >
+                      {/* Origin ➔ Target & Type */}
+                      <div className="flex items-center justify-between gap-2 text-xs">
+                        <div className="flex items-center gap-1.5 font-bold">
+                          <span className="text-base" title={`Origin: ${item.origin_country}`}>
+                            {item.origin_flag}
+                          </span>
+                          <span className="text-slate-400 text-[11px]">{item.origin_code}</span>
+                          <ArrowRight className="w-3 h-3 text-cyan-400 group-hover:translate-x-0.5 transition-transform" />
+                          <span className="text-base" title={`Target: ${item.target_country}`}>
+                            {item.target_flag}
+                          </span>
+                          <span className="text-white text-[11px]">{item.target_code}</span>
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                            item.severity === 'CRITICAL'
+                              ? 'bg-rose-950 text-rose-300 border border-rose-600/50'
+                              : 'bg-amber-950 text-amber-300 border border-amber-600/50'
+                          }`}>
+                            {item.type}
+                          </span>
+                          <span className="text-[10px] text-slate-500">{item.time_ago}</span>
+                        </div>
+                      </div>
+
+                      {/* Threat Description */}
+                      <div>
+                        <h3 className="text-xs font-bold text-slate-100 group-hover:text-cyan-400 transition-colors flex items-center justify-between">
+                          <span>{item.threat_name}</span>
+                        </h3>
+                        <p className="text-[11px] text-slate-400 line-clamp-1">
+                          Target: <span className="text-slate-300 font-semibold">{item.target_sector}</span>
+                        </p>
+                      </div>
+
+                      {/* Vector & Status */}
+                      <div className="flex items-center justify-between text-[10px] text-slate-400">
+                        <span className="truncate max-w-[200px] text-slate-500">
+                          ⚡ {item.vector}
+                        </span>
+                        <span className={`font-bold flex items-center gap-1 shrink-0 ${
+                          item.status === 'BLOCKED' || item.status === 'INTERCEPTED'
+                            ? 'text-emerald-400'
+                            : item.status === 'MITIGATED'
+                            ? 'text-cyan-400'
+                            : 'text-amber-400'
+                        }`}>
+                          {item.status === 'BLOCKED' && <CheckCircle2 className="w-3 h-3 text-emerald-400" />}
+                          {item.status === 'INTERCEPTED' && <ShieldAlert className="w-3 h-3 text-emerald-400" />}
+                          {item.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Footer Summary / Targeted Sectors */}
+              <div className="p-3 bg-slate-950 border-t border-slate-800 space-y-1 text-xs">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-slate-400 flex items-center gap-1">
+                    <Globe className="w-3.5 h-3.5 text-cyan-400" /> Top Targeted Today:
+                  </span>
+                  <span className="text-slate-300 font-bold">Banking (38%) • Health (24%)</span>
+                </div>
+              </div>
+            </>
+          )}
         </>
       )}
     </aside>
