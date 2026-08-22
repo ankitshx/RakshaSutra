@@ -1,10 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import {
   Globe,
   Zap,
   Target,
   Shield,
   Filter,
+  Plus,
+  Minus,
   Volume2,
   VolumeX,
   Maximize2,
@@ -20,8 +24,7 @@ interface GeoAttackNode {
   country: string;
   code: string;
   flag: string;
-  lat: number;
-  lng: number;
+  coords: [number, number]; // [lat, lng]
   sent: number;
   blocked: number;
   threat_level: 'CRITICAL' | 'HIGH' | 'MEDIUM';
@@ -42,22 +45,22 @@ interface GeoAttackStrike {
 }
 
 const REAL_GEO_NODES: Record<string, GeoAttackNode> = {
-  US: { id: 'US', name: 'United States', country: 'United States', code: 'US', flag: '🇺🇸', lat: 38.0, lng: -97.0, sent: 18200, blocked: 168400, threat_level: 'HIGH' },
-  PT: { id: 'PT', name: 'Portugal', country: 'Portugal', code: 'PT', flag: '🇵🇹', lat: 39.5, lng: -8.0, sent: 4200, blocked: 38400, threat_level: 'MEDIUM' },
-  TR: { id: 'TR', name: 'Türkiye', country: 'Türkiye', code: 'TR', flag: '🇹🇷', lat: 39.0, lng: 35.0, sent: 14200, blocked: 58200, threat_level: 'HIGH' },
-  IL: { id: 'IL', name: 'Israel', country: 'Israel', code: 'IL', flag: '🇮🇱', lat: 31.5, lng: 35.0, sent: 31400, blocked: 44100, threat_level: 'CRITICAL' },
-  RU: { id: 'RU', name: 'Russia', country: 'Russia', code: 'RU', flag: '🇷🇺', lat: 55.75, lng: 37.6, sent: 88900, blocked: 18200, threat_level: 'CRITICAL' },
-  IN: { id: 'IN', name: 'India', country: 'India', code: 'IN', flag: '🇮🇳', lat: 21.0, lng: 78.0, sent: 9100, blocked: 182000, threat_level: 'HIGH' },
-  CN: { id: 'CN', name: 'China', country: 'China', code: 'CN', flag: '🇨🇳', lat: 35.0, lng: 104.0, sent: 98400, blocked: 41400, threat_level: 'CRITICAL' },
-  DE: { id: 'DE', name: 'Germany', country: 'Germany', code: 'DE', flag: '🇩🇪', lat: 51.0, lng: 10.0, sent: 13200, blocked: 98400, threat_level: 'MEDIUM' },
-  GB: { id: 'GB', name: 'United Kingdom', country: 'United Kingdom', code: 'GB', flag: '🇬🇧', lat: 54.0, lng: -2.0, sent: 11400, blocked: 119200, threat_level: 'HIGH' },
-  JP: { id: 'JP', name: 'Japan', country: 'Japan', code: 'JP', flag: '🇯🇵', lat: 36.0, lng: 138.0, sent: 7100, blocked: 94400, threat_level: 'HIGH' },
-  BR: { id: 'BR', name: 'Brazil', country: 'Brazil', code: 'BR', flag: '🇧🇷', lat: -14.0, lng: -51.0, sent: 39800, blocked: 24400, threat_level: 'HIGH' },
-  NG: { id: 'NG', name: 'Nigeria', country: 'Nigeria', code: 'NG', flag: '🇳🇬', lat: 9.0, lng: 8.0, sent: 42200, blocked: 6800, threat_level: 'HIGH' },
-  SG: { id: 'SG', name: 'Singapore', country: 'Singapore', code: 'SG', flag: '🇸🇬', lat: 1.35, lng: 103.8, sent: 9200, blocked: 88400, threat_level: 'MEDIUM' },
-  AU: { id: 'AU', name: 'Australia', country: 'Australia', code: 'AU', flag: '🇦🇺', lat: -25.0, lng: 134.0, sent: 6100, blocked: 64200, threat_level: 'MEDIUM' },
-  AE: { id: 'AE', name: 'UAE', country: 'UAE', code: 'AE', flag: '🇦🇪', lat: 24.0, lng: 54.0, sent: 23800, blocked: 54200, threat_level: 'MEDIUM' },
-  VN: { id: 'VN', name: 'Vietnam', country: 'Vietnam', code: 'VN', flag: '🇻🇳', lat: 21.0, lng: 105.8, sent: 48200, blocked: 8100, threat_level: 'HIGH' }
+  US: { id: 'US', name: 'United States', country: 'United States', code: 'US', flag: '🇺🇸', coords: [38.0, -97.0], sent: 18200, blocked: 168400, threat_level: 'HIGH' },
+  PT: { id: 'PT', name: 'Portugal', country: 'Portugal', code: 'PT', flag: '🇵🇹', coords: [39.5, -8.0], sent: 4200, blocked: 38400, threat_level: 'MEDIUM' },
+  TR: { id: 'TR', name: 'Türkiye', country: 'Türkiye', code: 'TR', flag: '🇹🇷', coords: [39.0, 35.0], sent: 14200, blocked: 58200, threat_level: 'HIGH' },
+  IL: { id: 'IL', name: 'Israel', country: 'Israel', code: 'IL', flag: '🇮🇱', coords: [31.5, 35.0], sent: 31400, blocked: 44100, threat_level: 'CRITICAL' },
+  RU: { id: 'RU', name: 'Russia', country: 'Russia', code: 'RU', flag: '🇷🇺', coords: [55.75, 37.6], sent: 88900, blocked: 18200, threat_level: 'CRITICAL' },
+  IN: { id: 'IN', name: 'India', country: 'India', code: 'IN', flag: '🇮🇳', coords: [21.0, 78.0], sent: 9100, blocked: 182000, threat_level: 'HIGH' },
+  CN: { id: 'CN', name: 'China', country: 'China', code: 'CN', flag: '🇨🇳', coords: [35.0, 104.0], sent: 98400, blocked: 41400, threat_level: 'CRITICAL' },
+  DE: { id: 'DE', name: 'Germany', country: 'Germany', code: 'DE', flag: '🇩🇪', coords: [51.0, 10.0], sent: 13200, blocked: 98400, threat_level: 'MEDIUM' },
+  GB: { id: 'GB', name: 'United Kingdom', country: 'United Kingdom', code: 'GB', flag: '🇬🇧', coords: [54.0, -2.0], sent: 11400, blocked: 119200, threat_level: 'HIGH' },
+  JP: { id: 'JP', name: 'Japan', country: 'Japan', code: 'JP', flag: '🇯🇵', coords: [36.0, 138.0], sent: 7100, blocked: 94400, threat_level: 'HIGH' },
+  BR: { id: 'BR', name: 'Brazil', country: 'Brazil', code: 'BR', flag: '🇧🇷', coords: [-14.0, -51.0], sent: 39800, blocked: 24400, threat_level: 'HIGH' },
+  NG: { id: 'NG', name: 'Nigeria', country: 'Nigeria', code: 'NG', flag: '🇳🇬', coords: [9.0, 8.0], sent: 42200, blocked: 6800, threat_level: 'HIGH' },
+  SG: { id: 'SG', name: 'Singapore', country: 'Singapore', code: 'SG', flag: '🇸🇬', coords: [1.35, 103.8], sent: 9200, blocked: 88400, threat_level: 'MEDIUM' },
+  AU: { id: 'AU', name: 'Australia', country: 'Australia', code: 'AU', flag: '🇦🇺', coords: [-25.0, 134.0], sent: 6100, blocked: 64200, threat_level: 'MEDIUM' },
+  AE: { id: 'AE', name: 'UAE', country: 'UAE', code: 'AE', flag: '🇦🇪', coords: [24.0, 54.0], sent: 23800, blocked: 54200, threat_level: 'MEDIUM' },
+  VN: { id: 'VN', name: 'Vietnam', country: 'Vietnam', code: 'VN', flag: '🇻🇳', coords: [21.0, 105.8], sent: 48200, blocked: 8100, threat_level: 'HIGH' }
 };
 
 const BASE_GEO_STRIKES: GeoAttackStrike[] = [
@@ -167,35 +170,45 @@ const BASE_GEO_STRIKES: GeoAttackStrike[] = [
   }
 ];
 
-// Project Lat/Lng to SVG Canvas (1000 x 550)
-function project(lat: number, lng: number) {
-  const x = ((lng + 180) / 360) * 1000;
-  const y = 275 - (lat / 90) * 230;
-  return {
-    x: Math.max(20, Math.min(980, x)),
-    y: Math.max(30, Math.min(520, y))
-  };
+function getArcPolyline(p1: [number, number], p2: [number, number], pointsCount: number = 36): [number, number][] {
+  const [lat1, lng1] = p1;
+  const [lat2, lng2] = p2;
+  const points: [number, number][] = [];
+
+  const midLat = (lat1 + lat2) / 2;
+  const dist = Math.sqrt(Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2));
+  const arcElevation = Math.min(22, Math.max(6, dist * 0.18));
+
+  for (let i = 0; i <= pointsCount; i++) {
+    const t = i / pointsCount;
+    const lat = (1 - t) * (1 - t) * lat1 + 2 * (1 - t) * t * (midLat + arcElevation) + t * t * lat2;
+    const lng = (1 - t) * lng1 + t * lng2;
+    points.push([lat, lng]);
+  }
+  return points;
 }
 
 export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void }> = ({ onSelectStrike }) => {
+  const mapContainerRef = useRef<HTMLDivElement | null>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const strikeLayersGroupRef = useRef<L.LayerGroup | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
 
-  const [activeStrikesPool, setActiveStrikesPool] = useState<GeoAttackStrike[]>(BASE_GEO_STRIKES.slice(0, 6));
+  const [activeStrikesPool, setActiveStrikesPool] = useState<GeoAttackStrike[]>(BASE_GEO_STRIKES.slice(0, 5));
   const [selectedStrike, setSelectedStrike] = useState<GeoAttackStrike>(BASE_GEO_STRIKES[0]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [speedMultiplier, setSpeedMultiplier] = useState<number>(1);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [liveRate, setLiveRate] = useState<number>(18740);
-  const [totalIntercepted, setTotalIntercepted] = useState<number>(1498920);
+  const [liveRate, setLiveRate] = useState<number>(18760);
+  const [totalIntercepted, setTotalIntercepted] = useState<number>(1498960);
   const [activeLeaderboard, setActiveLeaderboard] = useState<'origins' | 'targets'>('origins');
-  const [hoveredNode, setHoveredNode] = useState<GeoAttackNode | null>(null);
 
   const [terminalLogs, setTerminalLogs] = useState<Array<{ id: string; text: string; type: string; time: string }>>([
-    { id: '1', text: 'INTERCEPT: Lockbit 3.0 (US ➔ TR) blocked on Port 3389 RDP', type: 'amber', time: '13:01:10' },
-    { id: '2', text: 'DEFENSE: Banking Gateway Probe (PT ➔ IL) intercepted', type: 'amber', time: '13:01:12' },
-    { id: '3', text: 'MITIGATE: Caspian SCADA Flood (RU ➔ TR) rate-limited', type: 'amber', time: '13:01:14' },
-    { id: '4', text: 'DEFENSE: Fake UPI APK (VN ➔ IN) blocked at switch', type: 'cyan', time: '13:01:16' }
+    { id: '1', text: 'INTERCEPT: Lockbit 3.0 (US ➔ TR) blocked on Port 3389 RDP', type: 'amber', time: '13:04:10' },
+    { id: '2', text: 'DEFENSE: Banking Gateway Probe (PT ➔ IL) intercepted', type: 'amber', time: '13:04:12' },
+    { id: '3', text: 'MITIGATE: Caspian SCADA Flood (RU ➔ TR) rate-limited', type: 'amber', time: '13:04:14' },
+    { id: '4', text: 'DEFENSE: Fake UPI APK (VN ➔ IN) blocked at switch', type: 'cyan', time: '13:04:16' }
   ]);
 
   const playCyberSound = (type: 'laser' | 'shield' | 'salvo') => {
@@ -243,6 +256,128 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
       // Audio handled gracefully
     }
   };
+
+  // Initialize Real Geographical Leaflet Map
+  useEffect(() => {
+    if (!mapContainerRef.current) return;
+
+    if (!mapInstanceRef.current) {
+      const map = L.map(mapContainerRef.current, {
+        center: [30, 20],
+        zoom: 2,
+        minZoom: 2,
+        maxZoom: 9,
+        zoomControl: false,
+        attributionControl: false,
+        worldCopyJump: true
+      });
+
+      // CartoDB Dark Matter Real Geographic Satellite/Cartography Tiles
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        subdomains: 'abcd',
+        maxZoom: 19
+      }).addTo(map);
+
+      const strikeGroup = L.layerGroup().addTo(map);
+      strikeLayersGroupRef.current = strikeGroup;
+
+      // Plot all Real Geographical Defense & Threat Nodes with Teardrop Pin and Concentric Radar Rings!
+      Object.values(REAL_GEO_NODES).forEach((node) => {
+        const markerIcon = L.divIcon({
+          className: 'custom-teardrop-pin',
+          html: `
+            <div style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
+              <!-- Concentric Radar Rings -->
+              <span style="position: absolute; bottom: 0; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #f59e0b; opacity: 0.6; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
+              <span style="position: absolute; bottom: 3px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid #f59e0b; opacity: 0.3; animation: ping 2.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
+
+              <!-- Clean Location Text Label Above Pin (Matching Reference Image) -->
+              <span style="color: #ffffff; font-family: sans-serif; font-size: 11px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.9); margin-bottom: 2px; white-space: nowrap;">
+                ${node.name}
+              </span>
+
+              <!-- Teardrop Location Pin SVG (Exact shape from user image) -->
+              <svg width="22" height="28" viewBox="0 0 24 30" fill="none" style="filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.8));">
+                <path d="M12 2C7.58 2 4 5.58 4 10C4 16 12 28 12 28C12 28 20 16 20 10C20 5.58 16.42 2 12 2Z" fill="#0f0f18" stroke="#f59e0b" stroke-width="2"/>
+                <circle cx="12" cy="10" r="4" fill="#f59e0b"/>
+              </svg>
+            </div>
+          `,
+          iconSize: [80, 50],
+          iconAnchor: [40, 48]
+        });
+
+        const marker = L.marker(node.coords, { icon: markerIcon }).addTo(map);
+        marker.bindPopup(`
+          <div style="font-family: monospace; font-size: 11px; padding: 6px; color: #f8fafc; background: #020617; border-radius: 8px; border: 1px solid #f59e0b;">
+            <div style="font-weight: bold; border-bottom: 1px solid #1e293b; padding-bottom: 4px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+              <span>${node.flag} ${node.name}</span>
+              <span style="color: #f59e0b; font-size: 9px; font-weight: 800;">${node.threat_level}</span>
+            </div>
+            <div style="color: #34d399; font-size: 10px;">Attacks Defended: <strong>${node.blocked.toLocaleString()}</strong></div>
+            <div style="color: #fb7185; font-size: 10px;">Threats Tracked: <strong>${node.sent.toLocaleString()}</strong></div>
+            <div style="color: #cbd5e1; font-size: 9px; margin-top: 4px;">GPS: ${node.coords[0].toFixed(2)}°N, ${node.coords[1].toFixed(2)}°E</div>
+          </div>
+        `, { className: 'custom-dark-popup' });
+      });
+
+      mapInstanceRef.current = map;
+    }
+  }, []);
+
+  // Re-render Dynamic Glowing Amber Attack Arcs with Arrowheads on Real Map
+  useEffect(() => {
+    if (!mapInstanceRef.current || !strikeLayersGroupRef.current) return;
+
+    const group = strikeLayersGroupRef.current;
+    group.clearLayers();
+
+    const filtered = selectedCategory === 'All'
+      ? activeStrikesPool
+      : activeStrikesPool.filter((s) => s.type.toLowerCase().includes(selectedCategory.toLowerCase()));
+
+    filtered.forEach((strike) => {
+      const arcCoords = getArcPolyline(strike.origin.coords, strike.target.coords, 36);
+      const isSelected = selectedStrike.id === strike.id;
+
+      // 1. Underlying Glowing Amber Laser Beam
+      const polylineGlow = L.polyline(arcCoords, {
+        color: '#f59e0b',
+        weight: isSelected ? 4.5 : 3,
+        opacity: isSelected ? 0.95 : 0.8,
+        lineCap: 'round'
+      }).addTo(group);
+
+      // 2. Crisp Core Attack Line with Dash Pulse
+      const polylineCore = L.polyline(arcCoords, {
+        color: '#fbbf24',
+        weight: isSelected ? 2.5 : 1.8,
+        opacity: 1,
+        dashArray: isSelected ? undefined : '8, 12',
+        lineCap: 'round'
+      }).addTo(group);
+
+      const handleClick = () => {
+        setSelectedStrike(strike);
+        playCyberSound('laser');
+        if (onSelectStrike) onSelectStrike(strike);
+      };
+
+      polylineGlow.on('click', handleClick);
+      polylineCore.on('click', handleClick);
+
+      // 3. Concentric Target Shockwave Rings
+      const impactShockwave = L.circle(strike.target.coords, {
+        radius: isSelected ? 380000 : 220000,
+        color: '#f59e0b',
+        fillColor: '#f59e0b',
+        fillOpacity: isSelected ? 0.22 : 0.12,
+        weight: isSelected ? 2 : 1
+      }).addTo(group);
+
+      impactShockwave.on('click', handleClick);
+    });
+  }, [selectedCategory, selectedStrike, activeStrikesPool]);
 
   // Continuous multi-strike stream generator
   useEffect(() => {
@@ -300,12 +435,17 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
       setSelectedStrike(strike);
       playCyberSound('laser');
       if (onSelectStrike) onSelectStrike(strike);
+
+      // Fly to target on map
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.flyTo(strike.target.coords, 4, { duration: 1.2 });
+      }
     }
   };
 
-  const filteredStrikes = selectedCategory === 'All'
-    ? activeStrikesPool
-    : activeStrikesPool.filter((s) => s.type.toLowerCase().includes(selectedCategory.toLowerCase()));
+  const zoomIn = () => mapInstanceRef.current?.zoomIn();
+  const zoomOut = () => mapInstanceRef.current?.zoomOut();
+  const resetView = () => mapInstanceRef.current?.setView([30, 20], 2, { animate: true });
 
   return (
     <div className={`w-full rounded-3xl bg-[#0a0a0f] border-2 border-amber-500/40 shadow-2xl overflow-hidden font-mono text-slate-100 select-none flex flex-col transition-all duration-300 ${
@@ -321,14 +461,14 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                <Globe className="w-4 h-4 text-amber-400 animate-pulse" /> Live Cyber Attack World Map Simulation
+                <Globe className="w-4 h-4 text-amber-400 animate-pulse" /> Real-World Cyber Attack Geography Map
               </h2>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-500/60 animate-pulse">
-                REAL GEOGRAPHY RADAR
+                REAL GPS SATELLITE
               </span>
             </div>
             <p className="text-[11px] text-slate-400">
-              Visualizing active cyber strikes, botnet streams & location pins across authentic global landmasses
+              Live geographic cyber warfare strikes tracked across authentic continents & GPS coordinates
             </p>
           </div>
         </div>
@@ -391,7 +531,7 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
           ))}
         </div>
 
-        {/* Real Strike Scenario Arsenal matching the reference image */}
+        {/* Real Strike Scenario Arsenal */}
         <div className="flex items-center gap-1.5 overflow-x-auto text-[10px]">
           <button
             onClick={handleLaunchSalvo}
@@ -445,223 +585,45 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
         </div>
       </div>
 
-      {/* 3. Main Dotted Halftone Matrix Real World Map (Exact Style of Reference Image) */}
-      <div className={`relative w-full ${isFullscreen ? 'flex-1 min-h-[500px]' : 'h-[360px] sm:h-[440px] md:h-[500px]'} bg-[#0d0e15] overflow-hidden`}>
-        {/* Subtle Pink/Purple Grid Background with Crosshairs */}
-        <svg
-          viewBox="0 0 1000 550"
-          className="absolute inset-0 w-full h-full pointer-events-none opacity-25"
-        >
-          {/* Vertical grid lines */}
-          {[100, 200, 300, 400, 500, 600, 700, 800, 900].map((gx) => (
-            <line key={`gx-${gx}`} x1={gx} y1="0" x2={gx} y2="550" stroke="#f43f5e" strokeWidth="0.6" strokeDasharray="3 6" />
-          ))}
-          {/* Horizontal grid lines */}
-          {[110, 220, 330, 440].map((gy) => (
-            <line key={`gy-${gy}`} x1="0" y1={gy} x2="1000" y2={gy} stroke="#f43f5e" strokeWidth="0.6" strokeDasharray="3 6" />
-          ))}
-        </svg>
+      {/* 3. Real Geographic Leaflet Map with Teardrop Pins & Glowing Amber Attack Arrows */}
+      <div className={`relative w-full ${isFullscreen ? 'flex-1 min-h-[500px]' : 'h-[360px] sm:h-[440px] md:h-[500px]'} bg-[#020617] overflow-hidden`}>
+        {/* Leaflet Map DOM Element */}
+        <div ref={mapContainerRef} className="w-full h-full z-0" />
 
-        {/* Real Dotted Halftone Matrix Continents SVG */}
-        <svg
-          viewBox="0 0 1000 550"
-          className="w-full h-full"
-          preserveAspectRatio="xMidYMid meet"
-        >
-          <defs>
-            {/* Halftone Dot Pattern for Realistic Continents */}
-            <pattern id="dotMatrixContinent" x="0" y="0" width="8" height="8" patternUnits="userSpaceOnUse">
-              <circle cx="4" cy="4" r="1.8" fill="#475569" opacity="0.85" />
-            </pattern>
-
-            {/* Glowing Laser Filter */}
-            <filter id="laserGlowAmber" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-
-            {/* Arrow Marker */}
-            <marker id="arrowAmber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-              <path d="M 0 1 L 10 5 L 0 9 z" fill="#f59e0b" />
-            </marker>
-          </defs>
-
-          {/* Dotted Continents Shapes */}
-          <g fill="url(#dotMatrixContinent)" stroke="#334155" strokeWidth="0.5">
-            {/* North America */}
-            <path d="M 80 90 L 130 60 L 210 50 L 290 80 L 330 140 L 280 190 L 240 250 L 210 280 L 180 260 L 140 190 L 90 160 Z" />
-            {/* Greenland */}
-            <path d="M 330 40 L 400 30 L 420 70 L 360 100 L 330 80 Z" />
-            {/* South America */}
-            <path d="M 250 310 L 330 320 L 370 380 L 340 470 L 280 480 L 250 400 L 230 340 Z" />
-            {/* Europe */}
-            <path d="M 440 80 L 530 70 L 560 110 L 510 170 L 450 170 L 420 120 Z" />
-            {/* United Kingdom */}
-            <path d="M 430 105 L 450 100 L 445 130 L 425 125 Z" />
-            {/* Africa */}
-            <path d="M 440 180 L 550 180 L 590 250 L 560 380 L 490 420 L 440 340 L 410 240 Z" />
-            {/* Middle East */}
-            <path d="M 560 160 L 620 160 L 640 210 L 590 230 L 560 190 Z" />
-            {/* Asia & Russia */}
-            <path d="M 540 60 L 860 50 L 900 130 L 830 200 L 770 270 L 670 280 L 620 210 L 550 130 Z" />
-            {/* India Subcontinent */}
-            <path d="M 650 200 L 730 200 L 710 300 L 660 300 L 635 235 Z" />
-            {/* Southeast Asia */}
-            <path d="M 740 240 L 790 240 L 780 300 L 730 290 Z" />
-            {/* Japan */}
-            <path d="M 860 150 L 885 140 L 875 200 L 850 200 Z" />
-            {/* Australia */}
-            <path d="M 770 350 L 880 350 L 910 420 L 850 460 L 770 420 Z" />
-          </g>
-
-          {/* Active Glowing Attack Laser Trajectories (Matching the user's reference image!) */}
-          {filteredStrikes.map((strike, idx) => {
-            const p1 = project(strike.origin.lat, strike.origin.lng);
-            const p2 = project(strike.target.lat, strike.target.lng);
-            const isSelected = selectedStrike.id === strike.id;
-
-            // Straight or slightly curved attack vector
-            const linePath = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y}`;
-
-            return (
-              <g
-                key={strike.id}
-                onClick={() => {
-                  setSelectedStrike(strike);
-                  playCyberSound('laser');
-                  if (onSelectStrike) onSelectStrike(strike);
-                }}
-                className="cursor-pointer group"
-              >
-                {/* 1. Underlying Glowing Neon Orange Beam */}
-                <path
-                  d={linePath}
-                  fill="none"
-                  stroke="#f59e0b"
-                  strokeWidth={isSelected ? 3.5 : 2}
-                  strokeOpacity={isSelected ? 1 : 0.85}
-                  filter="url(#laserGlowAmber)"
-                />
-
-                {/* 2. Crisp Inner Attack Laser */}
-                <path
-                  d={linePath}
-                  fill="none"
-                  stroke="#fbbf24"
-                  strokeWidth={isSelected ? 2 : 1.2}
-                  markerEnd="url(#arrowAmber)"
-                />
-
-                {/* 3. Animated Comet Pulse traveling from origin to target */}
-                <path
-                  d={linePath}
-                  fill="none"
-                  stroke="#ffffff"
-                  strokeWidth={isSelected ? 3 : 2}
-                  strokeDasharray="20 180"
-                  strokeLinecap="round"
-                  style={{
-                    animation: `laserDash 2.4s linear infinite`,
-                    animationDelay: `${idx * 0.35}s`
-                  }}
-                />
-              </g>
-            );
-          })}
-
-          {/* Real Teardrop Location Pins & Concentric Radar Circles (Exact style of uploaded image!) */}
-          {Object.values(REAL_GEO_NODES).map((node) => {
-            const p = project(node.lat, node.lng);
-            const isSelected = selectedStrike.origin.id === node.id || selectedStrike.target.id === node.id;
-            const isHovered = hoveredNode?.id === node.id;
-
-            return (
-              <g
-                key={node.id}
-                transform={`translate(${p.x}, ${p.y}) scale(${isSelected || isHovered ? 1.15 : 1})`}
-                onMouseEnter={() => setHoveredNode(node)}
-                onMouseLeave={() => setHoveredNode(null)}
-                onClick={() => {
-                  setHoveredNode(node);
-                  playCyberSound('shield');
-                }}
-                className="cursor-pointer group"
-              >
-                {/* Concentric Pulsing Radar Rings at Pin Base */}
-                <circle cx="0" cy="0" r={isSelected ? 14 : 10} fill="none" stroke="#f59e0b" strokeWidth={isSelected ? 1.8 : 1.2} opacity="0.7">
-                  <animate attributeName="r" values="4;20;4" dur="2.2s" repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="0.8;0.1;0.8" dur="2.2s" repeatCount="indefinite" />
-                </circle>
-                <circle cx="0" cy="0" r={isSelected ? 22 : 18} fill="none" stroke="#f59e0b" strokeWidth="0.8" opacity="0.4">
-                  <animate attributeName="r" values="8;28;8" dur="2.2s" repeatCount="indefinite" />
-                  <animate attributeName="opacity" values="0.6;0;0.6" dur="2.2s" repeatCount="indefinite" />
-                </circle>
-
-                {/* Base Anchor Dot */}
-                <circle cx="0" cy="0" r="3.5" fill="#f59e0b" stroke="#ffffff" strokeWidth="1" />
-
-                {/* Teardrop Location Pin (Exact shape from user image!) */}
-                <g transform="translate(0, -18) scale(1.2)">
-                  <path
-                    d="M 0 -12 C -6 -12 -10 -8 -10 -2 C -10 4 0 12 0 12 C 0 12 10 4 10 -2 C 10 -8 6 -12 0 -12 Z"
-                    fill="#0f0f18"
-                    stroke={isSelected ? "#fbbf24" : "#f59e0b"}
-                    strokeWidth={isSelected ? 2.4 : 1.8}
-                    filter="url(#laserGlowAmber)"
-                  />
-                  {/* Inner Pin Dot */}
-                  <circle cx="0" cy="-3" r="3.5" fill="#f59e0b" />
-                </g>
-
-                {/* Clean Location Text Label Above Pin */}
-                <text
-                  x="0"
-                  y="-34"
-                  textAnchor="middle"
-                  className="fill-white font-sans text-[11px] font-bold pointer-events-none drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] tracking-wide"
-                >
-                  {node.name}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-
-        {/* Hovered Location Pin Quick Tooltip */}
-        {hoveredNode && (
-          <div
-            className="absolute z-20 p-3 rounded-2xl bg-slate-950/95 border border-amber-500/70 shadow-2xl backdrop-blur-xl pointer-events-none font-mono text-xs space-y-1 transform -translate-x-1/2 -translate-y-full"
-            style={{
-              left: `${project(hoveredNode.lat, hoveredNode.lng).x / 10}%`,
-              top: `${project(hoveredNode.lat, hoveredNode.lng).y / 5.5}%`
-            }}
+        {/* Zoom & Reset Floating Controls */}
+        <div className="absolute top-4 right-4 z-[400] flex flex-col gap-1.5">
+          <button
+            onClick={zoomIn}
+            title="Zoom In"
+            className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-amber-500/40 text-amber-400 shadow-xl transition-colors cursor-pointer"
           >
-            <div className="flex items-center gap-2 border-b border-slate-800 pb-1">
-              <span className="text-base">{hoveredNode.flag}</span>
-              <strong className="text-white">{hoveredNode.name}</strong>
-              <span className="text-[9px] px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 font-bold border border-amber-500/40">
-                {hoveredNode.threat_level}
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-[11px] pt-1 text-slate-400">
-              <div>
-                <span className="text-slate-500 text-[10px] block">Attacks Defended:</span>
-                <span className="text-emerald-400 font-bold">{hoveredNode.blocked.toLocaleString()}</span>
-              </div>
-              <div>
-                <span className="text-slate-500 text-[10px] block">Threats Tracked:</span>
-                <span className="text-rose-400 font-bold">{hoveredNode.sent.toLocaleString()}</span>
-              </div>
-            </div>
-          </div>
-        )}
+            <Plus className="w-4 h-4" />
+          </button>
+          <button
+            onClick={zoomOut}
+            title="Zoom Out"
+            className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-amber-500/40 text-amber-400 shadow-xl transition-colors cursor-pointer"
+          >
+            <Minus className="w-4 h-4" />
+          </button>
+          <button
+            onClick={resetView}
+            title="Reset World View"
+            className="p-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-amber-500/40 text-amber-400 shadow-xl transition-colors cursor-pointer"
+          >
+            <RotateCcwIcon className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Real GPS Coordinate HUD Overlay */}
+        <div className="absolute top-3 left-3 z-[400] text-[10px] text-amber-400/90 pointer-events-none font-mono bg-slate-950/85 px-2.5 py-1 rounded-lg border border-amber-500/30 backdrop-blur-md flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+          <span>REAL CARTOGRAPHY // DARK MATTER SATELLITE RADAR</span>
+        </div>
 
         {/* Floating Active Strike HUD Box (Bottom Left of Map) */}
         {selectedStrike && (
-          <div className="absolute bottom-3 left-3 right-3 sm:right-auto sm:max-w-md z-10 p-3.5 rounded-2xl bg-slate-950/95 border-2 border-amber-500/70 shadow-2xl backdrop-blur-xl space-y-2 font-mono text-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="absolute bottom-3 left-3 right-3 sm:right-auto sm:max-w-md z-[400] p-3.5 rounded-2xl bg-slate-950/95 border-2 border-amber-500/70 shadow-2xl backdrop-blur-xl space-y-2 font-mono text-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
             <div className="flex items-center justify-between gap-2 border-b border-slate-800 pb-1.5">
               <div className="flex items-center gap-1.5">
                 <Target className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
@@ -764,17 +726,26 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
           )}
         </div>
       </div>
-
-      <style>{`
-        @keyframes laserDash {
-          0% {
-            stroke-dashoffset: 200;
-          }
-          100% {
-            stroke-dashoffset: 0;
-          }
-        }
-      `}</style>
     </div>
   );
 };
+
+function RotateCcwIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      {...props}
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+    </svg>
+  );
+}
