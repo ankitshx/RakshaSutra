@@ -12,8 +12,8 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     full_name = Column(String(100), nullable=True)
     role = Column(String(20), default="user", nullable=False)  # "user", "analyst", "admin"
-    subscription_tier = Column(String(30), default="free", nullable=False)  # "free", "pro", "enterprise"
-    monthly_quota = Column(Integer, default=50, nullable=False)
+    subscription_tier = Column(String(30), default="free", nullable=False)
+    monthly_quota = Column(Integer, default=10, nullable=False)  # Default 10 scans per user
     scans_used = Column(Integer, default=0, nullable=False)
     is_active = Column(Boolean, default=True)
     api_key = Column(String(64), unique=True, index=True, nullable=True)

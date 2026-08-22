@@ -130,8 +130,8 @@ checkThreat("http://login-sbi-pan-update.xyz/verify.php");`
     setTimeout(() => setCopiedCurl(false), 2500);
   };
 
-  const scansUsed = quotaData?.scans_used ?? 12;
-  const scansLimit = quotaData?.monthly_quota === 'Unlimited' ? 'Unlimited' : (quotaData?.monthly_quota ?? 50);
+  const scansUsed = quotaData?.scans_used ?? 2;
+  const scansLimit = quotaData?.monthly_quota === 'Unlimited' ? 'Unlimited' : (quotaData?.monthly_quota ?? 10);
   const pct = scansLimit === 'Unlimited' ? 5 : Math.min(100, Math.round((scansUsed / Number(scansLimit)) * 100));
 
   return (
