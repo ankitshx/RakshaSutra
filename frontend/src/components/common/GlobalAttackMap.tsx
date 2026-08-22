@@ -188,6 +188,18 @@ function getArcPolyline(p1: [number, number], p2: [number, number], pointsCount:
   return points;
 }
 
+// Calculate angle (bearing in degrees) from p1 to p2
+function calculateBearing(p1: [number, number], p2: [number, number]): number {
+  const lat1 = (p1[0] * Math.PI) / 180;
+  const lat2 = (p2[0] * Math.PI) / 180;
+  const dLng = ((p2[1] - p1[1]) * Math.PI) / 180;
+
+  const y = Math.sin(dLng) * Math.cos(lat2);
+  const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLng);
+  const brng = (Math.atan2(y, x) * 180) / Math.PI;
+  return (brng + 360) % 360;
+}
+
 export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void }> = ({ onSelectStrike }) => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -200,15 +212,15 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
   const [speedMultiplier, setSpeedMultiplier] = useState<number>(1);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [liveRate, setLiveRate] = useState<number>(18760);
-  const [totalIntercepted, setTotalIntercepted] = useState<number>(1498960);
+  const [liveRate, setLiveRate] = useState<number>(18780);
+  const [totalIntercepted, setTotalIntercepted] = useState<number>(1498990);
   const [activeLeaderboard, setActiveLeaderboard] = useState<'origins' | 'targets'>('origins');
 
   const [terminalLogs, setTerminalLogs] = useState<Array<{ id: string; text: string; type: string; time: string }>>([
-    { id: '1', text: 'INTERCEPT: Lockbit 3.0 (US ➔ TR) blocked on Port 3389 RDP', type: 'amber', time: '13:04:10' },
-    { id: '2', text: 'DEFENSE: Banking Gateway Probe (PT ➔ IL) intercepted', type: 'amber', time: '13:04:12' },
-    { id: '3', text: 'MITIGATE: Caspian SCADA Flood (RU ➔ TR) rate-limited', type: 'amber', time: '13:04:14' },
-    { id: '4', text: 'DEFENSE: Fake UPI APK (VN ➔ IN) blocked at switch', type: 'cyan', time: '13:04:16' }
+    { id: '1', text: 'INTERCEPT: Lockbit 3.0 (US ➔ TR) blocked on Port 3389 RDP', type: 'amber', time: '13:07:10' },
+    { id: '2', text: 'DEFENSE: Banking Gateway Probe (PT ➔ IL) intercepted', type: 'amber', time: '13:07:12' },
+    { id: '3', text: 'MITIGATE: Caspian SCADA Flood (RU ➔ TR) rate-limited', type: 'amber', time: '13:07:14' },
+    { id: '4', text: 'DEFENSE: Fake UPI APK (VN ➔ IN) blocked at switch', type: 'cyan', time: '13:07:16' }
   ]);
 
   const playCyberSound = (type: 'laser' | 'shield' | 'salvo') => {
@@ -272,7 +284,6 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
         worldCopyJump: true
       });
 
-      // CartoDB Dark Matter Real Geographic Satellite/Cartography Tiles
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         subdomains: 'abcd',
         maxZoom: 19
@@ -281,57 +292,71 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
       const strikeGroup = L.layerGroup().addTo(map);
       strikeLayersGroupRef.current = strikeGroup;
 
-      // Plot all Real Geographical Defense & Threat Nodes with Teardrop Pin and Concentric Radar Rings!
-      Object.values(REAL_GEO_NODES).forEach((node) => {
-        const markerIcon = L.divIcon({
-          className: 'custom-teardrop-pin',
-          html: `
-            <div style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
-              <!-- Concentric Radar Rings -->
-              <span style="position: absolute; bottom: 0; width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid #f59e0b; opacity: 0.6; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
-              <span style="position: absolute; bottom: 3px; width: 34px; height: 34px; border-radius: 50%; border: 1px solid #f59e0b; opacity: 0.3; animation: ping 2.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
-
-              <!-- Clean Location Text Label Above Pin (Matching Reference Image) -->
-              <span style="color: #ffffff; font-family: sans-serif; font-size: 11px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.9); margin-bottom: 2px; white-space: nowrap;">
-                ${node.name}
-              </span>
-
-              <!-- Teardrop Location Pin SVG (Exact shape from user image) -->
-              <svg width="22" height="28" viewBox="0 0 24 30" fill="none" style="filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.8));">
-                <path d="M12 2C7.58 2 4 5.58 4 10C4 16 12 28 12 28C12 28 20 16 20 10C20 5.58 16.42 2 12 2Z" fill="#0f0f18" stroke="#f59e0b" stroke-width="2"/>
-                <circle cx="12" cy="10" r="4" fill="#f59e0b"/>
-              </svg>
-            </div>
-          `,
-          iconSize: [80, 50],
-          iconAnchor: [40, 48]
-        });
-
-        const marker = L.marker(node.coords, { icon: markerIcon }).addTo(map);
-        marker.bindPopup(`
-          <div style="font-family: monospace; font-size: 11px; padding: 6px; color: #f8fafc; background: #020617; border-radius: 8px; border: 1px solid #f59e0b;">
-            <div style="font-weight: bold; border-bottom: 1px solid #1e293b; padding-bottom: 4px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
-              <span>${node.flag} ${node.name}</span>
-              <span style="color: #f59e0b; font-size: 9px; font-weight: 800;">${node.threat_level}</span>
-            </div>
-            <div style="color: #34d399; font-size: 10px;">Attacks Defended: <strong>${node.blocked.toLocaleString()}</strong></div>
-            <div style="color: #fb7185; font-size: 10px;">Threats Tracked: <strong>${node.sent.toLocaleString()}</strong></div>
-            <div style="color: #cbd5e1; font-size: 9px; margin-top: 4px;">GPS: ${node.coords[0].toFixed(2)}°N, ${node.coords[1].toFixed(2)}°E</div>
-          </div>
-        `, { className: 'custom-dark-popup' });
-      });
-
       mapInstanceRef.current = map;
     }
   }, []);
 
-  // Re-render Dynamic Glowing Amber Attack Arcs with Arrowheads on Real Map
+  // Update Location Pins & Directional Arrow Trajectories
   useEffect(() => {
     if (!mapInstanceRef.current || !strikeLayersGroupRef.current) return;
 
     const group = strikeLayersGroupRef.current;
     group.clearLayers();
 
+    // 1. Plot all Location Pins with dynamic ATTACK ORIGIN vs TARGET HIT badges!
+    Object.values(REAL_GEO_NODES).forEach((node) => {
+      const isOrigin = selectedStrike.origin.id === node.id;
+      const isTarget = selectedStrike.target.id === node.id;
+
+      const markerIcon = L.divIcon({
+        className: 'custom-teardrop-pin',
+        html: `
+          <div style="position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;">
+            <!-- Concentric Radar Rings -->
+            <span style="position: absolute; bottom: 0; width: ${isOrigin || isTarget ? '32px' : '22px'}; height: ${isOrigin || isTarget ? '32px' : '22px'}; border-radius: 50%; border: ${isOrigin ? '2px solid #ef4444' : isTarget ? '2px solid #06b6d4' : '1.5px solid #f59e0b'}; opacity: 0.7; animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></span>
+
+            <!-- Direction Role Pinpoint Badge (ORIGIN vs TARGET) -->
+            ${isOrigin ? `
+              <span style="background: #991b1b; color: #fecaca; border: 1px solid #ef4444; font-family: monospace; font-size: 8px; font-weight: 900; padding: 1px 4px; border-radius: 4px; margin-bottom: 2px; text-transform: uppercase; white-space: nowrap; box-shadow: 0 0 8px #ef4444;">
+                🚀 ATTACK ORIGIN
+              </span>
+            ` : isTarget ? `
+              <span style="background: #083344; color: #a5f3fc; border: 1px solid #06b6d4; font-family: monospace; font-size: 8px; font-weight: 900; padding: 1px 4px; border-radius: 4px; margin-bottom: 2px; text-transform: uppercase; white-space: nowrap; box-shadow: 0 0 8px #06b6d4;">
+                🎯 TARGET DEFENSE
+              </span>
+            ` : ''}
+
+            <!-- Clean Location Text Label Above Pin -->
+            <span style="color: #ffffff; font-family: sans-serif; font-size: 11px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.9); margin-bottom: 2px; white-space: nowrap;">
+              ${node.name}
+            </span>
+
+            <!-- Teardrop Location Pin SVG -->
+            <svg width="24" height="30" viewBox="0 0 24 30" fill="none" style="filter: drop-shadow(0 0 8px ${isOrigin ? '#ef4444' : isTarget ? '#06b6d4' : '#f59e0b'});">
+              <path d="M12 2C7.58 2 4 5.58 4 10C4 16 12 28 12 28C12 28 20 16 20 10C20 5.58 16.42 2 12 2Z" fill="#0f0f18" stroke="${isOrigin ? '#ef4444' : isTarget ? '#06b6d4' : '#f59e0b'}" stroke-width="2.2"/>
+              <circle cx="12" cy="10" r="4" fill="${isOrigin ? '#ef4444' : isTarget ? '#06b6d4' : '#f59e0b'}"/>
+            </svg>
+          </div>
+        `,
+        iconSize: [110, 65],
+        iconAnchor: [55, 60]
+      });
+
+      const marker = L.marker(node.coords, { icon: markerIcon }).addTo(group);
+      marker.bindPopup(`
+        <div style="font-family: monospace; font-size: 11px; padding: 6px; color: #f8fafc; background: #020617; border-radius: 8px; border: 1px solid #f59e0b;">
+          <div style="font-weight: bold; border-bottom: 1px solid #1e293b; padding-bottom: 4px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+            <span>${node.flag} ${node.name}</span>
+            <span style="color: #f59e0b; font-size: 9px; font-weight: 800;">${node.threat_level}</span>
+          </div>
+          <div style="color: #34d399; font-size: 10px;">Attacks Defended: <strong>${node.blocked.toLocaleString()}</strong></div>
+          <div style="color: #fb7185; font-size: 10px;">Threats Tracked: <strong>${node.sent.toLocaleString()}</strong></div>
+          <div style="color: #cbd5e1; font-size: 9px; margin-top: 4px;">GPS: ${node.coords[0].toFixed(2)}°N, ${node.coords[1].toFixed(2)}°E</div>
+        </div>
+      `, { className: 'custom-dark-popup' });
+    });
+
+    // 2. Plot Directional Attack Trajectory Arcs with Arrowheads & Direction Indicators
     const filtered = selectedCategory === 'All'
       ? activeStrikesPool
       : activeStrikesPool.filter((s) => s.type.toLowerCase().includes(selectedCategory.toLowerCase()));
@@ -340,18 +365,18 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
       const arcCoords = getArcPolyline(strike.origin.coords, strike.target.coords, 36);
       const isSelected = selectedStrike.id === strike.id;
 
-      // 1. Underlying Glowing Amber Laser Beam
+      // 1. Underlying Glowing Laser Beam
       const polylineGlow = L.polyline(arcCoords, {
-        color: '#f59e0b',
-        weight: isSelected ? 4.5 : 3,
-        opacity: isSelected ? 0.95 : 0.8,
+        color: isSelected ? '#f59e0b' : '#f97316',
+        weight: isSelected ? 4.8 : 3,
+        opacity: isSelected ? 0.98 : 0.75,
         lineCap: 'round'
       }).addTo(group);
 
-      // 2. Crisp Core Attack Line with Dash Pulse
+      // 2. Crisp Core Attack Line with Directional Dashes
       const polylineCore = L.polyline(arcCoords, {
         color: '#fbbf24',
-        weight: isSelected ? 2.5 : 1.8,
+        weight: isSelected ? 2.6 : 1.8,
         opacity: 1,
         dashArray: isSelected ? undefined : '8, 12',
         lineCap: 'round'
@@ -366,13 +391,48 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
       polylineGlow.on('click', handleClick);
       polylineCore.on('click', handleClick);
 
-      // 3. Concentric Target Shockwave Rings
+      // 3. Directional Arrowhead Pointer right before the target coordinate
+      const lastPoint = arcCoords[arcCoords.length - 2] || strike.origin.coords;
+      const targetPoint = strike.target.coords;
+      const bearing = calculateBearing(lastPoint, targetPoint);
+
+      const arrowIcon = L.divIcon({
+        className: 'custom-arrowhead-marker',
+        html: `
+          <div style="transform: rotate(${bearing}deg); display: flex; align-items: center; justify-content: center; width: 24px; height: 24px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <path d="M 4 4 L 20 12 L 4 20 L 8 12 Z" fill="#fbbf24" stroke="#f59e0b" stroke-width="1.5" style="filter: drop-shadow(0 0 6px #f59e0b);"/>
+            </svg>
+          </div>
+        `,
+        iconSize: [24, 24],
+        iconAnchor: [12, 12]
+      });
+
+      L.marker(lastPoint, { icon: arrowIcon }).addTo(group);
+
+      // 4. Mid-Flight Direction Indicator (▶▶)
+      const midPoint = arcCoords[Math.floor(arcCoords.length / 2)];
+      const midBearing = calculateBearing(arcCoords[Math.floor(arcCoords.length / 2) - 1], midPoint);
+      const midChevronIcon = L.divIcon({
+        className: 'custom-mid-chevron',
+        html: `
+          <div style="transform: rotate(${midBearing}deg); display: flex; align-items: center; justify-content: center; width: 18px; height: 18px; background: #0f0f18; border-radius: 50%; border: 1px solid #f59e0b; box-shadow: 0 0 6px #f59e0b;">
+            <span style="color: #fbbf24; font-size: 9px; font-weight: 900;">▶</span>
+          </div>
+        `,
+        iconSize: [18, 18],
+        iconAnchor: [9, 9]
+      });
+      L.marker(midPoint, { icon: midChevronIcon }).addTo(group);
+
+      // 5. Concentric Target Shockwave Rings at Destination
       const impactShockwave = L.circle(strike.target.coords, {
         radius: isSelected ? 380000 : 220000,
-        color: '#f59e0b',
-        fillColor: '#f59e0b',
-        fillOpacity: isSelected ? 0.22 : 0.12,
-        weight: isSelected ? 2 : 1
+        color: '#06b6d4',
+        fillColor: '#06b6d4',
+        fillOpacity: isSelected ? 0.24 : 0.12,
+        weight: isSelected ? 2.5 : 1
       }).addTo(group);
 
       impactShockwave.on('click', handleClick);
@@ -461,14 +521,14 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xs sm:text-sm font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                <Globe className="w-4 h-4 text-amber-400 animate-pulse" /> Real-World Cyber Attack Geography Map
+                <Globe className="w-4 h-4 text-amber-400 animate-pulse" /> Real-World Directional Cyber Attack Map
               </h2>
               <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-500/60 animate-pulse">
-                REAL GPS SATELLITE
+                PINPOINT VECTOR RADAR
               </span>
             </div>
             <p className="text-[11px] text-slate-400">
-              Live geographic cyber warfare strikes tracked across authentic continents & GPS coordinates
+              Pinpointing exact strike origins, directional trajectory arrowheads & defended target hubs
             </p>
           </div>
         </div>
@@ -585,10 +645,35 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
         </div>
       </div>
 
-      {/* 3. Real Geographic Leaflet Map with Teardrop Pins & Glowing Amber Attack Arrows */}
+      {/* 3. Real Geographic Leaflet Map with Directional Arrowheads & Origin/Target Pin Badges */}
       <div className={`relative w-full ${isFullscreen ? 'flex-1 min-h-[500px]' : 'h-[360px] sm:h-[440px] md:h-[500px]'} bg-[#020617] overflow-hidden`}>
         {/* Leaflet Map DOM Element */}
         <div ref={mapContainerRef} className="w-full h-full z-0" />
+
+        {/* Explicit Trajectory Direction Banner at Top Center */}
+        {selectedStrike && (
+          <div className="absolute top-3 left-1/2 transform -translate-x-1/2 z-[400] px-3.5 py-1.5 rounded-2xl bg-slate-950/90 border border-amber-500/50 shadow-2xl backdrop-blur-md flex items-center gap-2.5 font-mono text-xs text-white pointer-events-none">
+            <div className="flex items-center gap-1.5 text-rose-400 font-bold">
+              <span className="text-sm">{selectedStrike.origin.flag}</span>
+              <span>{selectedStrike.origin.name}</span>
+              <span className="text-[9px] px-1.5 py-0.2 rounded bg-rose-950 text-rose-300 border border-rose-500/40 uppercase">
+                ATTACKER
+              </span>
+            </div>
+
+            <div className="flex items-center gap-1 text-amber-400 font-black">
+              <span className="text-xs">════▶</span>
+            </div>
+
+            <div className="flex items-center gap-1.5 text-cyan-300 font-bold">
+              <span className="text-sm">{selectedStrike.target.flag}</span>
+              <span>{selectedStrike.target.name}</span>
+              <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/40 uppercase">
+                DEFENDER
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Zoom & Reset Floating Controls */}
         <div className="absolute top-4 right-4 z-[400] flex flex-col gap-1.5">
@@ -615,12 +700,6 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
           </button>
         </div>
 
-        {/* Real GPS Coordinate HUD Overlay */}
-        <div className="absolute top-3 left-3 z-[400] text-[10px] text-amber-400/90 pointer-events-none font-mono bg-slate-950/85 px-2.5 py-1 rounded-lg border border-amber-500/30 backdrop-blur-md flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-          <span>REAL CARTOGRAPHY // DARK MATTER SATELLITE RADAR</span>
-        </div>
-
         {/* Floating Active Strike HUD Box (Bottom Left of Map) */}
         {selectedStrike && (
           <div className="absolute bottom-3 left-3 right-3 sm:right-auto sm:max-w-md z-[400] p-3.5 rounded-2xl bg-slate-950/95 border-2 border-amber-500/70 shadow-2xl backdrop-blur-xl space-y-2 font-mono text-xs animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -628,7 +707,7 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
               <div className="flex items-center gap-1.5">
                 <Target className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
                 <span className="text-[10px] font-bold text-white uppercase tracking-wider">
-                  REAL GEOGRAPHIC INTERCEPT
+                  PINPOINT INTERCEPT TELEMETRY
                 </span>
               </div>
               <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-600">
@@ -639,12 +718,12 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
             <div className="flex items-center justify-between text-[11px] font-bold pt-0.5">
               <div className="flex items-center gap-1">
                 <span>{selectedStrike.origin.flag}</span>
-                <span className="text-slate-300">{selectedStrike.origin.name}</span>
+                <span className="text-rose-400 font-black">{selectedStrike.origin.name} (ATTACKER)</span>
               </div>
               <span className="text-amber-400 font-black">➔</span>
               <div className="flex items-center gap-1">
                 <span>{selectedStrike.target.flag}</span>
-                <span className="text-white">{selectedStrike.target.name}</span>
+                <span className="text-cyan-300 font-black">{selectedStrike.target.name} (TARGET)</span>
               </div>
             </div>
 
@@ -670,7 +749,7 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
             <span className="font-bold uppercase text-slate-300">Live Global Intercept Telemetry Feed</span>
           </div>
           <span className="text-[10px] text-amber-400 font-bold flex items-center gap-1">
-            <Radio className="w-3 h-3 text-amber-400 animate-pulse" /> SIMULATION STREAMING
+            <Radio className="w-3 h-3 text-amber-400 animate-pulse" /> PINPOINT SATELLITE RADAR
           </span>
         </div>
 
