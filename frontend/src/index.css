@@ -1,0 +1,197 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html.dark body {
+    @apply bg-cyber-bg text-slate-100 antialiased overflow-x-hidden;
+    background-image: 
+      linear-gradient(to right, rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+      radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 85% 30%, rgba(56, 189, 248, 0.04) 0%, transparent 40%),
+      radial-gradient(circle at 15% 70%, rgba(99, 102, 241, 0.04) 0%, transparent 40%);
+    background-size: 40px 40px, 40px 40px, 100% 100%, 100% 100%, 100% 100%;
+  }
+
+  html.light body {
+    @apply bg-slate-100 text-slate-900 antialiased overflow-x-hidden;
+    background-image: 
+      linear-gradient(to right, rgba(14, 165, 233, 0.07) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(14, 165, 233, 0.07) 1px, transparent 1px),
+      radial-gradient(circle at 50% 0%, rgba(14, 165, 233, 0.1) 0%, transparent 60%),
+      radial-gradient(circle at 85% 30%, rgba(99, 102, 241, 0.06) 0%, transparent 50%);
+    background-size: 40px 40px, 40px 40px, 100% 100%, 100% 100%;
+  }
+
+  /* Custom Cyber Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  html.dark ::-webkit-scrollbar-track {
+    background: #040711;
+  }
+  html.dark ::-webkit-scrollbar-thumb {
+    background: #132238;
+    border-radius: 9999px;
+  }
+  html.dark ::-webkit-scrollbar-thumb:hover {
+    background: #00f0ff;
+  }
+
+  html.light ::-webkit-scrollbar-track {
+    background: #e2e8f0;
+  }
+  html.light ::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 9999px;
+  }
+  html.light ::-webkit-scrollbar-thumb:hover {
+    background: #0284c7;
+  }
+}
+
+@layer utilities {
+  .text-glow-cyan {
+    text-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+  }
+
+  .text-glow-emerald {
+    text-shadow: 0 0 12px rgba(16, 185, 129, 0.5);
+  }
+
+  .text-glow-red {
+    text-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
+  }
+}
+
+/* Light mode overrides for high-contrast readability */
+html.light .text-slate-400 {
+  color: #475569 !important;
+}
+
+html.light .text-slate-500 {
+  color: #64748b !important;
+}
+
+html.light .text-slate-300 {
+  color: #334155 !important;
+}
+
+html.light .text-slate-200 {
+  color: #1e293b !important;
+}
+
+html.light .text-slate-100 {
+  color: #0f172a !important;
+}
+
+html.light .text-white {
+  color: #090e17 !important;
+}
+
+html.light .bg-slate-950 {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light .bg-slate-900 {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light .bg-slate-900\/80,
+html.light .bg-slate-900\/70,
+html.light .bg-slate-900\/90,
+html.light .bg-slate-950\/90,
+html.light .bg-slate-950\/85,
+html.light .bg-slate-950\/80 {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05) !important;
+}
+
+html.light .border-slate-800,
+html.light .border-slate-800\/80,
+html.light .border-slate-800\/90,
+html.light .border-slate-900 {
+  border-color: #cbd5e1 !important;
+}
+
+html.light .border-cyber-border {
+  border-color: rgba(2, 132, 199, 0.25) !important;
+}
+
+html.light .bg-cyan-950,
+html.light .bg-cyan-950\/80,
+html.light .bg-cyan-950\/70,
+html.light .bg-cyan-950\/60,
+html.light .bg-cyan-950\/40,
+html.light .bg-cyan-950\/30 {
+  background-color: #e0f2fe !important;
+  color: #0369a1 !important;
+  border-color: #7dd3fc !important;
+}
+
+html.light .text-cyan-400,
+html.light .text-cyan-300 {
+  color: #0284c7 !important;
+}
+
+html.light .bg-rose-950,
+html.light .bg-rose-950\/80,
+html.light .bg-rose-950\/60,
+html.light .bg-rose-950\/40 {
+  background-color: #ffe4e6 !important;
+  color: #be123c !important;
+  border-color: #fca5a5 !important;
+}
+
+html.light .text-rose-400,
+html.light .text-rose-300,
+html.light .text-rose-200 {
+  color: #e11d48 !important;
+}
+
+html.light .bg-emerald-950,
+html.light .bg-emerald-950\/80,
+html.light .bg-emerald-950\/60,
+html.light .bg-emerald-950\/30 {
+  background-color: #d1fae5 !important;
+  color: #047857 !important;
+  border-color: #6ee7b7 !important;
+}
+
+html.light .text-emerald-400,
+html.light .text-emerald-300,
+html.light .text-emerald-200 {
+  color: #059669 !important;
+}
+
+html.light .bg-amber-950,
+html.light .bg-amber-950\/80,
+html.light .bg-amber-950\/70 {
+  background-color: #fef3c7 !important;
+  color: #b45309 !important;
+  border-color: #fcd34d !important;
+}
+
+html.light .text-amber-400,
+html.light .text-amber-300 {
+  color: #d97706 !important;
+}
+
+html.light input,
+html.light textarea,
+html.light select {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
