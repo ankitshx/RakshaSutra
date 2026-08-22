@@ -9,7 +9,14 @@ import {
   Filter,
   Sparkles,
   Plus,
-  Minus
+  Minus,
+  Volume2,
+  VolumeX,
+  Maximize2,
+  Minimize2,
+  Terminal,
+  Crosshair,
+  Radio
 } from 'lucide-react';
 
 interface GeoAttackNode {
@@ -22,6 +29,7 @@ interface GeoAttackNode {
   sent: number;
   blocked: number;
   threat_level: 'CRITICAL' | 'HIGH' | 'MEDIUM';
+  apt_group?: string;
 }
 
 interface GeoAttackStrike {
@@ -35,32 +43,33 @@ interface GeoAttackStrike {
   vector: string;
   color: string;
   timestamp: string;
+  port?: number;
 }
 
 const REAL_GEO_NODES: Record<string, GeoAttackNode> = {
-  IN_DELHI: { id: 'IN_DELHI', name: 'New Delhi', country: 'India', code: 'IN', flag: '🇮🇳', coords: [28.6139, 77.2090], sent: 8400, blocked: 128400, threat_level: 'HIGH' },
-  IN_MUMBAI: { id: 'IN_MUMBAI', name: 'Mumbai', country: 'India', code: 'IN', flag: '🇮🇳', coords: [19.0760, 72.8777], sent: 9100, blocked: 142000, threat_level: 'HIGH' },
-  US_NY: { id: 'US_NY', name: 'New York', country: 'United States', code: 'US', flag: '🇺🇸', coords: [40.7128, -74.0060], sent: 16200, blocked: 98400, threat_level: 'HIGH' },
-  US_SF: { id: 'US_SF', name: 'Silicon Valley', country: 'United States', code: 'US', flag: '🇺🇸', coords: [37.7749, -122.4194], sent: 14500, blocked: 104200, threat_level: 'HIGH' },
-  RU_MOSCOW: { id: 'RU_MOSCOW', name: 'Moscow', country: 'Russia', code: 'RU', flag: '🇷🇺', coords: [55.7558, 37.6173], sent: 54900, blocked: 14200, threat_level: 'CRITICAL' },
-  VN_HANOI: { id: 'VN_HANOI', name: 'Hanoi', country: 'Vietnam', code: 'VN', flag: '🇻🇳', coords: [21.0285, 105.8542], sent: 34200, blocked: 6100, threat_level: 'HIGH' },
-  BR_SP: { id: 'BR_SP', name: 'São Paulo', country: 'Brazil', code: 'BR', flag: '🇧🇷', coords: [-23.5505, -46.6333], sent: 29800, blocked: 19400, threat_level: 'HIGH' },
-  DE_FRA: { id: 'DE_FRA', name: 'Frankfurt', country: 'Germany', code: 'DE', flag: '🇩🇪', coords: [50.1109, 8.6821], sent: 11200, blocked: 78400, threat_level: 'MEDIUM' },
-  GB_LON: { id: 'GB_LON', name: 'London', country: 'United Kingdom', code: 'GB', flag: '🇬🇧', coords: [51.5074, -0.1278], sent: 9400, blocked: 89200, threat_level: 'HIGH' },
-  IL_TLV: { id: 'IL_TLV', name: 'Tel Aviv', country: 'Israel', code: 'IL', flag: '🇮🇱', coords: [32.0853, 34.7818], sent: 22400, blocked: 34100, threat_level: 'CRITICAL' },
-  CN_BEI: { id: 'CN_BEI', name: 'Beijing', country: 'China', code: 'CN', flag: '🇨🇳', coords: [39.9042, 116.4074], sent: 68400, blocked: 29400, threat_level: 'CRITICAL' },
-  JP_TYO: { id: 'JP_TYO', name: 'Tokyo', country: 'Japan', code: 'JP', flag: '🇯🇵', coords: [35.6762, 139.6503], sent: 5100, blocked: 69400, threat_level: 'HIGH' },
-  NG_LOS: { id: 'NG_LOS', name: 'Lagos', country: 'Nigeria', code: 'NG', flag: '🇳🇬', coords: [6.5244, 3.3792], sent: 31200, blocked: 4800, threat_level: 'HIGH' },
-  SG_SIN: { id: 'SG_SIN', name: 'Singapore', country: 'Singapore', code: 'SG', flag: '🇸🇬', coords: [1.3521, 103.8198], sent: 7200, blocked: 58400, threat_level: 'MEDIUM' },
-  AU_SYD: { id: 'AU_SYD', name: 'Sydney', country: 'Australia', code: 'AU', flag: '🇦🇺', coords: [-33.8688, 151.2093], sent: 4100, blocked: 46200, threat_level: 'MEDIUM' },
-  AE_DXB: { id: 'AE_DXB', name: 'Dubai', country: 'UAE', code: 'AE', flag: '🇦🇪', coords: [25.2048, 55.2708], sent: 16800, blocked: 38200, threat_level: 'MEDIUM' },
-  CA_TOR: { id: 'CA_TOR', name: 'Toronto', country: 'Canada', code: 'CA', flag: '🇨🇦', coords: [43.6532, -79.3832], sent: 6400, blocked: 49200, threat_level: 'MEDIUM' },
-  ZA_JNB: { id: 'ZA_JNB', name: 'Johannesburg', country: 'South Africa', code: 'ZA', flag: '🇿🇦', coords: [-26.2041, 28.0473], sent: 9800, blocked: 24100, threat_level: 'MEDIUM' },
-  KR_SEO: { id: 'KR_SEO', name: 'Seoul', country: 'South Korea', code: 'KR', flag: '🇰🇷', coords: [37.5665, 126.9780], sent: 7800, blocked: 61200, threat_level: 'HIGH' },
-  FR_PAR: { id: 'FR_PAR', name: 'Paris', country: 'France', code: 'FR', flag: '🇫🇷', coords: [48.8566, 2.3522], sent: 8900, blocked: 54100, threat_level: 'MEDIUM' }
+  IN_DELHI: { id: 'IN_DELHI', name: 'New Delhi', country: 'India', code: 'IN', flag: '🇮🇳', coords: [28.6139, 77.2090], sent: 8400, blocked: 148400, threat_level: 'HIGH', apt_group: 'National Cyber Defense Command' },
+  IN_MUMBAI: { id: 'IN_MUMBAI', name: 'Mumbai', country: 'India', code: 'IN', flag: '🇮🇳', coords: [19.0760, 72.8777], sent: 9100, blocked: 162000, threat_level: 'HIGH', apt_group: 'UPI & Banking Gateway SOC' },
+  US_NY: { id: 'US_NY', name: 'New York', country: 'United States', code: 'US', flag: '🇺🇸', coords: [40.7128, -74.0060], sent: 16200, blocked: 118400, threat_level: 'HIGH', apt_group: 'Financial Exchange Hub' },
+  US_SF: { id: 'US_SF', name: 'Silicon Valley', country: 'United States', code: 'US', flag: '🇺🇸', coords: [37.7749, -122.4194], sent: 14500, blocked: 124200, threat_level: 'HIGH', apt_group: 'Cloud Edge Defense Core' },
+  RU_MOSCOW: { id: 'RU_MOSCOW', name: 'Moscow', country: 'Russia', code: 'RU', flag: '🇷🇺', coords: [55.7558, 37.6173], sent: 68900, blocked: 16200, threat_level: 'CRITICAL', apt_group: 'APT28 / Sandworm / Lockbit' },
+  VN_HANOI: { id: 'VN_HANOI', name: 'Hanoi', country: 'Vietnam', code: 'VN', flag: '🇻🇳', coords: [21.0285, 105.8542], sent: 41200, blocked: 7100, threat_level: 'HIGH', apt_group: 'APT32 / OceanLotus' },
+  BR_SP: { id: 'BR_SP', name: 'São Paulo', country: 'Brazil', code: 'BR', flag: '🇧🇷', coords: [-23.5505, -46.6333], sent: 34800, blocked: 21400, threat_level: 'HIGH', apt_group: 'Mirai Botnet Syndicate' },
+  DE_FRA: { id: 'DE_FRA', name: 'Frankfurt', country: 'Germany', code: 'DE', flag: '🇩🇪', coords: [50.1109, 8.6821], sent: 12200, blocked: 88400, threat_level: 'MEDIUM', apt_group: 'DE-CIX Internet Exchange Node' },
+  GB_LON: { id: 'GB_LON', name: 'London', country: 'United Kingdom', code: 'GB', flag: '🇬🇧', coords: [51.5074, -0.1278], sent: 10400, blocked: 99200, threat_level: 'HIGH', apt_group: 'NCSC Strategic Defense' },
+  IL_TLV: { id: 'IL_TLV', name: 'Tel Aviv', country: 'Israel', code: 'IL', flag: '🇮🇱', coords: [32.0853, 34.7818], sent: 26400, blocked: 39100, threat_level: 'CRITICAL', apt_group: 'Unit 8200 & Exploit Frameworks' },
+  CN_BEI: { id: 'CN_BEI', name: 'Beijing', country: 'China', code: 'CN', flag: '🇨🇳', coords: [39.9042, 116.4074], sent: 78400, blocked: 34400, threat_level: 'CRITICAL', apt_group: 'APT41 / Volt Typhoon / RedAlpha' },
+  JP_TYO: { id: 'JP_TYO', name: 'Tokyo', country: 'Japan', code: 'JP', flag: '🇯🇵', coords: [35.6762, 139.6503], sent: 6100, blocked: 79400, threat_level: 'HIGH', apt_group: 'Cyber Security Operations Center' },
+  NG_LOS: { id: 'NG_LOS', name: 'Lagos', country: 'Nigeria', code: 'NG', flag: '🇳🇬', coords: [6.5244, 3.3792], sent: 37200, blocked: 5800, threat_level: 'HIGH', apt_group: 'SilverTerrier / BEC Rings' },
+  SG_SIN: { id: 'SG_SIN', name: 'Singapore', country: 'Singapore', code: 'SG', flag: '🇸🇬', coords: [1.3521, 103.8198], sent: 8200, blocked: 68400, threat_level: 'MEDIUM', apt_group: 'ASEAN Cyber Defense Gateway' },
+  AU_SYD: { id: 'AU_SYD', name: 'Sydney', country: 'Australia', code: 'AU', flag: '🇦🇺', coords: [-33.8688, 151.2093], sent: 5100, blocked: 54200, threat_level: 'MEDIUM', apt_group: 'ASD Cyber Security Core' },
+  AE_DXB: { id: 'AE_DXB', name: 'Dubai', country: 'UAE', code: 'AE', flag: '🇦🇪', coords: [25.2048, 55.2708], sent: 19800, blocked: 44200, threat_level: 'MEDIUM', apt_group: 'Middle East FinTech Shield' },
+  CA_TOR: { id: 'CA_TOR', name: 'Toronto', country: 'Canada', code: 'CA', flag: '🇨🇦', coords: [43.6532, -79.3832], sent: 7400, blocked: 58200, threat_level: 'MEDIUM', apt_group: 'CCCS Critical Defense' },
+  ZA_JNB: { id: 'ZA_JNB', name: 'Johannesburg', country: 'South Africa', code: 'ZA', flag: '🇿🇦', coords: [-26.2041, 28.0473], sent: 11800, blocked: 29100, threat_level: 'MEDIUM', apt_group: 'Pan-African Threat Cell' },
+  KR_SEO: { id: 'KR_SEO', name: 'Seoul', country: 'South Korea', code: 'KR', flag: '🇰🇷', coords: [37.5665, 126.9780], sent: 9800, blocked: 73200, threat_level: 'HIGH', apt_group: 'KISA National SOC' },
+  FR_PAR: { id: 'FR_PAR', name: 'Paris', country: 'France', code: 'FR', flag: '🇫🇷', coords: [48.8566, 2.3522], sent: 10100, blocked: 64100, threat_level: 'MEDIUM', apt_group: 'ANSSI Cyber Taskforce' }
 };
 
-const INITIAL_GEO_STRIKES: GeoAttackStrike[] = [
+const BASE_GEO_STRIKES: GeoAttackStrike[] = [
   {
     id: 'atk-real-1',
     threat_name: 'Lockbit 3.0 Ransomware Wave',
@@ -69,9 +78,10 @@ const INITIAL_GEO_STRIKES: GeoAttackStrike[] = [
     target: { ...REAL_GEO_NODES.US_NY, sector: 'Hospital Core & Healthcare DBs' },
     severity: 'CRITICAL',
     status: 'BLOCKED BY DEFENSE',
-    vector: 'RDP Port Scanning & SMBv3 Exploit',
+    vector: 'RDP Port 3389 Exploit (CVE-2024-21413)',
     color: '#f43f5e',
-    timestamp: 'Just now'
+    timestamp: 'Just now',
+    port: 3389
   },
   {
     id: 'atk-real-2',
@@ -83,7 +93,8 @@ const INITIAL_GEO_STRIKES: GeoAttackStrike[] = [
     status: 'INTERCEPTED',
     vector: 'WhatsApp Electricity Smishing APK',
     color: '#06b6d4',
-    timestamp: '3s ago'
+    timestamp: '2s ago',
+    port: 443
   },
   {
     id: 'atk-real-3',
@@ -93,9 +104,10 @@ const INITIAL_GEO_STRIKES: GeoAttackStrike[] = [
     target: { ...REAL_GEO_NODES.DE_FRA, sector: 'Tier-1 Edge DNS Nodes' },
     severity: 'HIGH',
     status: 'MITIGATED',
-    vector: 'SYN-Flood UDP Amplification',
+    vector: 'SYN-Flood UDP 53 Amplification',
     color: '#a855f7',
-    timestamp: '6s ago'
+    timestamp: '5s ago',
+    port: 53
   },
   {
     id: 'atk-real-4',
@@ -107,19 +119,21 @@ const INITIAL_GEO_STRIKES: GeoAttackStrike[] = [
     status: 'INVESTIGATING',
     vector: 'Zero-Click Font Parser Heap Overflow',
     color: '#eab308',
-    timestamp: '9s ago'
+    timestamp: '8s ago',
+    port: 8443
   },
   {
     id: 'atk-real-5',
     threat_name: 'Lumma Infostealer Payload Drop',
     type: 'Infostealer',
     origin: REAL_GEO_NODES.CN_BEI,
-    target: { ...REAL_GEO_NODES.JP_TYO, sector: 'Semiconductor Fabrication' },
+    target: { ...REAL_GEO_NODES.JP_TYO, sector: 'Semiconductor Fabrication Labs' },
     severity: 'CRITICAL',
     status: 'BLOCKED BY DEFENSE',
     vector: 'Spear-Phishing PDF Macro Dropper',
     color: '#f43f5e',
-    timestamp: '12s ago'
+    timestamp: '11s ago',
+    port: 8080
   },
   {
     id: 'atk-real-6',
@@ -131,7 +145,8 @@ const INITIAL_GEO_STRIKES: GeoAttackStrike[] = [
     status: 'FLAGGED',
     vector: 'Cloned Real-time Audio Phone Call',
     color: '#3b82f6',
-    timestamp: '16s ago'
+    timestamp: '14s ago',
+    port: 5060
   },
   {
     id: 'atk-real-7',
@@ -143,7 +158,8 @@ const INITIAL_GEO_STRIKES: GeoAttackStrike[] = [
     status: 'BLOCKED BY DEFENSE',
     vector: 'Supply Chain DLL Hijacking',
     color: '#f43f5e',
-    timestamp: '19s ago'
+    timestamp: '17s ago',
+    port: 4444
   },
   {
     id: 'atk-real-8',
@@ -155,36 +171,35 @@ const INITIAL_GEO_STRIKES: GeoAttackStrike[] = [
     status: 'BLOCKED BY DEFENSE',
     vector: 'Carrier Impersonation OTP Theft',
     color: '#06b6d4',
-    timestamp: '23s ago'
+    timestamp: '20s ago',
+    port: 443
   },
   {
     id: 'atk-real-9',
     threat_name: 'Banking OTP Intercept & SMS Forwarder',
     type: 'Phishing',
     origin: REAL_GEO_NODES.CN_BEI,
-    target: { ...REAL_GEO_NODES.IN_DELHI, sector: 'National Banking Switch' },
+    target: { ...REAL_GEO_NODES.IN_DELHI, sector: 'National Banking Switch (NPCI)' },
     severity: 'HIGH',
     status: 'BLOCKED BY DEFENSE',
     vector: 'Trojanized Fake Income Tax APK',
     color: '#06b6d4',
-    timestamp: '27s ago'
+    timestamp: '24s ago',
+    port: 80
   }
 ];
 
-// Helper to compute curved points along great-circle arc
-function getArcPolyline(p1: [number, number], p2: [number, number], pointsCount: number = 30): [number, number][] {
+function getArcPolyline(p1: [number, number], p2: [number, number], pointsCount: number = 36): [number, number][] {
   const [lat1, lng1] = p1;
   const [lat2, lng2] = p2;
   const points: [number, number][] = [];
 
-  // Intermediate mid elevation offset
   const midLat = (lat1 + lat2) / 2;
   const dist = Math.sqrt(Math.pow(lat2 - lat1, 2) + Math.pow(lng2 - lng1, 2));
-  const arcElevation = Math.min(25, Math.max(8, dist * 0.22));
+  const arcElevation = Math.min(26, Math.max(9, dist * 0.22));
 
   for (let i = 0; i <= pointsCount; i++) {
     const t = i / pointsCount;
-    // Quadratic bezier in lat/lng space
     const lat = (1 - t) * (1 - t) * lat1 + 2 * (1 - t) * t * (midLat + arcElevation) + t * t * lat2;
     const lng = (1 - t) * lng1 + t * lng2;
     points.push([lat, lng]);
@@ -196,20 +211,68 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const strikeLayersGroupRef = useRef<L.LayerGroup | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
 
-  const [selectedStrike, setSelectedStrike] = useState<GeoAttackStrike>(INITIAL_GEO_STRIKES[0]);
+  const [strikes, setStrikes] = useState<GeoAttackStrike[]>(BASE_GEO_STRIKES);
+  const [selectedStrike, setSelectedStrike] = useState<GeoAttackStrike>(BASE_GEO_STRIKES[0]);
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [speedMultiplier, setSpeedMultiplier] = useState<number>(1);
-  const [liveRate, setLiveRate] = useState<number>(18580);
-  const [totalIntercepted, setTotalIntercepted] = useState<number>(1498420);
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(false);
+  const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [liveRate, setLiveRate] = useState<number>(18640);
+  const [totalIntercepted, setTotalIntercepted] = useState<number>(1498600);
   const [activeLeaderboard, setActiveLeaderboard] = useState<'origins' | 'targets'>('origins');
+  const [terminalLogs, setTerminalLogs] = useState<Array<{ id: string; text: string; type: string; time: string }>>([
+    { id: '1', text: 'INTERCEPT: Lockbit 3.0 (RU ➔ US) blocked on Port 3389', type: 'rose', time: '12:53:10' },
+    { id: '2', text: 'DEFENSE: Fake UPI APK (VN ➔ IN) intercepted at gateway', type: 'cyan', time: '12:53:12' },
+    { id: '3', text: 'MITIGATE: Mirai DDoS 3.8 Tbps (BR ➔ DE) rate-limited', type: 'purple', time: '12:53:14' },
+    { id: '4', text: 'AUDIT: WebKit Zero-Day (IL ➔ GB) isolated by sandbox', type: 'amber', time: '12:53:16' }
+  ]);
+
+  // Play synthesized sci-fi sound effect
+  const playCyberSound = (type: 'laser' | 'shield' | 'alarm') => {
+    if (!soundEnabled) return;
+    try {
+      if (!audioContextRef.current) {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) audioContextRef.current = new AudioCtx();
+      }
+      const ctx = audioContextRef.current;
+      if (!ctx) return;
+      if (ctx.state === 'suspended') ctx.resume();
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      if (type === 'laser') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(800, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(150, ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.15);
+      } else if (type === 'shield') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(450, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(900, ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.06, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.2);
+      }
+    } catch {
+      // audio error handled gracefully
+    }
+  };
 
   // Initialize Real Geographical Leaflet Map
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
     if (!mapInstanceRef.current) {
-      // Create map centered on real world coordinates [20, 20], zoom level 2
       const map = L.map(mapContainerRef.current, {
         center: [22, 20],
         zoom: 2,
@@ -220,13 +283,12 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
         worldCopyJump: true
       });
 
-      // CartoDB Dark Matter real geographic tiles
+      // CartoDB Dark Matter Real Geographic Cartography Tiles
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
         subdomains: 'abcd',
         maxZoom: 19
       }).addTo(map);
 
-      // Layer group for attack arcs & markers
       const strikeGroup = L.layerGroup().addTo(map);
       strikeLayersGroupRef.current = strikeGroup;
 
@@ -235,7 +297,6 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
         const isCritical = node.threat_level === 'CRITICAL';
         const nodeColor = isCritical ? '#f43f5e' : '#06b6d4';
 
-        // Custom Glowing Pulse HTML Marker
         const markerIcon = L.divIcon({
           className: 'custom-geo-node',
           html: `
@@ -250,24 +311,21 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
 
         const marker = L.marker(node.coords, { icon: markerIcon }).addTo(map);
         marker.bindPopup(`
-          <div style="font-family: monospace; font-size: 11px; padding: 4px; color: #f8fafc; background: #020617;">
-            <div style="font-weight: bold; border-bottom: 1px solid #1e293b; padding-bottom: 3px; margin-bottom: 4px; display: flex; align-items: center; gap: 4px;">
-              <span>${node.flag}</span> <span>${node.name}, ${node.country}</span>
+          <div style="font-family: monospace; font-size: 11px; padding: 6px; color: #f8fafc; background: #020617; border-radius: 8px; border: 1px solid #06b6d4;">
+            <div style="font-weight: bold; border-bottom: 1px solid #1e293b; padding-bottom: 4px; margin-bottom: 4px; display: flex; align-items: center; justify-content: space-between; gap: 6px;">
+              <span>${node.flag} ${node.name}, ${node.country}</span>
+              <span style="color: ${nodeColor}; font-size: 9px; font-weight: 800;">${node.threat_level}</span>
             </div>
-            <div style="color: #94a3b8; font-size: 10px;">Threat Level: <strong style="color: ${nodeColor}">${node.threat_level}</strong></div>
+            <div style="color: #94a3b8; font-size: 10px;">SOC Unit: <strong style="color: #38bdf8">${node.apt_group || 'Active Command Node'}</strong></div>
             <div style="color: #34d399; font-size: 10px;">Attacks Defended: <strong>${node.blocked.toLocaleString()}</strong></div>
             <div style="color: #fb7185; font-size: 10px;">Threats Tracked: <strong>${node.sent.toLocaleString()}</strong></div>
-            <div style="color: #38bdf8; font-size: 9px; margin-top: 4px;">GPS: ${node.coords[0].toFixed(2)}°N, ${node.coords[1].toFixed(2)}°E</div>
+            <div style="color: #cbd5e1; font-size: 9px; margin-top: 4px;">GPS: ${node.coords[0].toFixed(2)}°N, ${node.coords[1].toFixed(2)}°E</div>
           </div>
         `, { className: 'custom-dark-popup' });
       });
 
       mapInstanceRef.current = map;
     }
-
-    return () => {
-      // Map cleanup on unmount handled gracefully
-    };
   }, []);
 
   // Re-render Dynamic Attack Laser Arcs on the Real Map
@@ -278,14 +336,14 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
     group.clearLayers();
 
     const filtered = selectedCategory === 'All'
-      ? INITIAL_GEO_STRIKES
-      : INITIAL_GEO_STRIKES.filter((s) => s.type.toLowerCase().includes(selectedCategory.toLowerCase()));
+      ? strikes
+      : strikes.filter((s) => s.type.toLowerCase().includes(selectedCategory.toLowerCase()));
 
     filtered.forEach((strike) => {
       const arcCoords = getArcPolyline(strike.origin.coords, strike.target.coords, 35);
       const isSelected = selectedStrike.id === strike.id;
 
-      // Polyline for the curved missile / laser trajectory
+      // 1. Curved Missile / Laser Trajectory Polyline
       const polyline = L.polyline(arcCoords, {
         color: strike.color,
         weight: isSelected ? 3.5 : 2,
@@ -296,36 +354,47 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
 
       polyline.on('click', () => {
         setSelectedStrike(strike);
+        playCyberSound('laser');
         if (onSelectStrike) onSelectStrike(strike);
       });
 
-      // Target Impact Radar Shockwave Circle
+      // 2. Target Impact Shockwave Ring
       const impactShockwave = L.circle(strike.target.coords, {
-        radius: isSelected ? 350000 : 200000,
+        radius: isSelected ? 380000 : 220000,
         color: strike.color,
         fillColor: strike.color,
-        fillOpacity: 0.15,
-        weight: 1.5
+        fillOpacity: isSelected ? 0.25 : 0.12,
+        weight: isSelected ? 2 : 1
       }).addTo(group);
 
       impactShockwave.on('click', () => {
         setSelectedStrike(strike);
+        playCyberSound('shield');
         if (onSelectStrike) onSelectStrike(strike);
       });
     });
-  }, [selectedCategory, selectedStrike]);
+  }, [selectedCategory, selectedStrike, strikes]);
 
-  // Periodic simulated real attack rotation
+  // Periodic simulated real attack rotation with terminal log additions
   useEffect(() => {
     const timer = setInterval(() => {
-      const randomStrike = INITIAL_GEO_STRIKES[Math.floor(Math.random() * INITIAL_GEO_STRIKES.length)];
+      const randomStrike = BASE_GEO_STRIKES[Math.floor(Math.random() * BASE_GEO_STRIKES.length)];
       setSelectedStrike(randomStrike);
       setLiveRate((r) => r + Math.floor(Math.random() * 9) - 4);
       setTotalIntercepted((t) => t + 1);
-    }, 3200 / speedMultiplier);
+
+      // Play sound and add terminal log
+      playCyberSound('shield');
+      const nowStr = new Date().toLocaleTimeString();
+      const logText = `DEFENSE: ${randomStrike.threat_name} (${randomStrike.origin.code} ➔ ${randomStrike.target.code}) - ${randomStrike.status}`;
+      setTerminalLogs((prev) => [
+        { id: `log-${Date.now()}`, text: logText, type: randomStrike.severity === 'CRITICAL' ? 'rose' : 'cyan', time: nowStr },
+        ...prev.slice(0, 5)
+      ]);
+    }, 3000 / speedMultiplier);
 
     return () => clearInterval(timer);
-  }, [speedMultiplier]);
+  }, [speedMultiplier, soundEnabled]);
 
   const handleLaunchCustomStrike = () => {
     const nodes = Object.values(REAL_GEO_NODES);
@@ -336,10 +405,10 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
     }
 
     const types = [
-      { name: 'Ransomware Payload Injection', type: 'Ransomware' as const, color: '#f43f5e', vector: 'Remote Code Exploit' },
-      { name: 'Volumetric Mirai DDoS Blitz (4.1 Tbps)', type: 'DDoS' as const, color: '#a855f7', vector: 'UDP Amplification Storm' },
-      { name: 'Fake UPI / Banking APK Harvest', type: 'Phishing' as const, color: '#06b6d4', vector: 'Smishing Bot APK Lure' },
-      { name: 'WebKit Sandbox Zero-Day Escape', type: 'Zero-Day' as const, color: '#eab308', vector: 'Memory Heap Overflow' }
+      { name: 'Ransomware Payload Injection', type: 'Ransomware' as const, color: '#f43f5e', vector: 'Remote Code Exploit', port: 3389 },
+      { name: 'Volumetric Mirai DDoS Blitz (4.1 Tbps)', type: 'DDoS' as const, color: '#a855f7', vector: 'UDP Amplification Storm', port: 53 },
+      { name: 'Fake UPI / Banking APK Harvest', type: 'Phishing' as const, color: '#06b6d4', vector: 'Smishing Bot APK Lure', port: 443 },
+      { name: 'WebKit Sandbox Zero-Day Escape', type: 'Zero-Day' as const, color: '#eab308', vector: 'Memory Heap Overflow', port: 8443 }
     ];
     const picked = types[Math.floor(Math.random() * types.length)];
 
@@ -353,15 +422,25 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
       status: 'INTERCEPTED & BLOCKED',
       vector: picked.vector,
       color: picked.color,
-      timestamp: new Date().toLocaleTimeString()
+      timestamp: new Date().toLocaleTimeString(),
+      port: picked.port
     };
 
+    setStrikes((prev) => [customStrike, ...prev.slice(0, 12)]);
     setSelectedStrike(customStrike);
+    playCyberSound('laser');
     if (onSelectStrike) onSelectStrike(customStrike);
 
-    // Fly to target on map
+    // Fly camera directly to target on real map
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.panTo(customStrike.target.coords, { animate: true, duration: 1 });
+      mapInstanceRef.current.flyTo(customStrike.target.coords, 4, { duration: 1.2 });
+    }
+  };
+
+  const focusCity = (nodeKey: string) => {
+    const node = REAL_GEO_NODES[nodeKey];
+    if (node && mapInstanceRef.current) {
+      mapInstanceRef.current.flyTo(node.coords, 5, { duration: 1.2 });
     }
   };
 
@@ -370,7 +449,9 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
   const resetView = () => mapInstanceRef.current?.setView([22, 20], 2, { animate: true });
 
   return (
-    <div className="w-full rounded-3xl bg-slate-950 border-2 border-cyan-500/50 shadow-2xl overflow-hidden font-mono text-slate-100 select-none flex flex-col">
+    <div className={`w-full rounded-3xl bg-slate-950 border-2 border-cyan-500/50 shadow-2xl overflow-hidden font-mono text-slate-100 select-none flex flex-col transition-all duration-300 ${
+      isFullscreen ? 'fixed inset-4 z-[9999] shadow-2xl bg-slate-950' : 'relative'
+    }`}>
       {/* 1. Header Bar with Real GPS Radar Ping & Defense Status */}
       <div className="p-4 bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-b border-cyan-500/30 flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -393,8 +474,8 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
           </div>
         </div>
 
-        {/* Global Strike Velocity Counter */}
-        <div className="flex items-center gap-4 text-xs">
+        {/* Global Strike Velocity Counter & Sound / Fullscreen Controls */}
+        <div className="flex items-center gap-3 text-xs">
           <div className="p-2 rounded-xl bg-slate-900 border border-slate-800 flex items-center gap-2">
             <Zap className="w-3.5 h-3.5 text-cyan-400" />
             <div>
@@ -410,10 +491,30 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
               <span className="text-emerald-400 font-bold text-xs">{totalIntercepted.toLocaleString()}</span>
             </div>
           </div>
+
+          {/* Sound FX Toggle */}
+          <button
+            onClick={() => setSoundEnabled(!soundEnabled)}
+            title={soundEnabled ? 'Mute Cyber Audio FX' : 'Enable Cyber Audio FX'}
+            className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+              soundEnabled ? 'bg-cyan-500/20 text-cyan-400 border-cyan-500/60' : 'bg-slate-900 text-slate-500 border-slate-800 hover:text-white'
+            }`}
+          >
+            {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </button>
+
+          {/* Fullscreen Expand Toggle */}
+          <button
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            title={isFullscreen ? 'Exit Theater Mode' : 'Expand SOC Theater Mode'}
+            className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-cyan-400 transition-colors cursor-pointer"
+          >
+            {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+          </button>
         </div>
       </div>
 
-      {/* 2. Interactive Map Tool Controls */}
+      {/* 2. Interactive Map Tool Controls & Quick City Focus Tabs */}
       <div className="px-4 py-2 bg-slate-950/90 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
         {/* Category Filter Chips */}
         <div className="flex items-center gap-1 overflow-x-auto text-[11px]">
@@ -431,6 +532,27 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
               {cat}
             </button>
           ))}
+        </div>
+
+        {/* Quick Regional Focus Hotspots */}
+        <div className="hidden md:flex items-center gap-1 text-[10px]">
+          <Crosshair className="w-3 h-3 text-slate-500 mr-0.5" />
+          <span className="text-slate-500 font-bold">Focus:</span>
+          <button onClick={() => focusCity('IN_MUMBAI')} className="px-2 py-0.5 rounded bg-slate-900 hover:bg-cyan-500 hover:text-slate-950 border border-slate-800 text-slate-300 font-bold transition-all cursor-pointer">
+            🇮🇳 India
+          </button>
+          <button onClick={() => focusCity('US_NY')} className="px-2 py-0.5 rounded bg-slate-900 hover:bg-cyan-500 hover:text-slate-950 border border-slate-800 text-slate-300 font-bold transition-all cursor-pointer">
+            🇺🇸 USA
+          </button>
+          <button onClick={() => focusCity('RU_MOSCOW')} className="px-2 py-0.5 rounded bg-slate-900 hover:bg-cyan-500 hover:text-slate-950 border border-slate-800 text-slate-300 font-bold transition-all cursor-pointer">
+            🇷🇺 Russia
+          </button>
+          <button onClick={() => focusCity('DE_FRA')} className="px-2 py-0.5 rounded bg-slate-900 hover:bg-cyan-500 hover:text-slate-950 border border-slate-800 text-slate-300 font-bold transition-all cursor-pointer">
+            🇪🇺 Europe
+          </button>
+          <button onClick={() => focusCity('CN_BEI')} className="px-2 py-0.5 rounded bg-slate-900 hover:bg-cyan-500 hover:text-slate-950 border border-slate-800 text-slate-300 font-bold transition-all cursor-pointer">
+            🇨🇳 China
+          </button>
         </div>
 
         {/* Speed Controls & Launch Simulator Button */}
@@ -461,7 +583,7 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
       </div>
 
       {/* 3. Real Geographic Leaflet Map Container */}
-      <div className="relative w-full h-[340px] sm:h-[420px] md:h-[500px] bg-[#020617] overflow-hidden">
+      <div className={`relative w-full ${isFullscreen ? 'flex-1 min-h-[500px]' : 'h-[340px] sm:h-[420px] md:h-[480px]'} bg-[#020617] overflow-hidden`}>
         {/* Leaflet Map DOM Element */}
         <div ref={mapContainerRef} className="w-full h-full z-0" />
 
@@ -491,8 +613,9 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
         </div>
 
         {/* Real GPS Coordinate HUD Overlay */}
-        <div className="absolute top-3 left-3 z-[400] text-[10px] text-cyan-400/80 pointer-events-none font-mono bg-slate-950/80 px-2.5 py-1 rounded-lg border border-cyan-500/30 backdrop-blur-md">
-          <span>// REAL GEOGRAPHY: EPSG:3857 | DARK MATTER CARTO_DB</span>
+        <div className="absolute top-3 left-3 z-[400] text-[10px] text-cyan-400/90 pointer-events-none font-mono bg-slate-950/85 px-2.5 py-1 rounded-lg border border-cyan-500/30 backdrop-blur-md flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          <span>REAL CARTOGRAPHY // EPSG:3857 • DARK MATTER SATELLITE</span>
         </div>
 
         {/* Floating Active Strike HUD Box (Bottom Left of Map) */}
@@ -540,7 +663,40 @@ export const GlobalAttackMap: React.FC<{ onSelectStrike?: (strike: any) => void 
         )}
       </div>
 
-      {/* 4. Leaderboard & Targeted Statistics Footer Tabs */}
+      {/* 4. Live Cyber Warfare Intercept Terminal Logs */}
+      <div className="p-3 bg-slate-950/95 border-t border-slate-800/90 font-mono text-xs space-y-2">
+        <div className="flex items-center justify-between text-[11px] text-slate-400 pb-1 border-b border-slate-900">
+          <div className="flex items-center gap-1.5">
+            <Terminal className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="font-bold uppercase text-slate-300">Live Global Intercept Feed</span>
+          </div>
+          <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
+            <Radio className="w-3 h-3 text-emerald-400 animate-pulse" /> REAL-TIME STREAMING
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+          {terminalLogs.slice(0, 4).map((log) => (
+            <div
+              key={log.id}
+              className={`p-2 rounded-xl border flex items-center justify-between gap-2 ${
+                log.type === 'rose'
+                  ? 'bg-rose-950/40 border-rose-500/30 text-rose-300'
+                  : log.type === 'purple'
+                  ? 'bg-purple-950/40 border-purple-500/30 text-purple-300'
+                  : log.type === 'amber'
+                  ? 'bg-amber-950/40 border-amber-500/30 text-amber-300'
+                  : 'bg-cyan-950/40 border-cyan-500/30 text-cyan-300'
+              }`}
+            >
+              <span className="truncate">{log.text}</span>
+              <span className="text-[9px] text-slate-500 shrink-0">{log.time}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* 5. Leaderboard & Targeted Statistics Footer Tabs */}
       <div className="p-3 bg-slate-950 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex items-center gap-2">
           <button
