@@ -96,6 +96,11 @@ export const api = {
       headers: getAuthHeader()
     }).then(handleResponse<ThreatFeedItem[]>),
 
+  getLiveGlobalAttacks: (): Promise<any> =>
+    fetch(`${API_BASE}/threat-intelligence/live-global-attacks`, {
+      headers: getAuthHeader()
+    }).then(handleResponse<any>),
+
   getProviders: (): Promise<any[]> =>
     Promise.resolve([
       { name: 'URLhaus', display_name: 'abuse.ch URLhaus Feed', status: 'ACTIVE', latency_ms: 12.4 },
