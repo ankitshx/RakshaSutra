@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { SubscriptionLimitModal } from '../components/common/SubscriptionLimitModal';
 import {
   Code,
   KeyRound,
@@ -12,11 +13,14 @@ import {
   Activity,
   Eye,
   EyeOff,
-  ShieldCheck
+  ShieldCheck,
+  Sparkles,
+  Building,
+  Check
 } from 'lucide-react';
 
 export const ApiAccessPage: React.FC = () => {
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated, refreshUser } = useAuth();
   const [quotaData, setQuotaData] = useState<any>(null);
   const [copiedKey, setCopiedKey] = useState(false);
   const [copiedCurl, setCopiedCurl] = useState(false);
@@ -24,6 +28,8 @@ export const ApiAccessPage: React.FC = () => {
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [activeCodeLang, setActiveCodeLang] = useState<'curl' | 'python' | 'javascript'>('curl');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -56,14 +62,18 @@ export const ApiAccessPage: React.FC = () => {
   };
 
   const copyApiKey = () => {
-    if (quotaData?.api_key) {
-      navigator.clipboard.writeText(quotaData.api_key);
+    if (quotaData?.api_key || user?.api_key) {
+      navigator.clipboard.writeText(quotaData?.api_key || user?.api_key || '');
       setCopiedKey(true);
       setTimeout(() => setCopiedKey(false), 2500);
     }
   };
 
-  const apiKeyDisplay = quotaData?.api_key || 'rs_developer_key_public_access_2026';
+  const apiKeyDisplay = quotaData?.api_key || user?.api_key || 'rs_free_sample_key_2026';
+  const isPro = user?.subscription_tier === 'pro' || user?.subscription_tier === 'enterprise' || user?.role === 'admin';
+  const scansUsed = user?.scans_used || quotaData?.scans_used || 0;
+  const quotaLimit = user?.monthly_quota || quotaData?.monthly_quota || 10;
+  const scansLeft = isPro ? 'Unlimited' : Math.max(0, quotaLimit - scansUsed);
 
   const codeSnippets = {
     curl: `curl -X POST "http://127.0.0.1:8000/api/v1/scans/url" \\
@@ -100,61 +110,236 @@ async function checkThreat(targetUrl) {
     },
     body: JSON.stringify({ url: targetUrl })
   });
-
-  const report = await res.json();
-  console.log(\`Verdict: \${report.risk_level} (\${report.risk_score}/100)\`);
-  console.log(report.summary);
-}
-
-checkThreat("http://login-sbi-pan-update.xyz/verify.php");`
+  
+  const data = await res.json();
+  console.log("Verdict:", data.risk_level, "Score:", data.risk_score);
+  return data;
+}`
   };
 
-  const copyCode = () => {
-    navigator.clipboard.writeText(codeSnippets[activeCodeLang]);
+  const copyCode = (code: string) => {
+    navigator.clipboard.writeText(code);
     setCopiedCurl(true);
-    setTimeout(() => setCopiedCurl(false), 2500);
+    setTimeout(() => setCopiedCurl(false), 2000);
   };
-
-  const scansUsed = quotaData?.scans_used ?? 5;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-10 space-y-8 font-mono">
-      {/* Page Header */}
-      <div className="space-y-2">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/10 text-cyan-500 border border-cyan-500/30">
-          <Terminal className="w-3.5 h-3.5" /> Developer Threat API Portal
+    <div className="space-y-10 max-w-6xl mx-auto font-mono text-slate-100">
+      {/* Top Header Banner */}
+      <div className="space-y-3">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold">
+          <Code className="w-3.5 h-3.5" />
+          <span>DEVELOPER PORTAL & SUBSCRIPTIONS</span>
         </div>
-        <h1 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-          API Keys & Developer Integration
+        <h1 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white">
+          Plans, Subscriptions & <span className="text-cyan-400">Developer API</span>
         </h1>
-        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-2xl">
-          Integrate real-time URL heuristic scanners, phishing analyzers, and website security audits directly into your applications, Telegram bots, or backend microservices.
+        <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed">
+          Manage your active subscription tier, track free scan quotas, generate high-speed developer API keys, and integrate RakshaSutra into your apps.
         </p>
       </div>
 
       {actionMessage && (
         <div className="p-4 rounded-2xl bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
           <span>{actionMessage}</span>
         </div>
       )}
 
-      {/* Grid: API Key & Telemetry */}
+      {/* Subscription Plans & Pricing Grid */}
+      <div className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+              Choose Your Subscription Tier
+            </h2>
+            <p className="text-xs text-slate-400">Upgrade for unlimited threat scans, priority AI analysis, and developer API keys</p>
+          </div>
+
+          <div className="inline-flex items-center p-1 rounded-xl bg-slate-950 border border-slate-800 text-xs">
+            <button
+              onClick={() => setBillingCycle('monthly')}
+              className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
+                billingCycle === 'monthly' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBillingCycle('annual')}
+              className={`px-3 py-1 rounded-lg font-bold transition-all flex items-center gap-1 cursor-pointer ${
+                billingCycle === 'annual' ? 'bg-cyan-500 text-slate-950' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <span>Annual</span>
+              <span className="px-1.5 py-0.2 rounded bg-emerald-500 text-slate-950 text-[9px] font-black">20% OFF</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          {/* 1. Free Community Plan */}
+          <div className="p-6 rounded-3xl bg-slate-900/80 border border-slate-800 flex flex-col justify-between space-y-5">
+            <div className="space-y-3">
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[10px] font-bold">
+                COMMUNITY TIER
+              </span>
+              <div>
+                <h3 className="text-lg font-bold text-white">Free Trial</h3>
+                <p className="text-xs text-slate-400">Essential scam checking for individuals</p>
+              </div>
+
+              <div className="flex items-baseline gap-1">
+                <span className="text-2xl font-black text-white font-mono">₹0</span>
+                <span className="text-xs text-slate-400">/forever</span>
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 space-y-2 text-xs text-slate-300">
+                <div className="flex items-center gap-2 font-bold text-amber-300">
+                  <Check className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>10 Free Threat Scans Total</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>Traffic Light Scam Verdicts</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-slate-500 shrink-0" />
+                  <span>Emergency 1930 Cyber Fraud Guide</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-2.5 rounded-xl bg-slate-950 text-center text-xs text-slate-400 border border-slate-800">
+              {user?.subscription_tier === 'free' ? 'Current Active Tier' : 'Included by Default'}
+            </div>
+          </div>
+
+          {/* 2. Pro Cyber Defender */}
+          <div className="p-6 rounded-3xl bg-cyan-950/30 border-2 border-cyan-500 shadow-xl flex flex-col justify-between space-y-5 relative">
+            <div className="absolute -top-3 right-6 px-3 py-0.5 rounded-full bg-cyan-500 text-slate-950 text-[10px] font-black uppercase tracking-wider">
+              MOST POPULAR
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-400 border border-cyan-500/40 text-[10px] font-bold">
+                  PRO DEFENDER
+                </span>
+                <Sparkles className="w-4 h-4 text-cyan-400" />
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-white">Pro Unlimited</h3>
+                <p className="text-xs text-slate-400">For developers, analysts & power users</p>
+              </div>
+
+              <div className="flex items-baseline gap-1">
+                <span className="text-3xl font-black text-white font-mono">
+                  {billingCycle === 'monthly' ? '₹499' : '₹4,990'}
+                </span>
+                <span className="text-xs text-slate-400">/{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
+                <span className="text-xs text-slate-500">($9/mo)</span>
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 space-y-2 text-xs text-slate-300">
+                <div className="flex items-center gap-2 font-bold text-cyan-300">
+                  <Check className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span>UNLIMITED Link & Message Scans</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span>5,000 API Requests/mo (Developer Key)</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span>Priority Raksha AI Copilot Instant Chat</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span>PDF & JSON Incident Dossier Exports</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsUpgradeModalOpen(true)}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Zap className="w-4 h-4" />
+              <span>{user?.subscription_tier === 'pro' ? 'Current Plan (Active)' : 'Upgrade to Pro'}</span>
+            </button>
+          </div>
+
+          {/* 3. Enterprise SOC Suite */}
+          <div className="p-6 rounded-3xl bg-purple-950/30 border border-purple-500/50 flex flex-col justify-between space-y-5">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/40 text-[10px] font-bold">
+                  SOC & ORG
+                </span>
+                <Building className="w-4 h-4 text-purple-400" />
+              </div>
+
+              <div>
+                <h3 className="text-lg font-bold text-white">Enterprise SOC</h3>
+                <p className="text-xs text-slate-400">For companies, banks & colleges</p>
+              </div>
+
+              <div className="flex items-baseline gap-1">
+                <span className="text-3xl font-black text-white font-mono">
+                  {billingCycle === 'monthly' ? '₹4,999' : '₹49,990'}
+                </span>
+                <span className="text-xs text-slate-400">/{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
+                <span className="text-xs text-slate-500">($59/mo)</span>
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 space-y-2 text-xs text-slate-300">
+                <div className="flex items-center gap-2 font-bold text-purple-300">
+                  <Check className="w-4 h-4 text-purple-400 shrink-0" />
+                  <span>UNLIMITED High-Throughput API</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-purple-400 shrink-0" />
+                  <span>Multi-Seat Analyst & Admin Management</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-purple-400 shrink-0" />
+                  <span>Employee Phishing Simulation Engine</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Check className="w-4 h-4 text-purple-400 shrink-0" />
+                  <span>24/7 Priority Emergency Support SLA</span>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsUpgradeModalOpen(true)}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-400 text-white font-black text-xs uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <span>{user?.subscription_tier === 'enterprise' ? 'Current Plan (Active)' : 'Get Enterprise'}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* API Key Management & Active Plan Telemetry */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         {/* Left Column: API Key Box */}
-        <div className="md:col-span-7 p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-6 flex flex-col justify-between">
-          <div className="space-y-4">
+        <div className="md:col-span-7 p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-6">
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <KeyRound className="w-4 h-4 text-cyan-500" /> Active Secret API Key
+                <KeyRound className="w-4 h-4 text-cyan-500" /> Developer API Secret Key
               </span>
               <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">
-                ACTIVE
+                {isPro ? 'UNLIMITED PRO' : 'FREE TIER'}
               </span>
             </div>
 
             <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-              Include this secret key in the <code className="text-cyan-400 bg-slate-950 px-1.5 py-0.5 rounded">X-API-Key</code> HTTP request header for authenticated threat scans.
+              Include this secret key in the <code className="text-cyan-400 bg-slate-950 px-1.5 py-0.5 rounded">X-API-Key</code> HTTP request header for automated threat scans.
             </p>
 
             <div className="relative">
@@ -199,108 +384,109 @@ checkThreat("http://login-sbi-pan-update.xyz/verify.php");`
           </div>
         </div>
 
-        {/* Right Column: Telemetry & Unlimited Access Status */}
+        {/* Right Column: Telemetry & Active Quota Status */}
         <div className="md:col-span-5 p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-6 flex flex-col justify-between">
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <Activity className="w-4 h-4 text-cyan-500" /> Platform Access Status
+                <Activity className="w-4 h-4 text-cyan-500" /> Active Usage & Quota
               </span>
-              <span className="text-xs text-emerald-400 font-bold flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" /> Unlimited Free Tier
+              <span className="text-xs text-cyan-400 font-bold flex items-center gap-1">
+                <ShieldCheck className="w-3.5 h-3.5" /> {isPro ? 'Pro Active' : 'Free Trial'}
               </span>
             </div>
 
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-600 dark:text-slate-400">Total Scans Executed:</span>
+                <span className="text-slate-600 dark:text-slate-400">Scans Used:</span>
                 <strong className="text-slate-900 dark:text-white font-bold">
                   {scansUsed} scans
                 </strong>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-600 dark:text-slate-400">Scan Usage Limit:</span>
-                <span className="font-bold text-emerald-500 dark:text-emerald-400">
-                  Unlimited (No Restrictions)
+                <span className="text-slate-600 dark:text-slate-400">Remaining Allowance:</span>
+                <span className={`font-bold ${isPro ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {isPro ? 'Unlimited' : `${scansLeft} / ${quotaLimit} free scans`}
                 </span>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-1">
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] text-slate-500 block">Rate Capacity:</span>
+                <span className="text-[10px] text-slate-500 block">Rate Limit:</span>
                 <span className="text-sm font-bold text-slate-900 dark:text-white">
-                  60 req/min
+                  {isPro ? '300 req/min' : '60 req/min'}
                 </span>
               </div>
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] text-slate-500 block">Burst Allowance:</span>
-                <span className="text-sm font-bold text-emerald-500 dark:text-emerald-400">
-                  High Throughput
+                <span className="text-[10px] text-slate-500 block">Tier Status:</span>
+                <span className="text-sm font-bold text-emerald-400">
+                  {isPro ? 'PRO (Unlimited)' : '10 Free Trial'}
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold flex items-center justify-center gap-2">
-            <Zap className="w-4 h-4" />
-            <span>Open Access: No Payments or Artificial Scan Caps</span>
-          </div>
+          {!isPro && (
+            <button
+              onClick={() => setIsUpgradeModalOpen(true)}
+              className="p-3 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              <Zap className="w-4 h-4 text-amber-400" />
+              <span>Upgrade to Pro for Unlimited Scans</span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Code Integration Playground */}
-      <div className="p-6 rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4 pb-3 border-b border-slate-200 dark:border-slate-800">
+      <div className="p-6 rounded-3xl bg-slate-950 border border-slate-800 shadow-2xl space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <div className="flex items-center gap-2">
-            <Code className="w-4 h-4 text-cyan-500" />
-            <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider">
-              Live Code Integration Snippets
-            </h3>
+            <Terminal className="w-5 h-5 text-cyan-400" />
+            <h2 className="text-sm sm:text-base font-bold text-white uppercase tracking-wider">
+              Integration Code Example
+            </h2>
           </div>
-
-          <div className="flex items-center gap-2">
-            <div className="flex items-center p-1 rounded-xl bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs">
+          <div className="flex items-center gap-1.5">
+            {(['curl', 'python', 'javascript'] as const).map((lang) => (
               <button
-                onClick={() => setActiveCodeLang('curl')}
-                className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  activeCodeLang === 'curl' ? 'bg-cyan-500 text-slate-950 shadow-sm' : 'text-slate-400'
+                key={lang}
+                onClick={() => setActiveCodeLang(lang)}
+                className={`px-3 py-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+                  activeCodeLang === lang
+                    ? 'bg-cyan-500 text-slate-950'
+                    : 'text-slate-400 hover:text-white bg-slate-900 border border-slate-800'
                 }`}
               >
-                cURL
+                {lang.toUpperCase()}
               </button>
-              <button
-                onClick={() => setActiveCodeLang('python')}
-                className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  activeCodeLang === 'python' ? 'bg-cyan-500 text-slate-950 shadow-sm' : 'text-slate-400'
-                }`}
-              >
-                Python
-              </button>
-              <button
-                onClick={() => setActiveCodeLang('javascript')}
-                className={`px-3 py-1 rounded-lg font-bold transition-all cursor-pointer ${
-                  activeCodeLang === 'javascript' ? 'bg-cyan-500 text-slate-950 shadow-sm' : 'text-slate-400'
-                }`}
-              >
-                Node / JS
-              </button>
-            </div>
-
+            ))}
             <button
-              onClick={copyCode}
-              className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-cyan-500 hover:text-slate-950 text-slate-700 dark:text-slate-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+              onClick={() => copyCode(codeSnippets[activeCodeLang])}
+              className="p-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-cyan-400 transition-colors ml-2 cursor-pointer flex items-center gap-1 text-xs"
+              title="Copy Code"
             >
-              <Copy className="w-3.5 h-3.5" />
-              <span>{copiedCurl ? 'Copied!' : 'Copy Code'}</span>
+              <Copy className="w-4 h-4" />
+              {copiedCurl && <span className="text-[10px] text-emerald-400">Copied!</span>}
             </button>
           </div>
         </div>
 
-        <pre className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-cyan-300 text-xs overflow-x-auto font-mono leading-relaxed">
+        <pre className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800/80 overflow-x-auto text-xs text-cyan-300 font-mono leading-relaxed">
           {codeSnippets[activeCodeLang]}
         </pre>
       </div>
+
+      {/* Subscription Modal */}
+      <SubscriptionLimitModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        onSuccess={() => {
+          refreshUser();
+          loadQuotaData();
+        }}
+      />
     </div>
   );
 };

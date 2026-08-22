@@ -116,6 +116,9 @@ export interface User {
   email: string;
   full_name?: string;
   role: 'user' | 'analyst' | 'admin';
+  subscription_tier?: string;
+  monthly_quota?: number;
+  scans_used?: number;
   is_active: boolean;
   api_key?: string;
   created_at: string;

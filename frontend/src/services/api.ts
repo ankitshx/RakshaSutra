@@ -174,7 +174,31 @@ export const api = {
     }).then(handleResponse<any>),
 
   requestQuotaUpgrade: (reason?: string): Promise<any> =>
-    fetch(`${API_BASE}/auth/quota/request-upgrade?reason=${encodeURIComponent(reason || 'Developer')}`, {
+    fetch(`${API_BASE}/auth/quota/request-upgrade?reason=${encodeURIComponent(reason || 'Pro Upgrade')}`, {
+      method: 'POST',
+      headers: getAuthHeader()
+    }).then(handleResponse<any>),
+
+  // Subscriptions & Monetization
+  getSubscriptionPlans: (): Promise<any> =>
+    fetch(`${API_BASE}/subscription/plans`, {
+      headers: getAuthHeader()
+    }).then(handleResponse<any>),
+
+  getMySubscription: (): Promise<any> =>
+    fetch(`${API_BASE}/subscription/my`, {
+      headers: getAuthHeader()
+    }).then(handleResponse<any>),
+
+  processCheckout: (data: { plan_id: string; billing_cycle?: string; payment_method?: string; coupon_code?: string }): Promise<any> =>
+    fetch(`${API_BASE}/subscription/checkout`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+      body: JSON.stringify(data)
+    }).then(handleResponse<any>),
+
+  instantUpgrade: (planId: string = 'pro'): Promise<any> =>
+    fetch(`${API_BASE}/subscription/instant-upgrade?plan_id=${encodeURIComponent(planId)}`, {
       method: 'POST',
       headers: getAuthHeader()
     }).then(handleResponse<any>),

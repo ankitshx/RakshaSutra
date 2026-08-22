@@ -18,6 +18,9 @@ class UserOut(BaseModel):
     email: EmailStr
     full_name: Optional[str] = None
     role: str
+    subscription_tier: Optional[str] = "free"
+    monthly_quota: Optional[int] = 10
+    scans_used: Optional[int] = 0
     is_active: bool
     api_key: Optional[str] = None
     created_at: datetime

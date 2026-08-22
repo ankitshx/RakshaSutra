@@ -1,4 +1,5 @@
 import uuid
+import secrets
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -12,20 +13,20 @@ router = APIRouter(prefix="/subscription", tags=["Subscriptions & Monetization"]
 PLANS = [
     {
         "id": "free",
-        "name": "Community Starter",
+        "name": "Community Free Trial",
         "price_inr": 0,
         "price_usd": 0,
         "billing_period": "forever",
         "description": "Essential scam and phishing protection for individual citizens, students, and elders.",
-        "badge": "Free Forever",
+        "badge": "10 Free Scans",
         "features": [
-            "20 link & message scans per day",
+            "10 free threat scans total",
             "Plain-English Traffic Light Verdicts",
             "Emergency 1930 Cyber Fraud Containment Guide",
-            "Interactive Phishing Simulation Games",
-            "Dual Dark & Light Mode Access"
+            "Dual Dark & Light Mode Access",
+            "Interactive Phishing Simulation"
         ],
-        "quota": 50,
+        "quota": 10,
         "is_popular": False
     },
     {
@@ -35,8 +36,8 @@ PLANS = [
         "price_usd": 9,
         "billing_period": "monthly",
         "annual_price_inr": 4990,
-        "description": "Advanced threat detection, developer API keys, and priority AI incident response copilot.",
-        "badge": "Most Popular",
+        "description": "Advanced threat detection, unlimited scans, developer API keys, and priority AI incident response copilot.",
+        "badge": "Most Popular • Unlimited Scans",
         "features": [
             "Unlimited link & message scanning",
             "5,000 API Requests/mo (Developer API Key)",
@@ -45,7 +46,7 @@ PLANS = [
             "Automated Phishing Link Takedown Guidance",
             "Zero Rate-Limits & Instant Threat Feed Updates"
         ],
-        "quota": 5000,
+        "quota": 999999,
         "is_popular": True
     },
     {
@@ -65,7 +66,7 @@ PLANS = [
             "Multi-Seat Analyst & Admin Team Management",
             "24/7 Priority Emergency Support SLA"
         ],
-        "quota": 100000,
+        "quota": 999999,
         "is_popular": False
     }
 ]
@@ -88,18 +89,20 @@ def get_my_subscription(
 ):
     """Retrieve current authenticated user's active subscription status and usage."""
     tier = getattr(current_user, "subscription_tier", "free")
-    quota = getattr(current_user, "monthly_quota", 50)
+    quota = getattr(current_user, "monthly_quota", 10)
     used = getattr(current_user, "scans_used", 0)
+    is_unlimited = tier in ["pro", "enterprise", "unlimited"] or current_user.role in ["admin", "analyst"]
 
     return {
         "user_id": current_user.id,
         "email": current_user.email,
         "role": current_user.role,
         "subscription_tier": tier,
-        "monthly_quota": quota,
+        "monthly_quota": "Unlimited" if is_unlimited else quota,
         "scans_used": used,
-        "quota_remaining": max(0, quota - used),
-        "api_key": current_user.api_key or f"rs_free_{uuid.uuid4().hex[:12]}"
+        "quota_remaining": "Unlimited" if is_unlimited else max(0, quota - used),
+        "is_unlimited": is_unlimited,
+        "api_key": current_user.api_key or f"rs_{tier}_{secrets.token_hex(12)}"
     }
 
 @router.post("/checkout")
@@ -109,8 +112,8 @@ def process_checkout(
     db: Session = Depends(get_db)
 ):
     """
-    Process subscription checkout session (supporting UPI, Cards, Netbanking, or Stripe).
-    Instantly provisions elevated API keys and activates upgraded tier.
+    Process subscription checkout session.
+    Instantly provisions elevated API keys and activates unlimited Pro/Enterprise tier.
     """
     target_plan = next((p for p in PLANS if p["id"] == req.plan_id), None)
     if not target_plan or req.plan_id == "free":
@@ -118,12 +121,11 @@ def process_checkout(
 
     # Upgrade User Account in Database
     current_user.subscription_tier = req.plan_id
-    current_user.monthly_quota = target_plan["quota"]
+    current_user.monthly_quota = 999999  # Unlimited
     if current_user.role == "user":
         current_user.role = "analyst"  # Promote to analyst for pro tools
     
-    # Generate high-throughput API key if missing or upgrade prefix
-    current_user.api_key = f"rs_{req.plan_id}_{uuid.uuid4().hex[:18]}"
+    current_user.api_key = f"rs_{req.plan_id}_{secrets.token_hex(16)}"
     db.commit()
     db.refresh(current_user)
 
@@ -131,11 +133,37 @@ def process_checkout(
 
     return {
         "success": True,
-        "message": f"Congratulations! You have successfully upgraded to {target_plan['name']}.",
+        "message": f"Congratulations! You have successfully subscribed to {target_plan['name']}. Unlimited threat scans are now active.",
         "transaction_id": tx_id,
         "plan_id": req.plan_id,
         "plan_name": target_plan["name"],
         "new_api_key": current_user.api_key,
-        "monthly_quota": current_user.monthly_quota,
+        "monthly_quota": "Unlimited",
+        "subscription_tier": current_user.subscription_tier,
         "receipt_url": f"/api/v1/subscription/receipt/{tx_id}"
+    }
+
+@router.post("/instant-upgrade")
+def instant_upgrade(
+    plan_id: str = "pro",
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Instant 1-click upgrade button for immediate demo/subscription activation."""
+    target_plan = next((p for p in PLANS if p["id"] == plan_id), PLANS[1])
+
+    current_user.subscription_tier = target_plan["id"]
+    current_user.monthly_quota = 999999  # Unlimited
+    if current_user.role == "user":
+        current_user.role = "analyst"
+    current_user.api_key = f"rs_{target_plan['id']}_{secrets.token_hex(16)}"
+    db.commit()
+    db.refresh(current_user)
+
+    return {
+        "success": True,
+        "message": f"Upgraded to {target_plan['name']}! Unlimited threat scans are now active on your account.",
+        "subscription_tier": current_user.subscription_tier,
+        "monthly_quota": "Unlimited",
+        "new_api_key": current_user.api_key
     }

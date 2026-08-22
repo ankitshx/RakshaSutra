@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import { SubscriptionLimitModal } from '../common/SubscriptionLimitModal';
 import type { ScanResponse, MessageScanResponse, WebsiteScanResponse } from '../../types';
 import {
   Link2,
@@ -12,7 +14,8 @@ import {
   Smartphone,
   Mail,
   Share2,
-  Zap
+  Zap,
+  Globe
 } from 'lucide-react';
 
 interface UnifiedCommandHeroProps {
@@ -26,6 +29,7 @@ export const UnifiedCommandHero: React.FC<UnifiedCommandHeroProps> = ({
   onUrlScanComplete,
   onNavigateTab
 }) => {
+  const { user, isAdmin, refreshUser } = useAuth();
   const [activeVector, setActiveVector] = useState<'url' | 'message' | 'website' | 'ioc'>('url');
   
   // URL Input State
@@ -46,6 +50,10 @@ export const UnifiedCommandHero: React.FC<UnifiedCommandHeroProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('');
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+
+  const isPro = user?.subscription_tier === 'pro' || user?.subscription_tier === 'enterprise' || isAdmin;
+  const scansLeft = user ? Math.max(0, (user.monthly_quota || 10) - (user.scans_used || 0)) : 10;
 
   const urlPresets = [
     { label: 'Fake SBI Banking Link', url: 'http://login-sbi-pan-update.xyz/verify.php' },
@@ -81,6 +89,12 @@ export const UnifiedCommandHero: React.FC<UnifiedCommandHeroProps> = ({
     setError(null);
     setIocResult(null);
 
+    // Pre-check free limit
+    if (user && !isPro && scansLeft <= 0) {
+      setIsUpgradeModalOpen(true);
+      return;
+    }
+
     if (activeVector === 'url') {
       const target = urlInput.trim();
       if (!target) {
@@ -109,10 +123,15 @@ export const UnifiedCommandHero: React.FC<UnifiedCommandHeroProps> = ({
       try {
         const report = await api.scanUrl(target);
         clearInterval(interval);
+        await refreshUser();
         onUrlScanComplete(report);
       } catch (err: any) {
         clearInterval(interval);
-        setError(err.message || 'Unable to analyze this link. Please check spelling.');
+        if (err.message && (err.message.includes('SUBSCRIPTION_REQUIRED') || err.message.includes('quota') || err.message.includes('402'))) {
+          setIsUpgradeModalOpen(true);
+        } else {
+          setError(err.message || 'Unable to analyze this link. Please check spelling.');
+        }
       } finally {
         setIsLoading(false);
         setStatusMessage('');
@@ -127,9 +146,14 @@ export const UnifiedCommandHero: React.FC<UnifiedCommandHeroProps> = ({
 
       try {
         await api.scanMessage(msgContent.trim(), msgChannel);
+        await refreshUser();
         onNavigateTab('message-scanner');
       } catch (err: any) {
-        setError(err.message || 'Failed to check message.');
+        if (err.message && (err.message.includes('SUBSCRIPTION_REQUIRED') || err.message.includes('quota') || err.message.includes('402'))) {
+          setIsUpgradeModalOpen(true);
+        } else {
+          setError(err.message || 'Failed to check message.');
+        }
       } finally {
         setIsLoading(false);
         setStatusMessage('');
@@ -145,9 +169,14 @@ export const UnifiedCommandHero: React.FC<UnifiedCommandHeroProps> = ({
 
       try {
         await api.scanWebsite(target);
+        await refreshUser();
         onNavigateTab('website-analyzer');
       } catch (err: any) {
-        setError(err.message || 'Failed to inspect website.');
+        if (err.message && (err.message.includes('SUBSCRIPTION_REQUIRED') || err.message.includes('quota') || err.message.includes('402'))) {
+          setIsUpgradeModalOpen(true);
+        } else {
+          setError(err.message || 'Failed to inspect website.');
+        }
       } finally {
         setIsLoading(false);
         setStatusMessage('');
@@ -174,73 +203,121 @@ export const UnifiedCommandHero: React.FC<UnifiedCommandHeroProps> = ({
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-4">
-      {/* Outer Glowing Glass Container */}
-      <div className="relative group">
-        <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-cyan-500 via-sky-500 to-blue-600 opacity-30 dark:opacity-40 group-hover:opacity-60 blur-xl transition duration-500" />
-        
-        <div className="relative rounded-3xl bg-white/95 dark:bg-slate-950/90 border border-slate-200 dark:border-cyber-border backdrop-blur-2xl p-5 sm:p-7 shadow-2xl space-y-5">
-          {/* Friendly Tab Selector */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-4 border-b border-slate-200 dark:border-slate-800">
-            <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
-              {[
-                { id: 'url', label: '🔗 Check a Link', icon: Link2 },
-                { id: 'message', label: '📩 Check a Message', icon: MessageSquareText },
-                { id: 'website', label: '🏢 Check a Website', icon: ShieldCheck },
-                { id: 'ioc', label: '🔎 Search Known Scams', icon: Search },
-              ].map((tab) => {
-                const isActive = activeVector === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => {
-                      setActiveVector(tab.id as any);
-                      setError(null);
-                      setIocResult(null);
-                    }}
-                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
-                      isActive
-                        ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800/60'
-                    }`}
-                  >
-                    <span>{tab.label}</span>
-                  </button>
-                );
-              })}
+    <>
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 bg-white border border-cyan-500/30 dark:border-cyan-500/30 border-slate-200 shadow-2xl p-6 sm:p-10 transition-all duration-300">
+        {/* Background glow accents */}
+        <div className="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-cyan-500/10 dark:bg-cyan-500/10 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -right-24 w-72 h-72 rounded-full bg-blue-600/10 dark:bg-blue-600/10 blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 max-w-4xl mx-auto space-y-6">
+          {/* Header Tagline & Subscription Quota Pill */}
+          <div className="text-center space-y-3">
+            <div className="flex items-center justify-center gap-2 flex-wrap">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 dark:bg-cyan-500/10 bg-cyan-50 border border-cyan-500/30 dark:border-cyan-500/30 border-cyan-200 text-cyan-400 dark:text-cyan-400 text-cyan-800 text-xs font-mono font-bold tracking-wide">
+                <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
+                <span>AI CYBER DEFENSE SCANNER</span>
+              </div>
+
+              {/* Free Scans Remaining vs Pro Badge */}
+              {isPro ? (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>PRO UNLIMITED SCANS</span>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setIsUpgradeModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950/80 hover:bg-amber-900/80 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold transition-all cursor-pointer"
+                >
+                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                  <span>{scansLeft} of 10 Free Scans Left • Upgrade</span>
+                </button>
+              )}
             </div>
 
-            <div className="hidden sm:flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
-              <span>🔒 Free & 100% Private</span>
-            </div>
+            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white dark:text-white text-slate-900">
+              Is It Safe? <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">Check Before You Click.</span>
+            </h1>
+            
+            <p className="text-sm sm:text-base text-slate-400 dark:text-slate-400 text-slate-600 max-w-2xl mx-auto leading-relaxed">
+              Paste any suspicious link, WhatsApp message, or SMS to verify if it's safe or an active cyber fraud.
+            </p>
           </div>
 
-          {/* TAB 1: CHECK A LINK */}
-          {activeVector === 'url' && (
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 font-sans">
-                  Paste the suspicious link you received (from SMS, WhatsApp, or Email):
-                </label>
-                <div className="flex flex-col sm:flex-row items-center gap-2">
-                  <div className="relative flex items-center w-full">
+          {/* Unified Vector Tabs */}
+          <div className="flex items-center justify-center p-1.5 rounded-2xl bg-slate-950 dark:bg-slate-950 bg-slate-100 border border-slate-800 dark:border-slate-800 border-slate-200 max-w-xl mx-auto shadow-inner">
+            <button
+              onClick={() => { setActiveVector('url'); setError(null); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeVector === 'url'
+                  ? 'bg-cyan-500 text-slate-950 shadow-neon-cyan font-black'
+                  : 'text-slate-400 dark:text-slate-400 text-slate-600 hover:text-white dark:hover:text-white hover:text-slate-950'
+              }`}
+            >
+              <Link2 className="w-4 h-4" />
+              <span>Link / URL</span>
+            </button>
+
+            <button
+              onClick={() => { setActiveVector('message'); setError(null); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeVector === 'message'
+                  ? 'bg-cyan-500 text-slate-950 shadow-neon-cyan font-black'
+                  : 'text-slate-400 dark:text-slate-400 text-slate-600 hover:text-white dark:hover:text-white hover:text-slate-950'
+              }`}
+            >
+              <MessageSquareText className="w-4 h-4" />
+              <span>SMS / Message</span>
+            </button>
+
+            <button
+              onClick={() => { setActiveVector('website'); setError(null); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeVector === 'website'
+                  ? 'bg-cyan-500 text-slate-950 shadow-neon-cyan font-black'
+                  : 'text-slate-400 dark:text-slate-400 text-slate-600 hover:text-white dark:hover:text-white hover:text-slate-950'
+              }`}
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>Website Audit</span>
+            </button>
+
+            <button
+              onClick={() => { setActiveVector('ioc'); setError(null); }}
+              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                activeVector === 'ioc'
+                  ? 'bg-cyan-500 text-slate-950 shadow-neon-cyan font-black'
+                  : 'text-slate-400 dark:text-slate-400 text-slate-600 hover:text-white dark:hover:text-white hover:text-slate-950'
+              }`}
+            >
+              <Search className="w-4 h-4" />
+              <span>Fraud DB</span>
+            </button>
+          </div>
+
+          {/* Interactive Input Form */}
+          <div className="bg-slate-950/90 dark:bg-slate-950/90 bg-slate-50 border border-slate-800 dark:border-slate-800 border-slate-200 rounded-3xl p-5 sm:p-7 shadow-inner space-y-4">
+            {activeVector === 'url' && (
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
+                      <Link2 className="w-5 h-5 text-cyan-400" />
+                    </div>
                     <input
-                      type="text"
+                      type="url"
                       value={urlInput}
                       onChange={(e) => setUrlInput(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleExecuteScan()}
-                      placeholder="e.g. login-sbi-pan-update.xyz or paypa1-signin.top..."
+                      onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleExecuteScan()}
+                      placeholder="Paste link e.g. http://login-sbi-update.xyz or bank-kyc.top"
+                      className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-slate-900 dark:bg-slate-900 bg-white border border-slate-700 dark:border-slate-700 border-slate-300 text-white dark:text-white text-slate-900 placeholder-slate-500 text-sm sm:text-base font-mono focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all"
                       disabled={isLoading}
-                      className="w-full px-4 py-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/90 border border-slate-300 dark:border-slate-800 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 shadow-inner"
                     />
                   </div>
-
                   <button
-                    type="button"
                     onClick={handleExecuteScan}
-                    disabled={isLoading}
-                    className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-extrabold text-xs sm:text-sm uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer disabled:opacity-50"
+                    disabled={isLoading || !urlInput.trim()}
+                    className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-slate-950 font-black text-sm uppercase tracking-wider shadow-lg shadow-cyan-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                   >
                     {isLoading ? (
                       <>
@@ -249,209 +326,197 @@ export const UnifiedCommandHero: React.FC<UnifiedCommandHeroProps> = ({
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-4 h-4" />
-                        <span>Check This Link</span>
+                        <ShieldCheck className="w-5 h-5" />
+                        <span>Scan Link</span>
                       </>
                     )}
                   </button>
                 </div>
-              </div>
 
-              {/* Try sample test links */}
-              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-slate-500 dark:text-slate-400 font-sans">
-                <span className="font-semibold text-slate-600 dark:text-slate-400">Try Sample Tests:</span>
-                {urlPresets.map((preset, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => {
-                      setUrlInput(preset.url);
-                    }}
-                    className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-300 border border-slate-200 dark:border-slate-800 text-xs font-medium cursor-pointer"
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: CHECK A MESSAGE */}
-          {activeVector === 'message' && (
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2 pb-1">
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-400">Where did you receive it?</span>
-                {[
-                  { id: 'sms', label: 'SMS Text', icon: Smartphone },
-                  { id: 'whatsapp', label: 'WhatsApp', icon: Share2 },
-                  { id: 'email', label: 'Email', icon: Mail },
-                ].map((ch) => {
-                  const Icon = ch.icon;
-                  return (
-                    <button
-                      key={ch.id}
-                      type="button"
-                      onClick={() => setMsgChannel(ch.id)}
-                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold ${
-                        msgChannel === ch.id
-                          ? 'bg-cyan-500 text-slate-950 font-bold shadow-sm'
-                          : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-800'
-                      }`}
-                    >
-                      <Icon className="w-3.5 h-3.5" />
-                      <span>{ch.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <textarea
-                rows={3}
-                value={msgContent}
-                onChange={(e) => setMsgContent(e.target.value)}
-                placeholder="Paste the suspicious message text here (e.g. 'Your electricity bill is unpaid, power will be cut tonight at 9:30 PM...')"
-                className="w-full p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/90 border border-slate-300 dark:border-slate-800 text-xs sm:text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 leading-relaxed font-sans"
-              />
-
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-2 text-xs">
-                  <span className="text-slate-500 font-semibold">Try sample text:</span>
-                  {msgPresets.map((preset, idx) => (
+                {/* Preset Fast Testing Chips */}
+                <div className="flex items-center gap-2 flex-wrap pt-1">
+                  <span className="text-[11px] text-slate-400 font-mono">Try Example:</span>
+                  {urlPresets.map((p, idx) => (
                     <button
                       key={idx}
-                      type="button"
-                      onClick={() => {
-                        setMsgContent(preset.text);
-                        setMsgChannel(preset.channel);
-                      }}
-                      className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-300 border border-slate-200 dark:border-slate-800 text-xs font-medium cursor-pointer"
+                      onClick={() => setUrlInput(p.url)}
+                      className="px-2.5 py-1 rounded-lg bg-slate-900 dark:bg-slate-900 bg-slate-200 hover:bg-slate-800 dark:hover:bg-slate-800 border border-slate-700 dark:border-slate-700 border-slate-300 text-[11px] text-slate-300 dark:text-slate-300 text-slate-700 font-mono transition-colors cursor-pointer"
                     >
-                      {preset.label}
+                      {p.label}
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
 
-                <button
-                  type="button"
-                  onClick={handleExecuteScan}
+            {activeVector === 'message' && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 pb-1">
+                  <span className="text-xs text-slate-400 font-mono">Channel:</span>
+                  {[
+                    { id: 'sms', label: 'SMS', icon: Smartphone },
+                    { id: 'whatsapp', label: 'WhatsApp', icon: Share2 },
+                    { id: 'email', label: 'Email', icon: Mail }
+                  ].map((c) => {
+                    const CIcon = c.icon;
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => setMsgChannel(c.id)}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
+                          msgChannel === c.id
+                            ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50'
+                            : 'bg-slate-900 text-slate-400 border border-slate-800'
+                        }`}
+                      >
+                        <CIcon className="w-3.5 h-3.5" />
+                        <span>{c.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <textarea
+                  rows={3}
+                  value={msgContent}
+                  onChange={(e) => setMsgContent(e.target.value)}
+                  placeholder="Paste suspicious SMS or WhatsApp message (e.g. 'Your electricity bill unpaid, connection cutoff tonight...')"
+                  className="w-full p-3.5 rounded-2xl bg-slate-900 dark:bg-slate-900 bg-white border border-slate-700 dark:border-slate-700 border-slate-300 text-white dark:text-white text-slate-900 placeholder-slate-500 text-xs sm:text-sm font-sans focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all resize-none"
                   disabled={isLoading}
-                  className="w-full sm:w-auto px-7 py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 text-slate-950 font-bold text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Zap className="w-4 h-4" />
-                  <span>Check Message</span>
-                </button>
-              </div>
-            </div>
-          )}
+                />
 
-          {/* TAB 3: CHECK A WEBSITE */}
-          {activeVector === 'website' && (
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 font-sans">
-                  Enter website address to check security and certificate:
-                </label>
-                <div className="flex flex-col sm:flex-row items-center gap-2">
-                  <input
-                    type="text"
-                    value={siteInput}
-                    onChange={(e) => setSiteInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleExecuteScan()}
-                    placeholder="e.g. https://github.com or https://example-shopping.com..."
-                    disabled={isLoading}
-                    className="w-full px-4 py-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/90 border border-slate-300 dark:border-slate-800 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 shadow-inner"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={handleExecuteScan}
-                    disabled={isLoading}
-                    className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 text-slate-950 font-extrabold text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    <span>Check Website</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Sample Presets */}
-              <div className="flex flex-wrap items-center gap-2 pt-1 text-xs text-slate-500 dark:text-slate-400">
-                <span className="font-semibold text-slate-600 dark:text-slate-400">Try Sample:</span>
-                {websitePresets.map((preset, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    onClick={() => setSiteInput(preset.url)}
-                    className="px-2.5 py-1 rounded-xl bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-300 border border-slate-200 dark:border-slate-800 text-xs font-medium cursor-pointer"
-                  >
-                    {preset.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: SEARCH KNOWN SCAMS */}
-          {activeVector === 'ioc' && (
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 font-sans">
-                  Search known scam phone numbers, fake bank websites, or scam names:
-                </label>
-                <div className="flex flex-col sm:flex-row items-center gap-2">
-                  <input
-                    type="text"
-                    value={iocInput}
-                    onChange={(e) => setIocInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleExecuteScan()}
-                    placeholder="e.g. sbi-kyc or evil-phishing-test.top..."
-                    disabled={isLoading}
-                    className="w-full px-4 py-3.5 rounded-2xl bg-slate-50 dark:bg-slate-900/90 border border-slate-300 dark:border-slate-800 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500 shadow-inner"
-                  />
-
-                  <button
-                    type="button"
-                    onClick={handleExecuteScan}
-                    disabled={isLoading}
-                    className="w-full sm:w-auto px-8 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 text-slate-950 font-extrabold text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer"
-                  >
-                    <Search className="w-4 h-4" />
-                    <span>Search Scam Database</span>
-                  </button>
-                </div>
-              </div>
-
-              {iocResult && (
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs space-y-2">
-                  <div className="flex items-center justify-between font-bold">
-                    <span className="text-slate-600 dark:text-slate-400">Search: {iocResult.query}</span>
-                    <span className={iocResult.found ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}>
-                      {iocResult.found ? '⚠️ KNOWN SCAM FOUND IN DATABASE' : '✅ NO SCAM REPORT FOUND'}
-                    </span>
+                <div className="flex items-center justify-between gap-3 flex-wrap">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[11px] text-slate-400 font-mono">Presets:</span>
+                    {msgPresets.map((m, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => { setMsgContent(m.text); setMsgChannel(m.channel); }}
+                        className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-[10px] text-slate-300 font-mono hover:text-white transition-colors cursor-pointer"
+                      >
+                        {m.label}
+                      </button>
+                    ))}
                   </div>
-                  <p className="text-slate-700 dark:text-slate-300 font-sans">{iocResult.risk_summary}</p>
+
+                  <button
+                    onClick={handleExecuteScan}
+                    disabled={isLoading || !msgContent.trim()}
+                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-600 hover:from-cyan-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                  >
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageSquareText className="w-4 h-4" />}
+                    <span>Analyze Message</span>
+                  </button>
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
 
-          {/* Animated Real-time Progress Bar */}
-          {isLoading && (
-            <div className="p-3.5 rounded-2xl bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-300 dark:border-cyan-500/30 flex items-center gap-3 text-xs text-cyan-800 dark:text-cyan-300 font-medium animate-pulse">
-              <Loader2 className="w-4 h-4 animate-spin text-cyan-600 dark:text-cyan-400 shrink-0" />
-              <span>{statusMessage}</span>
-            </div>
-          )}
+            {activeVector === 'website' && (
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
+                      <Globe className="w-5 h-5 text-cyan-400" />
+                    </div>
+                    <input
+                      type="url"
+                      value={siteInput}
+                      onChange={(e) => setSiteInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleExecuteScan()}
+                      placeholder="Enter website domain e.g. https://mybank.com"
+                      className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-slate-900 dark:bg-slate-900 bg-white border border-slate-700 dark:border-slate-700 border-slate-300 text-white dark:text-white text-slate-900 placeholder-slate-500 text-sm sm:text-base font-mono focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <button
+                    onClick={handleExecuteScan}
+                    disabled={isLoading || !siteInput.trim()}
+                    className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 hover:from-cyan-300 hover:to-blue-500 text-slate-950 font-black text-sm uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shrink-0"
+                  >
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-slate-950" /> : <Globe className="w-5 h-5" />}
+                    <span>Audit Website</span>
+                  </button>
+                </div>
 
-          {/* Error Message */}
-          {error && (
-            <div className="p-3.5 rounded-2xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-500/40 flex items-center gap-3 text-xs text-rose-800 dark:text-rose-300">
-              <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
-              <span>{error}</span>
-            </div>
-          )}
+                <div className="flex items-center gap-2 flex-wrap pt-1">
+                  <span className="text-[11px] text-slate-400 font-mono">Try Example:</span>
+                  {websitePresets.map((p, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSiteInput(p.url)}
+                      className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-700 text-[11px] text-slate-300 font-mono transition-colors cursor-pointer"
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {activeVector === 'ioc' && (
+              <div className="space-y-3">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="relative flex-1">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500">
+                      <Search className="w-5 h-5 text-cyan-400" />
+                    </div>
+                    <input
+                      type="text"
+                      value={iocInput}
+                      onChange={(e) => setIocInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleExecuteScan()}
+                      placeholder="Search phone number, domain, UPI ID or scam keyword..."
+                      className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-slate-900 dark:bg-slate-900 bg-white border border-slate-700 dark:border-slate-700 border-slate-300 text-white dark:text-white text-slate-900 placeholder-slate-500 text-sm sm:text-base font-mono focus:outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <button
+                    onClick={handleExecuteScan}
+                    disabled={isLoading || !iocInput.trim()}
+                    className="px-8 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-400 via-cyan-500 to-blue-600 text-slate-950 font-black text-sm uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 shrink-0"
+                  >
+                    {isLoading ? <Loader2 className="w-4 h-4 animate-spin text-slate-950" /> : <Search className="w-5 h-5" />}
+                    <span>Search Fraud DB</span>
+                  </button>
+                </div>
+
+                {iocResult && (
+                  <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 text-xs font-mono space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-slate-400">Match Found:</span>
+                      <span className="font-bold text-rose-400">{iocResult.threat_category || 'FLAGGED_FRAUD'}</span>
+                    </div>
+                    <p className="text-slate-300">{iocResult.description || 'Reported multiple times by community & cyber cell telemetry.'}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Scanning Progress Banner */}
+            {isLoading && (
+              <div className="p-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-500/40 text-cyan-300 text-xs font-mono flex items-center gap-3 animate-pulse">
+                <Loader2 className="w-4 h-4 animate-spin text-cyan-400 shrink-0" />
+                <span className="font-semibold">{statusMessage}</span>
+              </div>
+            )}
+
+            {/* Error Notification */}
+            {error && (
+              <div className="p-3.5 rounded-2xl bg-rose-950/50 border border-rose-500/50 text-rose-300 text-xs font-mono flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    </div>
+      </section>
+
+      {/* Subscription Limit Modal */}
+      <SubscriptionLimitModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        onSuccess={() => refreshUser()}
+      />
+    </>
   );
 };
