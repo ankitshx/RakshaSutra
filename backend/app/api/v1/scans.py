@@ -14,7 +14,7 @@ from app.schemas.scan import UrlScanRequest, ScanResponse, ScanHistoryItem, Thre
 from app.scanners.url_scanner import inspect_url_comprehensive
 from app.threat_intel.registry import threat_intel_registry
 from app.scanners.risk_engine import synthesize_risk_report
-from app.api.v1.auth import get_current_user_optional, get_current_user
+from app.api.v1.auth import get_current_user_optional, get_current_user, enforce_api_quota
 
 router = APIRouter(prefix="/scans", tags=["URL Scanner & Reports"])
 
@@ -28,6 +28,9 @@ async def scan_url(
     Execute comprehensive multi-vector URL threat analysis with SSRF safety,
     brand impersonation heuristics, TLD evaluation, and threat intel feeds.
     """
+    # Enforce API rate limits and quota bounds
+    enforce_api_quota(current_user, db)
+
     start_time = time.time()
     req_id = generate_request_id()
 

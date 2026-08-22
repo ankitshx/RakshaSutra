@@ -11,7 +11,7 @@ from app.models.scan import Scan, ThreatIndicator
 from app.schemas.message import MessageScanRequest, MessageScanResponse, DetectedTechnique
 from app.schemas.scan import ThreatIndicatorOut
 from app.scanners.message_analyzer import analyze_message_content
-from app.api.v1.auth import get_current_user_optional
+from app.api.v1.auth import get_current_user_optional, enforce_api_quota
 
 router = APIRouter(prefix="/scans", tags=["Message & Phishing Analyzer"])
 
@@ -25,6 +25,7 @@ async def scan_message(
     Analyze SMS, Email, WhatsApp, Telegram, or social media text for
     urgency tactics, OTP/credential harvesting, financial/UPI bait, and embedded URLs.
     """
+    enforce_api_quota(current_user, db)
     start_time = time.time()
     req_id = generate_request_id()
 

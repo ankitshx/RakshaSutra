@@ -163,6 +163,17 @@ export const api = {
       headers: getAuthHeader()
     }).then(handleResponse<{ api_key: string; message: string }>),
 
+  getQuotaStatus: (): Promise<any> =>
+    fetch(`${API_BASE}/auth/quota/status`, {
+      headers: getAuthHeader()
+    }).then(handleResponse<any>),
+
+  requestQuotaUpgrade: (reason?: string): Promise<any> =>
+    fetch(`${API_BASE}/auth/quota/request-upgrade?reason=${encodeURIComponent(reason || 'Developer')}`, {
+      method: 'POST',
+      headers: getAuthHeader()
+    }).then(handleResponse<any>),
+
   // Admin Portal
   getSystemHealth: (): Promise<any> =>
     fetch(`${API_BASE}/admin/system-health`, {
@@ -201,21 +212,5 @@ export const api = {
     fetch(`${API_BASE}/admin/ioc-rules/${iocId}`, {
       method: 'DELETE',
       headers: getAuthHeader()
-    }).then(handleResponse<any>),
-
-  // Subscription & Monetization
-  getSubscriptionPlans: (): Promise<{ plans: any[]; currency_options: string[] }> =>
-    fetch(`${API_BASE}/subscription/plans`).then(handleResponse<{ plans: any[]; currency_options: string[] }>),
-
-  getMySubscription: (): Promise<any> =>
-    fetch(`${API_BASE}/subscription/my`, {
-      headers: getAuthHeader()
-    }).then(handleResponse<any>),
-
-  processCheckout: (data: { plan_id: string; billing_cycle?: string; payment_method?: string; coupon_code?: string }): Promise<any> =>
-    fetch(`${API_BASE}/subscription/checkout`, {
-      method: 'POST',
-      headers: getAuthHeader(),
-      body: JSON.stringify(data)
     }).then(handleResponse<any>)
 };

@@ -15,7 +15,7 @@ import { AwarenessPage } from './pages/AwarenessPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ScanHistoryPage } from './pages/ScanHistoryPage';
 import { AdminPage } from './pages/AdminPage';
-import { PricingPage } from './pages/PricingPage';
+import { ApiAccessPage } from './pages/ApiAccessPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ScanReportDetailPage } from './pages/ScanReportDetailPage';
@@ -67,7 +67,7 @@ const MainApp: React.FC = () => {
         {activeTab === 'dashboard' && (
           <DashboardPage onSelectScan={handleSelectScanFromAnywhere} />
         )}
-        {activeTab === 'pricing' && <PricingPage />}
+        {activeTab === 'api-access' && <ApiAccessPage />}
         {activeTab === 'history' && (
           <ScanHistoryPage onSelectScan={handleSelectScanFromAnywhere} />
         )}

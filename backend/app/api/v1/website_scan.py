@@ -12,7 +12,7 @@ from app.models.scan import Scan, ThreatIndicator
 from app.schemas.website import WebsiteScanRequest, WebsiteScanResponse, SecurityHeaderAudit, TLSDetails
 from app.schemas.scan import ThreatIndicatorOut
 from app.scanners.website_analyzer import inspect_website_security
-from app.api.v1.auth import get_current_user_optional
+from app.api.v1.auth import get_current_user_optional, enforce_api_quota
 
 router = APIRouter(prefix="/scans", tags=["Website Security Analyzer"])
 
@@ -26,6 +26,7 @@ async def scan_website_security(
     Perform non-intrusive public inspection of website TLS certificate,
     HTTP security headers (CSP, HSTS, X-Frame-Options), and cookie posture.
     """
+    enforce_api_quota(current_user, db)
     start_time = time.time()
     req_id = generate_request_id()
 

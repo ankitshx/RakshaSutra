@@ -17,7 +17,7 @@ import {
   PhoneCall,
   Sun,
   Moon,
-  Zap
+  Code
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -38,7 +38,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'threat-intel', label: 'Threat Intel', icon: Radio },
     { id: 'raksha-ai', label: 'Raksha AI', icon: Bot },
     { id: 'awareness', label: 'Awareness Hub', icon: BookOpen },
-    { id: 'pricing', label: 'Pricing & Plans', icon: Zap },
+    { id: 'api-access', label: 'Developer API', icon: Code },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   ];
 
