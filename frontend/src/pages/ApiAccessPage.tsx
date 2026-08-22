@@ -60,7 +60,7 @@ export const ApiAccessPage: React.FC = () => {
     setIsUpgradingQuota(true);
     try {
       const res = await api.requestQuotaUpgrade('Developer Integration');
-      setActionMessage(res.message || 'Quota boosted to 500 requests/mo!');
+      setActionMessage(res.message || 'Usage quota extended to 50 scan uses!');
       setTimeout(() => setActionMessage(null), 3500);
       loadQuotaData();
     } catch (err: any) {
@@ -130,8 +130,8 @@ checkThreat("http://login-sbi-pan-update.xyz/verify.php");`
     setTimeout(() => setCopiedCurl(false), 2500);
   };
 
-  const scansUsed = quotaData?.scans_used ?? 2;
-  const scansLimit = quotaData?.monthly_quota === 'Unlimited' ? 'Unlimited' : (quotaData?.monthly_quota ?? 10);
+  const scansUsed = quotaData?.uses_count ?? quotaData?.scans_used ?? 1;
+  const scansLimit = quotaData?.total_allowed_uses === 'Unlimited' || quotaData?.monthly_quota === 'Unlimited' ? 'Unlimited' : (quotaData?.total_allowed_uses ?? quotaData?.monthly_quota ?? 10);
   const pct = scansLimit === 'Unlimited' ? 5 : Math.min(100, Math.round((scansUsed / Number(scansLimit)) * 100));
 
   return (
@@ -142,7 +142,7 @@ checkThreat("http://login-sbi-pan-update.xyz/verify.php");`
           <Terminal className="w-3.5 h-3.5" /> Developer Threat API Portal
         </div>
         <h1 className="text-2xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-          API Keys & Rate Limit Quotas
+          API Keys & Usage Quota (10 Uses / User)
         </h1>
         <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 max-w-2xl">
           Integrate real-time URL heuristic scanners and phishing analyzers directly into your applications, Telegram bots, or backend microservices.
@@ -221,15 +221,15 @@ checkThreat("http://login-sbi-pan-update.xyz/verify.php");`
           <div className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <Activity className="w-4 h-4 text-cyan-500" /> Usage & Rate Limits
+                <Activity className="w-4 h-4 text-cyan-500" /> Usage Limit (10 Scans / User)
               </span>
-              <span className="text-xs text-slate-500">Reset: 1st of month</span>
+              <span className="text-xs text-slate-500">Limit: 10 Total</span>
             </div>
 
             {/* Quota Progress */}
             <div className="space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-600 dark:text-slate-400">Monthly Scans Used:</span>
+                <span className="text-slate-600 dark:text-slate-400">Total Uses Completed:</span>
                 <strong className="text-slate-900 dark:text-white font-bold">
                   {scansUsed} / {scansLimit}
                 </strong>
@@ -244,15 +244,15 @@ checkThreat("http://login-sbi-pan-update.xyz/verify.php");`
 
             <div className="grid grid-cols-2 gap-3 pt-2">
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] text-slate-500 block">Rate Limit:</span>
+                <span className="text-[10px] text-slate-500 block">Allowance:</span>
                 <span className="text-sm font-bold text-slate-900 dark:text-white">
-                  {quotaData?.rate_limit_per_minute ?? 20} req/min
+                  10 Free Uses
                 </span>
               </div>
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] text-slate-500 block">Burst Allowance:</span>
+                <span className="text-[10px] text-slate-500 block">Rate Limit:</span>
                 <span className="text-sm font-bold text-emerald-500 dark:text-emerald-400">
-                  50 req/burst
+                  20 req/min
                 </span>
               </div>
             </div>
@@ -269,7 +269,7 @@ checkThreat("http://login-sbi-pan-update.xyz/verify.php");`
               ) : (
                 <>
                   <Zap className="w-4 h-4" />
-                  <span>⚡ 1-Click Request Quota Boost (500 Scans/mo)</span>
+                  <span>⚡ 1-Click Request Additional Uses</span>
                 </>
               )}
             </button>

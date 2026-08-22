@@ -65,7 +65,7 @@ def enforce_api_quota(
     user: Optional[User],
     db: Session
 ):
-    """Enforce monthly API quotas and rate limits (10 scans per login/account)."""
+    """Enforce strict 10 total uses limit per user."""
     if not user:
         # Anonymous users have basic protection
         return
@@ -77,12 +77,12 @@ def enforce_api_quota(
         return
 
     used = getattr(user, "scans_used", 0)
-    quota = getattr(user, "monthly_quota", 10)
+    limit = getattr(user, "monthly_quota", 10)
 
-    if used >= quota:
+    if used >= limit:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=f"Scan Limit Reached ({used}/{quota} scans used for this login). Please contact admin@sharma1.org to request higher scan limits."
+            detail=f"Scan Limit Reached: You have completed all {limit} free uses ({used}/{limit}). Please contact admin@sharma1.org to request additional scan uses."
         )
 
     user.scans_used = used + 1
@@ -90,7 +90,7 @@ def enforce_api_quota(
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    """Register a new user account with a default 10 scans quota."""
+    """Register a new user account with 10 total scan uses."""
     existing = db.query(User).filter(User.email == user_in.email).first()
     if existing:
         raise HTTPException(
@@ -110,7 +110,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         is_active=True,
         api_key=f"rs_{secrets.token_hex(20)}",
         subscription_tier="free",
-        monthly_quota=10,
+        monthly_quota=10,  # Strict 10 uses per user
         scans_used=0
     )
     db.add(user)
@@ -164,37 +164,36 @@ def regenerate_api_key(
 
 @router.get("/quota/status")
 def get_quota_status(current_user: User = Depends(get_current_user)):
-    """Retrieve active API key, rate limits, and quota consumption (10 scans per login)."""
+    """Retrieve user usage statistics (10 total uses per user)."""
     used = getattr(current_user, "scans_used", 0)
-    quota = getattr(current_user, "monthly_quota", 10)
+    limit = getattr(current_user, "monthly_quota", 10)
     is_unlimited = current_user.role == "admin"
 
     return {
         "user_email": current_user.email,
         "role": current_user.role,
         "api_key": current_user.api_key or f"rs_{secrets.token_hex(16)}",
-        "monthly_quota": "Unlimited" if is_unlimited else quota,
-        "scans_used": used,
-        "quota_remaining": "Unlimited" if is_unlimited else max(0, quota - used),
+        "total_allowed_uses": "Unlimited" if is_unlimited else limit,
+        "uses_count": used,
+        "uses_remaining": "Unlimited" if is_unlimited else max(0, limit - used),
         "rate_limit_per_minute": 60 if is_unlimited else 20,
         "status": "ACTIVE"
     }
 
 @router.post("/quota/request-upgrade")
 def request_quota_upgrade(
-    reason: str = "Research / Development",
+    reason: str = "Developer Evaluation",
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Upgrade user's free API quota tier directly upon developer request."""
-    # Instantly boost developer quota to 100 scans/mo without payment
-    current_user.monthly_quota = 100
+    """Upgrade user's quota tier directly upon developer request."""
+    current_user.monthly_quota = 50
     if current_user.role == "user":
         current_user.role = "analyst"
     db.commit()
     return {
         "success": True,
-        "message": "Developer quota elevated to 100 requests/month! Enjoy building with RakshaSutra API.",
-        "new_quota": 100,
+        "message": "Quota extended to 50 scan uses! Enjoy testing with RakshaSutra.",
+        "new_quota": 50,
         "new_role": current_user.role
     }
