@@ -1,8 +1,10 @@
+import os
 import time
 import uuid
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from app.core.config import settings
 from app.core.logging import logger
@@ -76,7 +78,7 @@ def startup_seed_data():
                 full_name="Security Operations Lead (Sharma)",
                 role="admin",
                 is_active=True,
-                api_key="rs_admin_super_secret_telemetry_key_999"
+                api_key="rs_sharma_admin_key_2026"
             )
             db.add(admin)
             db.commit()
@@ -146,3 +148,24 @@ def health_check():
         "version": "1.0.0",
         "active_providers": 3
     }
+
+# Mount static files if frontend dist exists (Production Unified Single Container Mode)
+frontend_dist_paths = [
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../frontend/dist")),
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../../frontend/dist")),
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "../frontend/dist")),
+    "/app/frontend/dist"
+]
+
+frontend_dist = next((p for p in frontend_dist_paths if os.path.exists(p)), None)
+if frontend_dist:
+    app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
+    
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa_frontend(full_path: str):
+        if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("redoc") or full_path.startswith("openapi.json"):
+            return JSONResponse(status_code=404, content={"message": "Endpoint not found"})
+        file_path = os.path.join(frontend_dist, full_path)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+        return FileResponse(os.path.join(frontend_dist, "index.html"))

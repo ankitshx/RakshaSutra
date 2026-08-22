@@ -1,0 +1,30 @@
+steps:
+  # 1. Build Docker Container Image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/rakshasutra:latest', '.']
+
+  # 2. Push Container Image to Google Container Registry / Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/rakshasutra:latest']
+
+  # 3. Deploy to Google Cloud Run with Public Access
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'rakshasutra'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/rakshasutra:latest'
+      - '--region'
+      - 'us-central1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--port'
+      - '8080'
+      - '--memory'
+      - '512Mi'
+
+images:
+  - 'gcr.io/$PROJECT_ID/rakshasutra:latest'
