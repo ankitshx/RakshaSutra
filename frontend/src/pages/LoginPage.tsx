@@ -106,26 +106,6 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onSuccess, onSwitchToRegist
           </button>
         </form>
 
-        {/* 1-Click Official Admin Auto-Fill Bar */}
-        <div className="p-3 rounded-xl bg-slate-950 border border-cyan-500/30 space-y-1.5 text-xs font-mono">
-          <div className="flex items-center justify-between">
-            <span className="text-slate-400 font-bold">Official Admin Portal:</span>
-            <button
-              type="button"
-              onClick={() => {
-                setEmail('admin@sharma1.org');
-                setPassword('Admin@victus@2005');
-              }}
-              className="px-2.5 py-1 rounded-lg bg-cyan-500 text-slate-950 font-black hover:bg-cyan-400 transition-colors cursor-pointer text-[11px]"
-            >
-              ⚡ Fill Admin Credentials
-            </button>
-          </div>
-          <div className="text-[11px] text-slate-500">
-            Email: <code className="text-cyan-400">admin@sharma1.org</code> • Pass: <code className="text-cyan-400">Admin@victus@2005</code>
-          </div>
-        </div>
-
         <div className="pt-2 border-t border-slate-800 text-center">
           <p className="text-xs text-slate-400">
             Don't have an account?{' '}
