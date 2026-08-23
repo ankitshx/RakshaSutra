@@ -117,6 +117,9 @@ export interface User {
   full_name?: string;
   role: 'user' | 'analyst' | 'admin';
   subscription_tier?: string;
+  daily_quota?: number;
+  scans_today?: number;
+  last_scan_date?: string;
   monthly_quota?: number;
   scans_used?: number;
   is_active: boolean;

@@ -13,8 +13,11 @@ class User(Base):
     full_name = Column(String(100), nullable=True)
     role = Column(String(20), default="user", nullable=False)  # "user", "analyst", "admin"
     subscription_tier = Column(String(30), default="free", nullable=False)
-    monthly_quota = Column(Integer, default=10, nullable=False)  # Max 10 total uses per user
-    scans_used = Column(Integer, default=0, nullable=False)      # Total uses count
+    daily_quota = Column(Integer, default=6, nullable=False)       # 6 free uses per day
+    scans_today = Column(Integer, default=0, nullable=False)       # Daily scan counter
+    last_scan_date = Column(String(20), default=lambda: datetime.utcnow().strftime("%Y-%m-%d"), nullable=True)
+    monthly_quota = Column(Integer, default=180, nullable=False)   # Monthly reference quota
+    scans_used = Column(Integer, default=0, nullable=False)        # Total lifetime uses count
     is_active = Column(Boolean, default=True)
     api_key = Column(String(64), unique=True, index=True, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

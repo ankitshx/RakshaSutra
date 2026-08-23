@@ -53,7 +53,9 @@ export const UnifiedCommandHero: React.FC<UnifiedCommandHeroProps> = ({
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
   const isPro = user?.subscription_tier === 'pro' || user?.subscription_tier === 'enterprise' || isAdmin;
-  const scansLeft = user ? Math.max(0, (user.monthly_quota || 10) - (user.scans_used || 0)) : 10;
+  const dailyQuota = user?.daily_quota || 6;
+  const scansToday = user?.scans_today || 0;
+  const scansLeftToday = user ? Math.max(0, dailyQuota - scansToday) : 6;
 
   const urlPresets = [
     { label: 'Fake SBI Banking Link', url: 'http://login-sbi-pan-update.xyz/verify.php' },
@@ -89,8 +91,8 @@ export const UnifiedCommandHero: React.FC<UnifiedCommandHeroProps> = ({
     setError(null);
     setIocResult(null);
 
-    // Pre-check free limit
-    if (user && !isPro && scansLeft <= 0) {
+    // Pre-check daily free limit
+    if (user && !isPro && scansLeftToday <= 0) {
       setIsUpgradeModalOpen(true);
       return;
     }
@@ -230,7 +232,7 @@ export const UnifiedCommandHero: React.FC<UnifiedCommandHeroProps> = ({
                   className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-950/80 hover:bg-amber-900/80 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold transition-all cursor-pointer"
                 >
                   <Zap className="w-3.5 h-3.5 text-amber-400" />
-                  <span>{scansLeft} of 10 Free Scans Left • Upgrade</span>
+                  <span>{scansLeftToday} of 6 Free Scans Left Today • Upgrade</span>
                 </button>
               )}
             </div>

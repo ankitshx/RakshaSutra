@@ -19,7 +19,10 @@ class UserOut(BaseModel):
     full_name: Optional[str] = None
     role: str
     subscription_tier: Optional[str] = "free"
-    monthly_quota: Optional[int] = 10
+    daily_quota: Optional[int] = 6
+    scans_today: Optional[int] = 0
+    last_scan_date: Optional[str] = None
+    monthly_quota: Optional[int] = 180
     scans_used: Optional[int] = 0
     is_active: bool
     api_key: Optional[str] = None

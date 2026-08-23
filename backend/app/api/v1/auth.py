@@ -1,4 +1,5 @@
 import secrets
+from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Header, status
 from fastapi.security import OAuth2PasswordBearer
@@ -66,48 +67,58 @@ def enforce_api_quota(
     db: Session
 ):
     """
-    Enforce Subscription & Quota Limits:
+    Enforce Daily Subscription & Quota Limits:
     - Admin / Analyst: Unlimited.
     - Pro / Enterprise Tier: Unlimited.
-    - Free Tier: Limited to 10 total uses. Once exhausted, HTTP 402 is raised.
-    - Unauthenticated Guest: Allowed 3 trial scans before requiring login/subscription.
+    - Free Tier: Limited to 6 free scans per day. Automatically resets at midnight.
+    - Unauthenticated Guest: Allowed 3 trial scans.
     """
     if not user:
         # Unauthenticated guest scan allowance
         return
+
+    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+
+    # Automatic Daily Reset Check
+    if getattr(user, "last_scan_date", None) != today_str:
+        user.scans_today = 0
+        user.last_scan_date = today_str
 
     tier = getattr(user, "subscription_tier", "free")
     role = getattr(user, "role", "user")
 
     # Unlimited access for paid subscribers & admins
     if tier in ["pro", "enterprise", "unlimited"] or role in ["admin", "analyst"]:
+        user.scans_today = getattr(user, "scans_today", 0) + 1
         user.scans_used = getattr(user, "scans_used", 0) + 1
         db.commit()
         return
 
-    # Free Tier Quota Check (Default 10 total uses)
-    quota = getattr(user, "monthly_quota", 10)
-    used = getattr(user, "scans_used", 0)
+    # Free Tier Daily Quota Check (6 scans per day)
+    daily_quota = getattr(user, "daily_quota", 6)
+    scans_today = getattr(user, "scans_today", 0)
 
-    if used >= quota:
+    if scans_today >= daily_quota:
         raise HTTPException(
             status_code=status.HTTP_402_PAYMENT_REQUIRED,
             detail={
-                "error": "SUBSCRIPTION_REQUIRED",
-                "message": f"Free quota limit reached ({used}/{quota} scans used). Please subscribe to Pro or Enterprise for unlimited scans.",
+                "error": "DAILY_QUOTA_EXHAUSTED",
+                "message": f"Daily free scan limit reached ({scans_today}/{daily_quota} scans used today). Your free scans reset every day at midnight, or upgrade to Pro for unlimited scans.",
                 "tier": tier,
-                "scans_used": used,
-                "monthly_quota": quota,
+                "scans_today": scans_today,
+                "daily_quota": daily_quota,
+                "scans_used_total": getattr(user, "scans_used", 0),
                 "upgrade_url": "/pricing"
             }
         )
 
-    user.scans_used = used + 1
+    user.scans_today = scans_today + 1
+    user.scans_used = getattr(user, "scans_used", 0) + 1
     db.commit()
 
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    """Register a new user account with 10 free scans before subscription."""
+    """Register a new user account with 6 free scans per day before subscription."""
     existing = db.query(User).filter(User.email == user_in.email).first()
     if existing:
         raise HTTPException(
@@ -119,6 +130,7 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
     user_count = db.query(User).count()
     is_first_admin = (user_count == 0)
     role = "admin" if is_first_admin else "user"
+    today_str = datetime.utcnow().strftime("%Y-%m-%d")
 
     user = User(
         email=user_in.email,
@@ -128,7 +140,10 @@ def register(user_in: UserCreate, db: Session = Depends(get_db)):
         is_active=True,
         api_key=f"rs_{'admin' if is_first_admin else 'free'}_{secrets.token_hex(16)}",
         subscription_tier="enterprise" if is_first_admin else "free",
-        monthly_quota=999999 if is_first_admin else 10,
+        daily_quota=999999 if is_first_admin else 6,
+        scans_today=0,
+        last_scan_date=today_str,
+        monthly_quota=999999 if is_first_admin else 180,
         scans_used=0
     )
     db.add(user)
@@ -157,6 +172,13 @@ def login(login_data: UserLogin, db: Session = Depends(get_db)):
             detail="User account is deactivated.",
         )
 
+    # Refresh daily reset on login
+    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+    if getattr(user, "last_scan_date", None) != today_str:
+        user.scans_today = 0
+        user.last_scan_date = today_str
+        db.commit()
+
     token = create_access_token(subject=user.id, role=user.role)
     return {
         "access_token": token,
@@ -165,8 +187,13 @@ def login(login_data: UserLogin, db: Session = Depends(get_db)):
     }
 
 @router.get("/me", response_model=UserOut)
-def get_profile(current_user: User = Depends(get_current_user)):
-    """Retrieve current authenticated user profile."""
+def get_profile(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Retrieve current authenticated user profile with daily reset verification."""
+    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+    if getattr(current_user, "last_scan_date", None) != today_str:
+        current_user.scans_today = 0
+        current_user.last_scan_date = today_str
+        db.commit()
     return current_user
 
 @router.post("/api-key/regenerate")
@@ -182,11 +209,18 @@ def regenerate_api_key(
     return {"api_key": new_key, "message": "API key regenerated successfully."}
 
 @router.get("/quota/status")
-def get_quota_status(current_user: User = Depends(get_current_user)):
-    """Retrieve user subscription tier and scan usage statistics."""
+def get_quota_status(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Retrieve user subscription tier and daily scan usage statistics."""
+    today_str = datetime.utcnow().strftime("%Y-%m-%d")
+    if getattr(current_user, "last_scan_date", None) != today_str:
+        current_user.scans_today = 0
+        current_user.last_scan_date = today_str
+        db.commit()
+
     tier = getattr(current_user, "subscription_tier", "free")
-    quota = getattr(current_user, "monthly_quota", 10)
-    used = getattr(current_user, "scans_used", 0)
+    daily_quota = getattr(current_user, "daily_quota", 6)
+    scans_today = getattr(current_user, "scans_today", 0)
+    scans_used_total = getattr(current_user, "scans_used", 0)
     is_unlimited = tier in ["pro", "enterprise", "unlimited"] or current_user.role in ["admin", "analyst"]
 
     return {
@@ -194,10 +228,12 @@ def get_quota_status(current_user: User = Depends(get_current_user)):
         "role": current_user.role,
         "api_key": current_user.api_key or f"rs_{tier}_{secrets.token_hex(12)}",
         "subscription_tier": tier,
-        "scans_used": used,
-        "monthly_quota": "Unlimited" if is_unlimited else quota,
-        "quota_remaining": "Unlimited" if is_unlimited else max(0, quota - used),
+        "daily_quota": "Unlimited" if is_unlimited else daily_quota,
+        "scans_today": scans_today,
+        "scans_left_today": "Unlimited" if is_unlimited else max(0, daily_quota - scans_today),
+        "scans_used_total": scans_used_total,
         "is_unlimited": is_unlimited,
+        "resets_at": "Daily at 00:00 UTC",
         "status": "ACTIVE"
     }
 
@@ -209,6 +245,7 @@ def request_quota_upgrade(
 ):
     """Instant demo upgrade endpoint to Pro Unlimited tier."""
     current_user.subscription_tier = "pro"
+    current_user.daily_quota = 999999
     current_user.monthly_quota = 999999
     if current_user.role == "user":
         current_user.role = "analyst"
@@ -220,6 +257,7 @@ def request_quota_upgrade(
         "success": True,
         "message": "Upgraded to Pro Cyber Defender! Unlimited threat scans now active.",
         "subscription_tier": "pro",
+        "daily_quota": "Unlimited",
         "monthly_quota": "Unlimited",
         "new_role": current_user.role
     }

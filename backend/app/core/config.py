@@ -28,11 +28,18 @@ class Settings(BaseSettings):
         "http://127.0.0.1:3000",
     ]
     
-    # Threat Intel API Keys (Optional with mock/fallback mode)
+    # Threat Intel API Keys (Optional with fallback heuristics)
     VIRUSTOTAL_API_KEY: str = os.getenv("VIRUSTOTAL_API_KEY", "")
     GOOGLE_SAFE_BROWSING_KEY: str = os.getenv("GOOGLE_SAFE_BROWSING_KEY", "")
     ABUSEIPDB_API_KEY: str = os.getenv("ABUSEIPDB_API_KEY", "")
     URLHAUS_API_KEY: str = os.getenv("URLHAUS_API_KEY", "")
+    
+    # Real Payment Gateway Configurations (Razorpay & Stripe)
+    RAZORPAY_KEY_ID: str = os.getenv("RAZORPAY_KEY_ID", "rzp_test_rakshasutra_2026")
+    RAZORPAY_KEY_SECRET: str = os.getenv("RAZORPAY_KEY_SECRET", "rakshasutra_rzp_secret_key_dev")
+    STRIPE_PUBLISHABLE_KEY: str = os.getenv("STRIPE_PUBLISHABLE_KEY", "pk_test_rakshasutra_stripe_key")
+    STRIPE_SECRET_KEY: str = os.getenv("STRIPE_SECRET_KEY", "sk_test_rakshasutra_stripe_secret")
+    STRIPE_WEBHOOK_SECRET: str = os.getenv("STRIPE_WEBHOOK_SECRET", "")
     
     # SSRF & Networking Limits
     HTTP_CONNECT_TIMEOUT: float = 3.5

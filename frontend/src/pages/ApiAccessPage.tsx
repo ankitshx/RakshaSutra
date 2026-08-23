@@ -71,9 +71,10 @@ export const ApiAccessPage: React.FC = () => {
 
   const apiKeyDisplay = quotaData?.api_key || user?.api_key || 'rs_free_sample_key_2026';
   const isPro = user?.subscription_tier === 'pro' || user?.subscription_tier === 'enterprise' || user?.role === 'admin';
+  const dailyQuota = user?.daily_quota || quotaData?.daily_quota || 6;
+  const scansToday = user?.scans_today || quotaData?.scans_today || 0;
   const scansUsed = user?.scans_used || quotaData?.scans_used || 0;
-  const quotaLimit = user?.monthly_quota || quotaData?.monthly_quota || 10;
-  const scansLeft = isPro ? 'Unlimited' : Math.max(0, quotaLimit - scansUsed);
+  const scansLeftToday = isPro ? 'Unlimited' : Math.max(0, dailyQuota - scansToday);
 
   const codeSnippets = {
     curl: `curl -X POST "http://127.0.0.1:8000/api/v1/scans/url" \\
@@ -197,7 +198,7 @@ async function checkThreat(targetUrl) {
               <div className="pt-3 border-t border-slate-800 space-y-2 text-xs text-slate-300">
                 <div className="flex items-center gap-2 font-bold text-amber-300">
                   <Check className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>10 Free Threat Scans Total</span>
+                  <span>6 Free Scans Per Day (Resets Daily)</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Check className="w-4 h-4 text-slate-500 shrink-0" />
@@ -398,30 +399,34 @@ async function checkThreat(targetUrl) {
 
             <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-600 dark:text-slate-400">Scans Used:</span>
+                <span className="text-slate-600 dark:text-slate-400">Scans Used Today:</span>
                 <strong className="text-slate-900 dark:text-white font-bold">
-                  {scansUsed} scans
+                  {scansToday} / {isPro ? '∞' : dailyQuota} scans
                 </strong>
               </div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-600 dark:text-slate-400">Remaining Allowance:</span>
+                <span className="text-slate-600 dark:text-slate-400">Remaining Today:</span>
                 <span className={`font-bold ${isPro ? 'text-emerald-400' : 'text-amber-400'}`}>
-                  {isPro ? 'Unlimited' : `${scansLeft} / ${quotaLimit} free scans`}
+                  {isPro ? 'Unlimited' : `${scansLeftToday} of 6 free scans`}
                 </span>
+              </div>
+              <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-200 dark:border-slate-800">
+                <span className="text-slate-500">Reset Schedule:</span>
+                <span className="text-cyan-500 text-[11px] font-bold">Daily at 00:00 UTC</span>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-1">
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] text-slate-500 block">Rate Limit:</span>
+                <span className="text-[10px] text-slate-500 block">Total Lifetime Scans:</span>
                 <span className="text-sm font-bold text-slate-900 dark:text-white">
-                  {isPro ? '300 req/min' : '60 req/min'}
+                  {scansUsed} scans
                 </span>
               </div>
               <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1">
-                <span className="text-[10px] text-slate-500 block">Tier Status:</span>
+                <span className="text-[10px] text-slate-500 block">Active Tier:</span>
                 <span className="text-sm font-bold text-emerald-400">
-                  {isPro ? 'PRO (Unlimited)' : '10 Free Trial'}
+                  {isPro ? 'PRO (Unlimited)' : '6 Free/Day'}
                 </span>
               </div>
             </div>

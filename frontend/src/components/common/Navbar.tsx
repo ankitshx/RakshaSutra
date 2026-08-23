@@ -56,7 +56,9 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   };
 
   const isPro = user?.subscription_tier === 'pro' || user?.subscription_tier === 'enterprise' || isAdmin;
-  const scansLeft = user ? Math.max(0, (user.monthly_quota || 10) - (user.scans_used || 0)) : 10;
+  const dailyQuota = user?.daily_quota || 6;
+  const scansToday = user?.scans_today || 0;
+  const scansLeftToday = user ? Math.max(0, dailyQuota - scansToday) : 6;
 
   return (
     <>
@@ -128,7 +130,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                   title="Click to upgrade subscription for unlimited scans"
                 >
                   <Zap className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Free ({scansLeft}/10 scans) • Upgrade</span>
+                  <span>Free ({scansLeftToday}/6 left today) • Upgrade</span>
                 </button>
               )}
 
@@ -199,7 +201,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                 onClick={() => setIsUpgradeModalOpen(true)}
                 className="px-2 py-1 rounded-lg bg-amber-950/80 border border-amber-500/50 text-amber-300 text-[10px] font-mono font-bold"
               >
-                {isPro ? '⭐ PRO' : `${scansLeft}/10 Left`}
+                {isPro ? '⭐ PRO' : `${scansLeftToday}/6 Left Today`}
               </button>
 
               <button

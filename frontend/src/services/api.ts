@@ -190,7 +190,34 @@ export const api = {
       headers: getAuthHeader()
     }).then(handleResponse<any>),
 
-  processCheckout: (data: { plan_id: string; billing_cycle?: string; payment_method?: string; coupon_code?: string }): Promise<any> =>
+  validateCoupon: (code: string): Promise<any> =>
+    fetch(`${API_BASE}/subscription/validate-coupon?code=${encodeURIComponent(code)}`, {
+      method: 'POST',
+      headers: getAuthHeader()
+    }).then(handleResponse<any>),
+
+  createRazorpayOrder: (data: { plan_id: string; billing_cycle?: string; coupon_code?: string }): Promise<any> =>
+    fetch(`${API_BASE}/subscription/razorpay/create-order`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+      body: JSON.stringify(data)
+    }).then(handleResponse<any>),
+
+  verifyRazorpayPayment: (data: { plan_id: string; billing_cycle?: string; razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string; coupon_code?: string }): Promise<any> =>
+    fetch(`${API_BASE}/subscription/razorpay/verify-payment`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+      body: JSON.stringify(data)
+    }).then(handleResponse<any>),
+
+  createStripeSession: (data: { plan_id: string; billing_cycle?: string; coupon_code?: string }): Promise<any> =>
+    fetch(`${API_BASE}/subscription/stripe/create-session`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+      body: JSON.stringify(data)
+    }).then(handleResponse<any>),
+
+  processCheckout: (data: { plan_id: string; billing_cycle?: string; payment_method?: string; coupon_code?: string; payment_details?: any }): Promise<any> =>
     fetch(`${API_BASE}/subscription/checkout`, {
       method: 'POST',
       headers: getAuthHeader(),
