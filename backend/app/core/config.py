@@ -14,8 +14,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
     
     # Initial Admin Credentials (Configurable via Environment Variables / .env)
-    ADMIN_EMAIL: str = os.getenv("ADMIN_EMAIL", "admin@rakshasutra.org")
-    ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "ChangeThisAdminSecret2026!")
+    ADMIN_EMAIL: str = os.getenv("ADMIN_EMAIL", "admin@sharma1.org")
+    ADMIN_PASSWORD: str = os.getenv("ADMIN_PASSWORD", "Admin@victus@2005")
     
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./rakshasutra.db")

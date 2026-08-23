@@ -143,7 +143,8 @@
 
 | Timestamp (UTC/IST) | Action / Upgrade | Files Touched | Technical Description & System Impact |
 | :--- | :--- | :--- | :--- |
-| **2026-08-23 15:38 IST** | 🔑 **Admin Auth & SQLite Migration** | `backend/migrate_db.py`<br>`frontend/src/pages/LoginPage.tsx` | Migrated SQLite schema adding `daily_quota`, `scans_today`, `last_scan_date` columns; seeded official admin (`admin@rakshasutra.org` / `Admin@RakshaSutra2026`) and added 1-click Auto-Fill to Login Page. |
+| **2026-08-23 15:43 IST** | 👑 **Official Admin Reset** | `backend/app/core/config.py`<br>`frontend/src/pages/LoginPage.tsx` | Configured official Admin credentials to `admin@sharma1.org` with encrypted password `Admin@victus@2005`, unlimited scan quota (`999,999`), and full SOC admin role. |
+| **2026-08-23 15:38 IST** | 🔑 **Admin Auth & SQLite Migration** | `backend/migrate_db.py`<br>`frontend/src/pages/LoginPage.tsx` | Migrated SQLite schema adding `daily_quota`, `scans_today`, `last_scan_date` columns; seeded official admin and added 1-click Auto-Fill to Login Page. |
 | **2026-08-23 15:32 IST** | 🌐 **Browser Launch & Live Demo** | `http://127.0.0.1:5173` | Launched active web application in user's default browser with full live Threat Defense Triad, Extension Installer, and Attack Radar. |
 | **2026-08-23 15:31 IST** | 🍯 **Honeytoken Deception Engine** | `backend/app/api/v1/deception.py`<br>`frontend/src/pages/DeceptionPage.tsx` | Added 4 decoy trap archetypes (AWS, DB, Web, PDF) with silent 1x1 GIF tracking webhooks that capture intruder IP, User-Agent, and geolocation. |
 | **2026-08-23 15:28 IST** | ⚔️ **Autonomous Takedown Swarm** | `backend/app/api/v1/takedown.py`<br>`frontend/src/components/scanner/TakedownModal.tsx` | Generated automated RFC 2822 legal abuse complaint letters, CERT-In dossiers, and multi-platform firewall rules (Cloudflare WAF, Nginx, iptables). |

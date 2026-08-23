@@ -113,8 +113,8 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onSuccess, onSwitchToRegist
             <button
               type="button"
               onClick={() => {
-                setEmail('admin@rakshasutra.org');
-                setPassword('Admin@RakshaSutra2026');
+                setEmail('admin@sharma1.org');
+                setPassword('Admin@victus@2005');
               }}
               className="px-2.5 py-1 rounded-lg bg-cyan-500 text-slate-950 font-black hover:bg-cyan-400 transition-colors cursor-pointer text-[11px]"
             >
@@ -122,7 +122,7 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onSuccess, onSwitchToRegist
             </button>
           </div>
           <div className="text-[11px] text-slate-500">
-            Email: <code className="text-cyan-400">admin@rakshasutra.org</code> • Pass: <code className="text-cyan-400">Admin@RakshaSutra2026</code>
+            Email: <code className="text-cyan-400">admin@sharma1.org</code> • Pass: <code className="text-cyan-400">Admin@victus@2005</code>
           </div>
         </div>
 

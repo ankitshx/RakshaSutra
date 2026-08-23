@@ -31,8 +31,8 @@ def migrate():
             print(f"Added column {col_name} ({col_type}) to users table.")
 
     # Ensure official default Admin account exists with known secure password
-    admin_email = "admin@rakshasutra.org"
-    admin_pass = "Admin@RakshaSutra2026"
+    admin_email = "admin@sharma1.org"
+    admin_pass = "Admin@victus@2005"
     hashed_pass = get_password_hash(admin_pass)
 
     cursor.execute("SELECT id FROM users WHERE email = ?", (admin_email,))
@@ -48,7 +48,7 @@ def migrate():
         cursor.execute(
             """INSERT INTO users (email, hashed_password, full_name, role, subscription_tier, daily_quota, scans_today, last_scan_date, monthly_quota, scans_used, is_active, api_key, created_at, updated_at)
                VALUES (?, ?, ?, 'admin', 'enterprise', 999999, 0, '', 999999, 0, 1, 'rs_admin_master_key_2026', datetime('now'), datetime('now'))""",
-            (admin_email, hashed_pass, "Chief Security Officer")
+            (admin_email, hashed_pass, "Chief Security Officer (Sharma)")
         )
         print(f"Created official admin account: {admin_email}")
 
