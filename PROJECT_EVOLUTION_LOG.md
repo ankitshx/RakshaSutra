@@ -143,6 +143,7 @@
 
 | Timestamp (UTC/IST) | Action / Upgrade | Files Touched | Technical Description & System Impact |
 | :--- | :--- | :--- | :--- |
+| **2026-08-23 16:28 IST** | 🔍 **Autonomous OSINT Recon & Threat Graph** | `backend/app/api/v1/osint.py`<br>`frontend/src/pages/OsintReconPage.tsx`<br>`frontend/src/components/osint/OsintGraphView.tsx`<br>`frontend/src/components/common/Navbar.tsx` | Deployed full OSINT intelligence suite: 40+ concurrent username probes, passive DNS/subdomain mapper, telecom carrier & circle unmasker, email tenant detector, and interactive SVG force-directed threat graph. |
 | **2026-08-23 16:13 IST** | ✨ **Professional Typography & Aesthetics Engine** | `frontend/index.html`<br>`frontend/tailwind.config.js`<br>`frontend/src/index.css` | Integrated dual Google Font system (`Plus Jakarta Sans` for UI/Headings + `JetBrains Mono` for threat telemetry and code) with subpixel anti-aliasing and refined cybersecurity aesthetics. |
 | **2026-08-23 15:58 IST** | 🖥️ **Ultra-Wide Fluid Grid & Zero-Gap Layout** | `frontend/src/pages/*`<br>`frontend/src/components/*` | Upgraded all page containers from narrow fixed widths to fluid responsive `max-w-[1780px]` / `max-w-[1720px]` grid architecture, eliminating side gaps on widescreen monitors. |
 | **2026-08-23 15:46 IST** | 🛡️ **Public Repo Secrets Sanitization** | `backend/app/core/config.py`<br>`backend/migrate_db.py` | Sanitized all code repositories, configs, and logs to ensure zero personal credentials or secrets are stored in Git; enforced `.env` local environment variable binding. |

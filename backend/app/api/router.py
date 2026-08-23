@@ -12,6 +12,7 @@ from app.api.v1.subscription import router as subscription_router
 from app.api.v1.darkweb import router as darkweb_router
 from app.api.v1.takedown import router as takedown_router
 from app.api.v1.deception import router as deception_router
+from app.api.v1.osint import router as osint_router
 
 api_router = APIRouter()
 
@@ -28,3 +29,4 @@ api_router.include_router(subscription_router)
 api_router.include_router(darkweb_router)
 api_router.include_router(takedown_router)
 api_router.include_router(deception_router)
+api_router.include_router(osint_router)

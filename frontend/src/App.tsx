@@ -18,6 +18,7 @@ import { AdminPage } from './pages/AdminPage';
 import { ApiAccessPage } from './pages/ApiAccessPage';
 import { DarkWebMonitorPage } from './pages/DarkWebMonitorPage';
 import { DeceptionPage } from './pages/DeceptionPage';
+import { OsintReconPage } from './pages/OsintReconPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ScanReportDetailPage } from './pages/ScanReportDetailPage';
@@ -56,6 +57,7 @@ const MainApp: React.FC = () => {
             onViewReport={handleViewReport}
           />
         )}
+        {activeTab === 'osint' && <OsintReconPage />}
         {activeTab === 'url-scanner' && (
           <UrlScannerPage onAskAI={handleAskAIWithScan} />
         )}

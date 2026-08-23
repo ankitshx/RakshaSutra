@@ -303,5 +303,41 @@ export const api = {
     fetch(`${API_BASE}/deception/tokens/${tokenId}`, {
       method: 'DELETE',
       headers: getAuthHeader()
+    }).then(handleResponse<any>),
+
+  // OSINT Reconnaissance & Threat Graph
+  osintScanUsername: (username: string): Promise<any> =>
+    fetch(`${API_BASE}/osint/username`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+      body: JSON.stringify({ username })
+    }).then(handleResponse<any>),
+
+  osintScanDomain: (domain: string): Promise<any> =>
+    fetch(`${API_BASE}/osint/domain`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+      body: JSON.stringify({ domain })
+    }).then(handleResponse<any>),
+
+  osintScanEmail: (email: string): Promise<any> =>
+    fetch(`${API_BASE}/osint/email`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+      body: JSON.stringify({ email })
+    }).then(handleResponse<any>),
+
+  osintScanPhone: (phone: string): Promise<any> =>
+    fetch(`${API_BASE}/osint/phone`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+      body: JSON.stringify({ phone })
+    }).then(handleResponse<any>),
+
+  osintFullRecon: (target: string, target_type: string = 'auto'): Promise<any> =>
+    fetch(`${API_BASE}/osint/full-recon`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+      body: JSON.stringify({ target, target_type })
     }).then(handleResponse<any>)
 };
