@@ -30,9 +30,9 @@ def migrate():
             cursor.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}")
             print(f"Added column {col_name} ({col_type}) to users table.")
 
-    # Ensure official default Admin account exists with known secure password
-    admin_email = "admin@sharma1.org"
-    admin_pass = "Admin@victus@2005"
+    # Ensure official default Admin account exists with configurable secure credentials
+    admin_email = os.getenv("ADMIN_EMAIL", "admin@rakshasutra.org")
+    admin_pass = os.getenv("ADMIN_PASSWORD", "ChangeThisAdminSecret2026!")
     hashed_pass = get_password_hash(admin_pass)
 
     cursor.execute("SELECT id FROM users WHERE email = ?", (admin_email,))
