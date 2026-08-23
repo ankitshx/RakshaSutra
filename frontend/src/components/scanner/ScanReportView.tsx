@@ -4,6 +4,7 @@ import { RiskGauge } from '../common/RiskGauge';
 import { RiskBadge } from '../common/RiskBadge';
 import { ThreatIndicatorCard } from '../common/ThreatIndicatorCard';
 import { SimpleVerdictCard } from '../common/SimpleVerdictCard';
+import { TakedownModal } from './TakedownModal';
 import {
   ShieldCheck,
   Globe,
@@ -14,7 +15,8 @@ import {
   Layers,
   FileText,
   Sparkles,
-  SlidersHorizontal
+  SlidersHorizontal,
+  Flame
 } from 'lucide-react';
 
 interface ScanReportViewProps {
@@ -26,6 +28,7 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({ report, onAskAI 
   const [copied, setCopied] = useState(false);
   const [viewMode, setViewMode] = useState<'simple' | 'technical'>('simple');
   const [techTab, setTechTab] = useState<'overview' | 'indicators' | 'telemetry'>('overview');
+  const [isTakedownModalOpen, setIsTakedownModalOpen] = useState(false);
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.href);
@@ -94,6 +97,15 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({ report, onAskAI 
             >
               {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
               <span>{copied ? 'Copied' : 'Share'}</span>
+            </button>
+
+            <button
+              onClick={() => setIsTakedownModalOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold bg-rose-500 hover:bg-rose-400 text-white uppercase tracking-wider shadow-md transition-all cursor-pointer"
+              title="Generate automated registrar abuse takedown package and firewall rules"
+            >
+              <Flame className="w-4 h-4" />
+              <span>Automate Takedown</span>
             </button>
 
             {onAskAI && (
@@ -248,6 +260,14 @@ export const ScanReportView: React.FC<ScanReportViewProps> = ({ report, onAskAI 
           </div>
         )}
       </div>
+      
+      {/* Autonomous Takedown Modal */}
+      <TakedownModal
+        isOpen={isTakedownModalOpen}
+        onClose={() => setIsTakedownModalOpen(false)}
+        targetUrl={report.target || report.target_display}
+        threatClassification={report.risk_level || 'Phishing / Fake Banking Lure'}
+      />
     </div>
   );
 };

@@ -268,5 +268,40 @@ export const api = {
     fetch(`${API_BASE}/admin/ioc-rules/${iocId}`, {
       method: 'DELETE',
       headers: getAuthHeader()
+    }).then(handleResponse<any>),
+
+  // Dark Web & Breach Intelligence
+  checkDarkWebExposure: (data: { query: string; query_type?: string }): Promise<any> =>
+    fetch(`${API_BASE}/darkweb/check`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+      body: JSON.stringify(data)
+    }).then(handleResponse<any>),
+
+  // Autonomous AI Takedown Swarm
+  generateTakedownNotice: (data: { target_url: string; threat_classification?: string; targeted_brand?: string; evidence_notes?: string }): Promise<any> =>
+    fetch(`${API_BASE}/takedown/generate`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+      body: JSON.stringify(data)
+    }).then(handleResponse<any>),
+
+  // Honeytoken & Active Deception
+  createHoneytoken: (data: { token_type: string; memo: string; alert_email?: string }): Promise<any> =>
+    fetch(`${API_BASE}/deception/tokens/create`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+      body: JSON.stringify(data)
+    }).then(handleResponse<any>),
+
+  getHoneytokens: (): Promise<any[]> =>
+    fetch(`${API_BASE}/deception/tokens/list`, {
+      headers: getAuthHeader()
+    }).then(handleResponse<any[]>),
+
+  deleteHoneytoken: (tokenId: string): Promise<any> =>
+    fetch(`${API_BASE}/deception/tokens/${tokenId}`, {
+      method: 'DELETE',
+      headers: getAuthHeader()
     }).then(handleResponse<any>)
 };

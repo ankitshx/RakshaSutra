@@ -21,7 +21,9 @@ import {
   Moon,
   Code,
   Sparkles,
-  Zap
+  Zap,
+  Eye,
+  Flame
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -40,6 +42,8 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
     { id: 'landing', label: 'Command Center', icon: Shield },
     { id: 'url-scanner', label: 'URL Scanner', icon: Search },
     { id: 'message-scanner', label: 'Message Analyzer', icon: MessageSquare },
+    { id: 'darkweb', label: 'Dark Web', icon: Eye },
+    { id: 'deception', label: 'Hacker Traps', icon: Flame },
     { id: 'website-analyzer', label: 'Website Audit', icon: Globe },
     { id: 'threat-intel', label: 'Threat Intel', icon: Radio },
     { id: 'raksha-ai', label: 'Raksha AI', icon: Bot },

@@ -16,6 +16,8 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ScanHistoryPage } from './pages/ScanHistoryPage';
 import { AdminPage } from './pages/AdminPage';
 import { ApiAccessPage } from './pages/ApiAccessPage';
+import { DarkWebMonitorPage } from './pages/DarkWebMonitorPage';
+import { DeceptionPage } from './pages/DeceptionPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ScanReportDetailPage } from './pages/ScanReportDetailPage';
@@ -61,6 +63,8 @@ const MainApp: React.FC = () => {
           <MessageAnalyzerPage onAskAI={handleAskAIWithScan} />
         )}
         {activeTab === 'website-scanner' && <WebsiteAnalyzerPage />}
+        {activeTab === 'darkweb' && <DarkWebMonitorPage />}
+        {activeTab === 'deception' && <DeceptionPage />}
         {activeTab === 'threat-intel' && <ThreatIntelPage />}
         {activeTab === 'raksha-ai' && <RakshaAiPage />}
         {activeTab === 'awareness' && <AwarenessPage />}
