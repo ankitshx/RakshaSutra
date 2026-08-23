@@ -143,6 +143,7 @@
 
 | Timestamp (UTC/IST) | Action / Upgrade | Files Touched | Technical Description & System Impact |
 | :--- | :--- | :--- | :--- |
+| **2026-08-23 15:32 IST** | 🌐 **Browser Launch & Live Demo** | `http://127.0.0.1:5173` | Launched active web application in user's default browser with full live Threat Defense Triad, Extension Installer, and Attack Radar. |
 | **2026-08-23 15:31 IST** | 🍯 **Honeytoken Deception Engine** | `backend/app/api/v1/deception.py`<br>`frontend/src/pages/DeceptionPage.tsx` | Added 4 decoy trap archetypes (AWS, DB, Web, PDF) with silent 1x1 GIF tracking webhooks that capture intruder IP, User-Agent, and geolocation. |
 | **2026-08-23 15:28 IST** | ⚔️ **Autonomous Takedown Swarm** | `backend/app/api/v1/takedown.py`<br>`frontend/src/components/scanner/TakedownModal.tsx` | Generated automated RFC 2822 legal abuse complaint letters, CERT-In dossiers, and multi-platform firewall rules (Cloudflare WAF, Nginx, iptables). |
 | **2026-08-23 15:22 IST** | 🕵️‍♂️ **Dark Web Breach Monitor** | `backend/app/api/v1/darkweb.py`<br>`frontend/src/pages/DarkWebMonitorPage.tsx` | Integrated k-Anonymity SHA-256 privacy search across global credential leak dumps with risk scoring and password hygiene checklists. |
