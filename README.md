@@ -1,7 +1,7 @@
-# 🛡️ RakshaSutra (रक्षासूत्र) — Next-Generation AI Cybersecurity & OSINT Intelligence Platform
+# 🛡️ RakshaSutra (रक्षासूत्र) — Explainable Cybersecurity & Threat Intelligence SaaS
 
-> **"Check Before You Click."**  
-> *Autonomous multi-vector threat detection, live cyber warfare radar, 100% authentic dark web monitoring, cross-platform OSINT reconnaissance with interactive threat graphs, active deception honeytokens, automated abuse takedowns, and universal browser extension.*
+> **Tagline: "Check Before You Click."**  
+> *Production-ready cybersecurity SaaS providing explainable URL/SMS/website scanning, OSINT digital footprinting, verified breach monitoring, interactive threat map simulations, developer APIs, and assisted incident response workflows.*
 
 ---
 
@@ -13,115 +13,100 @@
                                 └───────┬───────────────────┬────────────────────┬───────┘
                                         │                   │                    │
                     ┌───────────────────▼──┐     ┌──────────▼───────────┐     ┌──▼────────────────────┐
-                    │  Web Platform (SPA)  │     │ Universal Extension  │     │ External B2B API / SDK│
-                    │ (React 19, Tailwind) │     │ (MV3 Chrome/Edge/FF) │     │ (Python, Node, cURL)  │
+                    │  Web Platform (SPA)  │     │ Universal Extension  │     │ External REST API     │
+                    │ (React 19, Tailwind) │     │ (MV3 Chrome/Edge/FF) │     │ (Hashed API Keys)     │
                     └───────────────────┬──┘     └──────────┬───────────┘     └──┬────────────────────┘
                                         │                   │                    │
                                         └───────────────────┼────────────────────┘
                                                             │
                                               ┌─────────────▼─────────────┐
                                               │     FastAPI Core Engine   │
-                                              │ (Async Python 3.12+ REST) │
+                                              │  (Async Python 3.12+ REST)│
                                               └─────────────┬─────────────┘
                                                             │
             ┌────────────────────────┬──────────────────────┼──────────────────────┬────────────────────────┐
             │                        │                      │                      │                        │
  ┌──────────▼──────────┐  ┌──────────▼──────────┐ ┌─────────▼──────────┐ ┌─────────▼──────────┐ ┌─────────▼──────────┐
- │ Threat Scanner Core │  │ Autonomous OSINT    │ │ Dark Web & Breach  │ │ Autonomous Takedown│ │ Honeytoken Deception│
- │ (URL, SMS, APK, SSL)│  │ Recon & Threat Graph│ │ Intelligence Engine│ │ Playbook Swarm     │ │ Active Tripwires    │
+ │ Threat Scanner Core │  │ OSINT Digital       │ │ Dark Web & Breach  │ │ Incident Response  │ │ Enterprise          │
+ │ (URL, SMS, Web, SSL)│  │ Footprint Engine    │ │ Exposure Monitor   │ │ Assistant (RFC2822)│ │ Deception Tripwires │
  └──────────┬──────────┘  └──────────┬──────────┘ └─────────┬──────────┘ └─────────┬──────────┘ └─────────┬──────────┘
             │                        │                      │                      │                        │
             └────────────────────────┴──────────────────────┼──────────────────────┴────────────────────────┘
                                                             │
                                               ┌─────────────▼─────────────┐
-                                              │   Database & State Store  │
-                                              │ (Postgres / SQLite Pool)  │
+                                              │  Database & Entitlements  │
+                                              │ (PostgreSQL / SQLite Pool)│
                                               └───────────────────────────┘
 ```
 
 ---
 
-## 🚀 Key Capabilities & Modules
+## 💎 SaaS Subscription Tiers & Pricing
 
-### 1. 🔍 Autonomous OSINT Reconnaissance & Interactive Threat Graph
-* **40+ Platform Username Recon:** Fast asynchronous probing across **Instagram (GraphQL API), GitHub, Telegram, Reddit, X (Twitter), TikTok, Steam, Spotify, Chess.com, HackerNews, Medium, Keybase**, etc.
-* **Passive DNS & Infrastructure Footprinter:** Full DNS resolution (`A`, `AAAA`, `MX`, `TXT`, `NS`, `SOA`), DMARC/SPF email spoofing risk auditing, and Subdomain Certificate Transparency harvesting (`crt.sh`).
-* **Telecom Carrier & Circle Resolver:** Resolves Indian and International mobile carriers (**Jio, Airtel, Vi, BSNL, AT&T, EE**) and registered telecom circles (**Delhi NCR, Mumbai, Karnataka, Rajasthan**).
-* **Interactive Force-Directed Threat Graph:** Drag-and-drop interactive visual canvas connecting targets, IPs, nameservers, mail tenants, and discovered social profiles with 1-click JSON dossier export.
-
-### 2. 🕵️‍♂️ 100% Authentic Live Dark Web & Breach Exposure Scanner
-* **Live HaveIBeenPwned API v3 Integration:** Direct query access to **1,030+ verified corporate breaches** (Adobe, LinkedIn, Canva, Dropbox, Twitter, etc.) representing over **14.2 Billion compromised accounts**.
-* **NIST / Cloudflare k-Anonymity Leaked Password Verifier:** Locally computes SHA-1 and queries 900M+ real leaked credentials via 5-character prefix matching with zero-knowledge privacy.
-
-### 3. 🧩 Universal Cross-Browser Extension (W3C Manifest V3)
-* Compatible with **Google Chrome, Microsoft Edge, Brave, Opera, Mozilla Firefox, and Apple Safari**.
-* **Pre-Navigation Interceptor:** Stops requests before malicious scripts or downloads execute.
-* **Dynamic Traffic Light Badges:** 🟢 Safe, 🟡 Caution, 🔴 Danger in browser toolbar.
-* **In-Page Link Highlighter:** Inspects and decorates links inside WhatsApp Web, Gmail, and social media.
-* **Malicious Download Guard:** Blocks background `.apk` and `.exe` auto-downloads.
-
-### 4. 🍯 Honeytoken & Active Deception Network
-* Generate decoy canary tokens (**AWS Credentials, Fake DB Strings, Web Tracking URLs, Canary PDFs**).
-* Silent 1x1 GIF tracking webhooks capture intruder IP, User-Agent, and geolocation upon unauthorized access.
-
-### 5. ⚔️ Autonomous AI Abuse Takedown Swarm
-* 1-Click generation of formal RFC 2822 Abuse Complaint Emails to domain registrars (Cloudflare, AWS, Namecheap, GoDaddy).
-* Generates formal CERT-In / 1930 Cybercrime incident dossiers with cryptographic SHA-256 evidence.
-* Generates multi-platform firewall block rules (Nginx, Apache, Cloudflare WAF, Windows Defender, Linux iptables).
-
-### 6. 💳 Fair-Use Quotas & SaaS Monetization
-* **6 Free Scans Per Day** with automated midnight reset (00:00 UTC) for free accounts.
-* Integrated cryptographic payment verification for **Razorpay** (HMAC SHA-256) and **Stripe** checkout sessions.
-
-### 7. 🎨 Enterprise Typography & Ultra-Wide Fluid Grid
-* Dual Google Font System: **Plus Jakarta Sans** for UI/Headings + **JetBrains Mono** for threat telemetry and code.
-* Zero-gap responsive layout (`max-w-[1780px]` / `max-w-[1720px]`) optimized for 1080p, 2K, 4K, laptops, and ultrawide displays.
+| Tier | Price (INR) | Threat Scans | OSINT Investigations | Developer API | Key Capabilities |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Community Free** | ₹0 / mo | **6 Scans / Day** | **1 Scan / Day** | None | Plain-English verdicts, 1930 Helpline guide, Threat Map simulation |
+| **Pro Cyber Defender** | ₹299 / mo | **100 Scans / Day** | **Unlimited** | None | Full OSINT threat graphs, dark web breach checks, browser extension |
+| **Business Team Suite** | ₹999 / mo | **500 Scans / Day** | **Unlimited** | **1,000 req/mo (10 req/min)** | 5 Team seats, organization monitoring, team audit logs, REST API |
+| **Enterprise SOC & Defense** | Custom | Custom Volume | **Unlimited** | **50,000+ req/mo** | SSO, SIEM integration, active honeytokens, dedicated SLA |
 
 ---
 
-## 🔐 Security & Administrator Configuration
+## 🚀 Key Modules & Technical Capabilities
 
-Administrator credentials and sensitive API keys are configured strictly via private environment variables or a local `.env` file (which is excluded from Git tracking):
+### 1. 🔍 Explainable Multi-Vector Threat Scanner
+* **Deterministic Scoring Engine:** Evaluates domain age, typosquatting (Levenshtein distance against 100+ global and Indian brands), TLD reputation, redirect chains, and threat intelligence hits.
+* **Traffic Light Verdicts:** Clear `SAFE`, `CAUTION`, or `DANGER` verdicts paired with evidence and actionable recommendations.
+* **SSRF-Protected Network Layer:** Strict private IPv4/IPv6 filtering and timeout containment.
 
-```bash
-# Copy template configuration
-cp .env.example .env
+### 2. 🕵️‍♂️ OSINT Digital Footprinting & Threat Graphs
+* **40+ Social & Developer Platform Probes:** Passive footprinting across GitHub, Instagram (GraphQL API), Telegram, Reddit, Steam, Keybase, etc.
+* **DNS & Infrastructure Resolver:** Queries `A`, `AAAA`, `MX`, `TXT`, `NS` records, analyzes SPF/DMARC email spoofing risks, and extracts subdomains from certificate transparency logs.
+* **Interactive Force-Directed Graph:** Visual relationship mapping between root targets, discovered identities, and infrastructure IPs with JSON dossier export.
 
-# Set your private credentials in .env:
-ADMIN_EMAIL=admin@rakshasutra.org
-ADMIN_PASSWORD=ChangeThisAdminSecret2026!
-```
+### 3. 🛡️ Dark Web & Breach Exposure Intelligence
+* **HaveIBeenPwned API v3 Integration:** Queries verified global corporate breach records.
+* **k-Anonymity SHA-1 Privacy Hashing:** Evaluates compromised credentials using 5-character prefix matching (zero plaintext passwords transmitted or stored).
+
+### 4. 📝 Incident Response Assistant
+* **Assisted Reporting Workflow:** Generates cryptographic SHA-256 evidence digests and RFC 2822-compliant abuse complaint letters for domain registrars (Cloudflare, AWS, Namecheap, GoDaddy).
+* **CERT-In & 1930 Escalation:** Standardized complaint templates for CERT-In (`incident@cert-in.org.in`) and guidance for the Indian National Cyber Fraud Helpline (**1930**).
+* **Edge Defense Rules:** Generates Nginx, Apache, Cloudflare WAF, Windows Hosts, and iptables blocking rules.
+
+### 5. 🌐 Cyber Threat Map
+* **Simulation Mode:** Clearly labeled synthetic educational telemetry stream with interactive playback controls (Play, Pause, Replay, 1x/2x/5x speed) and filter chips.
+* **Threat Intelligence Feed:** Stream verified Indicators of Compromise (IOCs) when configured.
+
+### 6. 🔑 Developer REST API Gateway
+* **Cryptographic Key Hashing:** API keys are returned once upon creation (`rs_live_...`), and only the prefix and SHA-256 hash are persisted.
+* **Account-Level Quota Enforcer:** Centralized monthly usage aggregation across all keys owned by an account.
 
 ---
 
-## 🧪 Local Quickstart
+## ⚡ Quick Start & Development Setup
 
-### Backend (FastAPI):
+### Backend (Python 3.12+ / FastAPI)
 ```bash
 cd backend
 python -m venv venv
-venv\Scripts\activate  # On Linux/macOS: source venv/bin/activate
+venv\Scripts\activate  # Windows: venv\Scripts\activate | Linux: source venv/bin/activate
 pip install -r requirements.txt
 python migrate_db.py
-uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+python -m pytest
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-### Frontend (React 19 + Vite):
+### Frontend (React 19 + Vite + TypeScript)
 ```bash
 cd frontend
 npm install
+npm run build
 npm run dev
 ```
 
-Visit **http://127.0.0.1:5173** to access the live platform.
-
 ---
 
-## 📜 Daily Track Record & Audit Log
-For a complete, real-time audit trail of every single code modification, upgrade, and architectural decision, see [`PROJECT_EVOLUTION_LOG.md`](./PROJECT_EVOLUTION_LOG.md).
-
----
-
-## ⚖️ License
-MIT License. Built for proactive digital defense and open-source intelligence.
-
+## 📄 License & Legal
+* **License:** MIT Open Source (Defensive & Educational Use).
+* **Privacy:** Zero-Knowledge k-Anonymity hashing for all credential checks.
+* **Support:** `support@rakshasutra.org` | **Security:** `security@rakshasutra.org`

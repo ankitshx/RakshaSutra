@@ -173,6 +173,8 @@ async def scan_url(
         target_display=scan.target_display or scan.target,
         risk_score=scan.risk_score,
         risk_level=scan.risk_level,
+        verdict=risk_report.get("verdict", "SAFE"),
+        confidence=risk_report.get("confidence", "HIGH"),
         summary=scan.summary,
         recommendation=scan.recommendation,
         indicators=indicators_out,

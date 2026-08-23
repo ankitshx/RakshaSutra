@@ -1,9 +1,8 @@
 """
-RakshaSutra Dark Web & Real-Time Breach Intelligence Engine
-Provides 100% authentic, verifiable live data using:
-1. HaveIBeenPwned (HIBP) Live Verified Breaches Database (1,030+ real global corporate breaches)
-2. NIST / Cloudflare k-Anonymity SHA-1 API for live password leak counts (900M+ real leaked credentials)
-3. Strict zero-knowledge privacy hashing (no plaintext sensitive queries are stored or exposed).
+RakshaSutra Dark Web & Breach Exposure Intelligence Engine
+Queries verified global breach directories (HaveIBeenPwned API v3) and
+NIST / Cloudflare k-Anonymity SHA-1 Pwned Passwords feeds.
+Zero-Knowledge Privacy: Passwords and sensitive PII are never stored or transmitted in plaintext.
 """
 
 import hashlib
@@ -21,12 +20,11 @@ from app.models.user import User
 
 router = APIRouter(prefix="/darkweb", tags=["Dark Web & Breach Intelligence"])
 
-# In-memory cache for live HIBP breach database
 CACHED_HIBP_BREACHES: List[Dict[str, Any]] = []
 LAST_BREACH_FETCH_TIME: Optional[datetime] = None
 
 HEADERS = {
-    "User-Agent": "RakshaSutra-CyberDefense-Core/1.0 (Security Research & Fraud Prevention)"
+    "User-Agent": "RakshaSutra-Threat-Intelligence/1.0 (Security Research & Fraud Prevention)"
 }
 
 class DarkWebCheckRequest(BaseModel):
@@ -61,11 +59,11 @@ class DarkWebReportOut(BaseModel):
     breaches: List[BreachItem]
     remediation_steps: List[str]
     scan_timestamp: str
-    data_source: str = "Live Global Breach Intelligence & k-Anonymity Verified Index"
+    data_source: str = "HaveIBeenPwned Verified Directory & Cloudflare k-Anonymity Index"
 
 
 async def fetch_live_hibp_breaches() -> List[Dict[str, Any]]:
-    """Fetch live authentic 1,030+ verified breaches from HIBP directory."""
+    """Fetch verified breaches directory from HaveIBeenPwned public API."""
     global CACHED_HIBP_BREACHES, LAST_BREACH_FETCH_TIME
 
     now = datetime.utcnow()
@@ -109,7 +107,7 @@ async def check_password_leak_count(password: str) -> int:
 
 
 def mask_query(query: str, q_type: str) -> str:
-    """Mask PII for privacy protection."""
+    """Mask sensitive PII for display."""
     if q_type == "password":
         return "••••••••••••"
     elif q_type == "email" and "@" in query:
@@ -128,8 +126,8 @@ async def check_darkweb_exposure(
     db: Session = Depends(get_db)
 ):
     """
-    Search real dark web breach archives and compromised credential feeds.
-    Uses 100% authentic, live data from HaveIBeenPwned and Pwned Passwords with k-Anonymity.
+    Check identity, domain, or credential against verified global breach records.
+    Uses k-Anonymity privacy hashing to ensure user queries are protected.
     """
     enforce_api_quota(user, db)
 
@@ -218,27 +216,6 @@ async def check_darkweb_exposure(
                         severity="HIGH"
                     ))
 
-        # Check common large public breach aggregators
-        if any(w in query_lower for w in ["test", "pwned", "hacked", "victim", "admin", "contact", "support"]):
-            top_public = [b for b in live_breaches if b.get("PwnCount", 0) > 50000000][:2]
-            for b in top_public:
-                if b.get("Name") not in [m.breach_id for m in matched_breaches]:
-                    matched_breaches.append(BreachItem(
-                        breach_id=b.get("Name", "combo-dump"),
-                        title=b.get("Title", "Global Combo Dump"),
-                        domain=b.get("Domain", "global-threat.net"),
-                        breach_date=b.get("BreachDate", "2024-01-01"),
-                        added_date=b.get("AddedDate", "2024-01-01"),
-                        pwn_count=b.get("PwnCount", 0),
-                        data_classes=b.get("DataClasses", ["Email addresses", "Passwords", "IP addresses"]),
-                        is_verified=b.get("IsVerified", True),
-                        is_fabricated=b.get("IsFabricated", False),
-                        is_sensitive=b.get("IsSensitive", True),
-                        description=re.sub(r"<[^>]*>", "", b.get("Description", "")),
-                        logo_url=b.get("LogoPath"),
-                        severity="CRITICAL"
-                    ))
-
     is_compromised = len(matched_breaches) > 0
     compromised_types_set = set()
     for b in matched_breaches:
@@ -249,22 +226,22 @@ async def check_darkweb_exposure(
     if not is_compromised:
         risk_score = 0
         severity = "SAFE"
-        summary = f"Authentic Verification Complete: {masked_display} was not found in active public dark web leaks or compromised combo dumps."
+        summary = f"No verified breach records or exposed credentials found associated with {masked_display}. Your identity appears clean across known threat dumps."
     else:
         risk_score = min(98, 45 + len(matched_breaches) * 20)
         severity = "CRITICAL" if risk_score >= 80 else "HIGH" if risk_score >= 60 else "MEDIUM"
-        summary = f"Verified Alert: {masked_display} was identified in {len(matched_breaches)} authentic dark web breach archives. Compromised records include: {', '.join(compromised_data_types[:4])}."
+        summary = f"Notice: {masked_display} was identified in {len(matched_breaches)} verified breach archives. Compromised records include: {', '.join(compromised_data_types[:4])}."
 
     remediation_steps = [
-        "Immediately change passwords on your primary email, banking, and social accounts.",
-        "Enable Two-Factor Authentication (2FA) using an Authenticator App (Google/Microsoft Auth) instead of SMS.",
-        "Never reuse the same password across multiple websites or banking portals.",
-        "Review your recent bank statements and credit bureau reports for unauthorized inquiries.",
-        "Activate RakshaSutra Universal Browser Extension to block credential-harvesting phishing forms."
+        "Change passwords immediately on primary email, financial, and social accounts.",
+        "Enable Two-Factor Authentication (2FA) using an Authenticator App (Google/Microsoft Auth) rather than SMS.",
+        "Never reuse the same password across multiple websites or corporate services.",
+        "Monitor your bank statements and credit reports for unauthorized activity.",
+        "Use RakshaSutra Universal Browser Extension to block credential-harvesting phishing links."
     ] if is_compromised else [
         "Maintain strong unique 16+ character passwords across all services.",
         "Keep Two-Factor Authentication (2FA) active on your primary accounts.",
-        "Run monthly Dark Web hygiene checks on your email and phone number."
+        "Run periodic hygiene checks on your email and primary accounts."
     ]
 
     return DarkWebReportOut(
@@ -279,5 +256,6 @@ async def check_darkweb_exposure(
         compromised_data_types=compromised_data_types,
         breaches=matched_breaches,
         remediation_steps=remediation_steps,
-        scan_timestamp=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+        scan_timestamp=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+        data_source="HaveIBeenPwned Verified Directory & Cloudflare k-Anonymity Index"
     )

@@ -1,263 +1,330 @@
+"""
+RakshaSutra Authentication & RBAC Engine
+Implements secure user registration, login with brute-force protection,
+session validation, and server-side RBAC (USER, BUSINESS_ADMIN, ENTERPRISE_ADMIN, SUPER_ADMIN).
+"""
+
+import time
 import secrets
-from datetime import datetime
-from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Header, status
+from datetime import datetime, timedelta
+from typing import Optional, List, Callable
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
+from pydantic import BaseModel, EmailStr, Field
+
 from app.core.database import get_db
 from app.core.security import verify_password, get_password_hash, create_access_token, decode_access_token
+from app.core.config import settings
 from app.models.user import User
-from app.schemas.auth import UserCreate, UserLogin, UserOut, Token, ApiKeyOut
+from app.models.audit_log import AuditLog
+from app.services.entitlement_service import EntitlementService
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(prefix="/auth", tags=["Authentication & RBAC"])
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_STR}/auth/login", auto_error=False)
 
-def get_current_user_optional(
+# In-memory IP failed attempt tracker for brute-force mitigation
+FAILED_LOGIN_ATTEMPTS: dict = {}  # {ip_str: [timestamp1, timestamp2, ...]}
+
+# Schemas
+class UserRegisterRequest(BaseModel):
+    email: EmailStr
+    password: str = Field(..., min_length=8, max_length=128)
+    full_name: Optional[str] = Field(None, max_length=100)
+
+class UserLoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: dict
+
+class PasswordChangeRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=8, max_length=128)
+
+# RBAC Dependencies
+async def get_current_user_optional(
     token: Optional[str] = Depends(oauth2_scheme),
-    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
     db: Session = Depends(get_db)
-) -> User | None:
-    """Extract authenticated user via Bearer token or X-API-Key header, otherwise None."""
-    # 1. Check API Key header
-    if x_api_key:
-        user_by_key = db.query(User).filter(User.api_key == x_api_key).first()
-        if user_by_key and user_by_key.is_active:
-            return user_by_key
-
-    # 2. Check Bearer token
+) -> Optional[User]:
     if not token:
         return None
     payload = decode_access_token(token)
-    if not payload:
+    if not payload or "sub" not in payload:
         return None
-    user_id = payload.get("sub")
-    if not user_id:
-        return None
-    return db.query(User).filter(User.id == user_id).first()
+    user = db.query(User).filter(User.id == payload["sub"], User.is_active == True).first()
+    return user
 
-def get_current_user(
-    token: Optional[str] = Depends(oauth2_scheme),
-    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+get_optional_current_user = get_current_user_optional
+
+async def get_current_user(
+    token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ) -> User:
-    """Enforce authenticated user requirement via Bearer Token or X-API-Key."""
-    user = get_current_user_optional(token, x_api_key, db)
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication credentials required.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    payload = decode_access_token(token)
+    if not payload or "sub" not in payload:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired session token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    user = db.query(User).filter(User.id == payload["sub"], User.is_active == True).first()
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required. Please provide a valid Bearer token or X-API-Key header.",
+            detail="User account not found or deactivated.",
             headers={"WWW-Authenticate": "Bearer"},
         )
     return user
 
-def get_current_admin(
-    current_user: User = Depends(get_current_user)
-) -> User:
-    """Enforce Admin privileges."""
-    if current_user.role != "admin":
+def require_roles(allowed_roles: List[str]) -> Callable:
+    """RBAC Guard Dependency Factory."""
+    normalized_allowed = [r.lower() for r in allowed_roles]
+    
+    async def role_checker(current_user: User = Depends(get_current_user)) -> User:
+        user_role = getattr(current_user, "role", "user").lower()
+        # super_admin inherits all permissions
+        if user_role == "super_admin" or user_role in normalized_allowed:
+            return current_user
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Administrative privileges required.",
+            detail=f"Access denied. Required role: {', '.join(allowed_roles)} (Your role: {user_role})."
         )
+    return role_checker
+
+async def get_current_super_admin(
+    current_user: User = Depends(require_roles(["super_admin", "admin"]))
+) -> User:
     return current_user
 
-def enforce_api_quota(
-    user: Optional[User],
-    db: Session
+get_current_admin = get_current_super_admin
+
+# Quota Enforcement Wrappers
+def enforce_api_quota(user: Optional[User], db: Session):
+    return EntitlementService.enforce_scan_quota(user, db)
+
+def enforce_osint_quota(user: Optional[User], db: Session):
+    return EntitlementService.enforce_osint_quota(user, db)
+
+# Endpoints
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+def register_user(
+    request: UserRegisterRequest,
+    req: Request,
+    db: Session = Depends(get_db)
 ):
-    """
-    Enforce Daily Subscription & Quota Limits:
-    - Admin / Analyst: Unlimited.
-    - Pro / Enterprise Tier: Unlimited.
-    - Free Tier: Limited to 6 free scans per day. Automatically resets at midnight.
-    - Unauthenticated Guest: Allowed 3 trial scans.
-    """
-    if not user:
-        # Unauthenticated guest scan allowance
-        return
-
-    today_str = datetime.utcnow().strftime("%Y-%m-%d")
-
-    # Automatic Daily Reset Check
-    if getattr(user, "last_scan_date", None) != today_str:
-        user.scans_today = 0
-        user.last_scan_date = today_str
-
-    tier = getattr(user, "subscription_tier", "free")
-    role = getattr(user, "role", "user")
-
-    # Unlimited access for paid subscribers & admins
-    if tier in ["pro", "enterprise", "unlimited"] or role in ["admin", "analyst"]:
-        user.scans_today = getattr(user, "scans_today", 0) + 1
-        user.scans_used = getattr(user, "scans_used", 0) + 1
-        db.commit()
-        return
-
-    # Free Tier Daily Quota Check (6 scans per day)
-    daily_quota = getattr(user, "daily_quota", 6)
-    scans_today = getattr(user, "scans_today", 0)
-
-    if scans_today >= daily_quota:
-        raise HTTPException(
-            status_code=status.HTTP_402_PAYMENT_REQUIRED,
-            detail={
-                "error": "DAILY_QUOTA_EXHAUSTED",
-                "message": f"Daily free scan limit reached ({scans_today}/{daily_quota} scans used today). Your free scans reset every day at midnight, or upgrade to Pro for unlimited scans.",
-                "tier": tier,
-                "scans_today": scans_today,
-                "daily_quota": daily_quota,
-                "scans_used_total": getattr(user, "scans_used", 0),
-                "upgrade_url": "/pricing"
-            }
-        )
-
-    user.scans_today = scans_today + 1
-    user.scans_used = getattr(user, "scans_used", 0) + 1
-    db.commit()
-
-@router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
-def register(user_in: UserCreate, db: Session = Depends(get_db)):
-    """Register a new user account with 6 free scans per day before subscription."""
-    existing = db.query(User).filter(User.email == user_in.email).first()
+    """Register a new citizen account with 6 free daily threat scans and 1 daily OSINT scan."""
+    email_clean = request.email.lower().strip()
+    
+    existing = db.query(User).filter(User.email == email_clean).first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="An account with this email address already exists.",
+            detail="An account with this email address already exists."
         )
-    
-    # First user is automatically admin for convenience
-    user_count = db.query(User).count()
-    is_first_admin = (user_count == 0)
-    role = "admin" if is_first_admin else "user"
-    today_str = datetime.utcnow().strftime("%Y-%m-%d")
 
-    user = User(
-        email=user_in.email,
-        hashed_password=get_password_hash(user_in.password),
-        full_name=user_in.full_name or user_in.email.split("@")[0].capitalize(),
-        role=role,
-        is_active=True,
-        api_key=f"rs_{'admin' if is_first_admin else 'free'}_{secrets.token_hex(16)}",
-        subscription_tier="enterprise" if is_first_admin else "free",
-        daily_quota=999999 if is_first_admin else 6,
+    new_user = User(
+        email=email_clean,
+        hashed_password=get_password_hash(request.password),
+        full_name=request.full_name,
+        role="user",
+        subscription_tier="free",
+        daily_quota=6,
         scans_today=0,
-        last_scan_date=today_str,
-        monthly_quota=999999 if is_first_admin else 180,
-        scans_used=0
+        osint_quota=1,
+        osint_today=0,
+        is_active=True
     )
-    db.add(user)
+    db.add(new_user)
     db.commit()
-    db.refresh(user)
+    db.refresh(new_user)
 
-    token = create_access_token(subject=user.id, role=user.role)
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-        "user": user
-    }
+    # Log audit event
+    audit = AuditLog(
+        actor_id=new_user.id,
+        actor_email=new_user.email,
+        actor_role=new_user.role,
+        action="USER_REGISTRATION",
+        target_type="user",
+        target_id=new_user.id,
+        ip_address=req.client.host if req.client else "unknown"
+    )
+    db.add(audit)
+    db.commit()
 
-@router.post("/login", response_model=Token)
-def login(login_data: UserLogin, db: Session = Depends(get_db)):
-    """Authenticate with email and password."""
-    user = db.query(User).filter(User.email == login_data.email).first()
-    if not user or not verify_password(login_data.password, user.hashed_password):
+    token = create_access_token(subject=new_user.id, role=new_user.role)
+    return TokenResponse(
+        access_token=token,
+        user={
+            "id": new_user.id,
+            "email": new_user.email,
+            "full_name": new_user.full_name,
+            "role": new_user.role,
+            "subscription_tier": new_user.subscription_tier,
+            "daily_quota": new_user.daily_quota,
+            "scans_today": new_user.scans_today,
+            "osint_quota": new_user.osint_quota,
+            "osint_today": new_user.osint_today
+        }
+    )
+
+@router.post("/login", response_model=TokenResponse)
+def login_user(
+    request: UserLoginRequest,
+    req: Request,
+    db: Session = Depends(get_db)
+):
+    """
+    Authenticate user with brute-force rate-limiting protection.
+    Returns generic authentication error on failure.
+    """
+    client_ip = req.client.host if req.client else "unknown"
+    now_ts = time.time()
+
+    # Brute-force check: max 5 failed attempts per IP within 5 minutes
+    ip_failures = [t for t in FAILED_LOGIN_ATTEMPTS.get(client_ip, []) if now_ts - t < 300]
+    if len(ip_failures) >= 5:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many failed login attempts. Please wait 5 minutes before trying again."
+        )
+
+    email_clean = request.email.lower().strip()
+    user = db.query(User).filter(User.email == email_clean).first()
+
+    if not user or not verify_password(request.password, user.hashed_password):
+        # Record failure
+        ip_failures.append(now_ts)
+        FAILED_LOGIN_ATTEMPTS[client_ip] = ip_failures
+        
+        # Log failed attempt
+        audit = AuditLog(
+            actor_email=email_clean,
+            action="USER_LOGIN_FAILED",
+            target_type="auth",
+            ip_address=client_ip
+        )
+        db.add(audit)
+        db.commit()
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password.",
+            detail="Invalid email or password."
         )
+
     if not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User account is deactivated.",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is suspended. Please contact security support."
         )
 
-    # Refresh daily reset on login
-    today_str = datetime.utcnow().strftime("%Y-%m-%d")
-    if getattr(user, "last_scan_date", None) != today_str:
-        user.scans_today = 0
-        user.last_scan_date = today_str
-        db.commit()
+    # Clear failed attempts on success
+    FAILED_LOGIN_ATTEMPTS.pop(client_ip, None)
+
+    # Log successful login
+    audit = AuditLog(
+        actor_id=user.id,
+        actor_email=user.email,
+        actor_role=user.role,
+        action="USER_LOGIN_SUCCESS",
+        target_type="user",
+        target_id=user.id,
+        ip_address=client_ip
+    )
+    db.add(audit)
+    db.commit()
 
     token = create_access_token(subject=user.id, role=user.role)
-    return {
-        "access_token": token,
-        "token_type": "bearer",
-        "user": user
-    }
+    return TokenResponse(
+        access_token=token,
+        user={
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
+            "role": user.role,
+            "subscription_tier": user.subscription_tier,
+            "daily_quota": user.daily_quota,
+            "scans_today": user.scans_today,
+            "osint_quota": getattr(user, "osint_quota", 1),
+            "osint_today": getattr(user, "osint_today", 0)
+        }
+    )
 
-@router.get("/me", response_model=UserOut)
-def get_profile(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Retrieve current authenticated user profile with daily reset verification."""
-    today_str = datetime.utcnow().strftime("%Y-%m-%d")
-    if getattr(current_user, "last_scan_date", None) != today_str:
-        current_user.scans_today = 0
-        current_user.last_scan_date = today_str
-        db.commit()
-    return current_user
-
-@router.post("/api-key/regenerate")
-def regenerate_api_key(
+@router.get("/me")
+def get_current_profile(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """Regenerate developer API key."""
-    tier = getattr(current_user, "subscription_tier", "free")
-    new_key = f"rs_{tier}_{secrets.token_hex(16)}"
-    current_user.api_key = new_key
+    """Get authenticated user profile and live entitlement metrics."""
+    entitlements = EntitlementService.get_user_entitlements(current_user, db)
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "full_name": current_user.full_name,
+        "role": current_user.role,
+        "subscription_tier": current_user.subscription_tier,
+        "daily_quota": current_user.daily_quota,
+        "scans_today": current_user.scans_today,
+        "osint_quota": getattr(current_user, "osint_quota", 1),
+        "osint_today": getattr(current_user, "osint_today", 0),
+        "scans_used": current_user.scans_used,
+        "entitlements": entitlements
+    }
+
+@router.post("/change-password")
+def change_password(
+    request: PasswordChangeRequest,
+    req: Request,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Change account password with current password verification."""
+    if not verify_password(request.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect."
+        )
+
+    current_user.hashed_password = get_password_hash(request.new_password)
     db.commit()
-    return {"api_key": new_key, "message": "API key regenerated successfully."}
+
+    # Log password change
+    audit = AuditLog(
+        actor_id=current_user.id,
+        actor_email=current_user.email,
+        actor_role=current_user.role,
+        action="USER_PASSWORD_CHANGED",
+        target_type="user",
+        target_id=current_user.id,
+        ip_address=req.client.host if req.client else "unknown"
+    )
+    db.add(audit)
+    db.commit()
+
+    return {"success": True, "message": "Password changed successfully."}
 
 @router.get("/quota/status")
-def get_quota_status(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Retrieve user subscription tier and daily scan usage statistics."""
-    today_str = datetime.utcnow().strftime("%Y-%m-%d")
-    if getattr(current_user, "last_scan_date", None) != today_str:
-        current_user.scans_today = 0
-        current_user.last_scan_date = today_str
-        db.commit()
-
-    tier = getattr(current_user, "subscription_tier", "free")
-    daily_quota = getattr(current_user, "daily_quota", 6)
-    scans_today = getattr(current_user, "scans_today", 0)
-    scans_used_total = getattr(current_user, "scans_used", 0)
-    is_unlimited = tier in ["pro", "enterprise", "unlimited"] or current_user.role in ["admin", "analyst"]
-
-    return {
-        "user_email": current_user.email,
-        "role": current_user.role,
-        "api_key": current_user.api_key or f"rs_{tier}_{secrets.token_hex(12)}",
-        "subscription_tier": tier,
-        "daily_quota": "Unlimited" if is_unlimited else daily_quota,
-        "scans_today": scans_today,
-        "scans_left_today": "Unlimited" if is_unlimited else max(0, daily_quota - scans_today),
-        "scans_used_total": scans_used_total,
-        "is_unlimited": is_unlimited,
-        "resets_at": "Daily at 00:00 UTC",
-        "status": "ACTIVE"
-    }
-
-@router.post("/quota/request-upgrade")
-def request_quota_upgrade(
-    reason: str = "Pro Upgrade",
-    current_user: User = Depends(get_current_user),
+def get_quota_status(
+    current_user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db)
 ):
-    """Instant demo upgrade endpoint to Pro Unlimited tier."""
-    current_user.subscription_tier = "pro"
-    current_user.daily_quota = 999999
-    current_user.monthly_quota = 999999
-    if current_user.role == "user":
-        current_user.role = "analyst"
-    current_user.api_key = f"rs_pro_{secrets.token_hex(16)}"
-    db.commit()
-    db.refresh(current_user)
-
+    """Get current scan & OSINT daily usage metrics and limits."""
+    entitlements = EntitlementService.get_user_entitlements(current_user, db)
     return {
-        "success": True,
-        "message": "Upgraded to Pro Cyber Defender! Unlimited threat scans now active.",
-        "subscription_tier": "pro",
-        "daily_quota": "Unlimited",
-        "monthly_quota": "Unlimited",
-        "new_role": current_user.role
+        "tier": entitlements["tier"],
+        "daily_quota": entitlements["daily_scan_limit"],
+        "scans_today": getattr(current_user, "scans_today", 0) if current_user else 0,
+        "osint_quota": entitlements["osint_daily_limit"],
+        "osint_today": getattr(current_user, "osint_today", 0) if current_user else 0,
+        "is_authenticated": current_user is not None
     }

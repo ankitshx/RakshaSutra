@@ -1,11 +1,13 @@
+import hashlib
+import secrets
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Union, Any
+from typing import Optional, Union, Any, Tuple
 import bcrypt
 from jose import jwt, JWTError
 from app.core.config import settings
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against the hashed string using bcrypt directly."""
+    """Verify a plain password against the hashed string using bcrypt."""
     try:
         password_bytes = plain_password.encode('utf-8')[:72]
         hashed_bytes = hashed_password.encode('utf-8')
@@ -44,3 +46,19 @@ def decode_access_token(token: str) -> Optional[dict]:
         return payload
     except JWTError:
         return None
+
+def generate_secure_api_key(tier: str = "live") -> Tuple[str, str, str]:
+    """
+    Generate a cryptographic API key.
+    Returns (full_raw_key, key_prefix, key_hash).
+    Only key_prefix and key_hash should be stored in the database.
+    """
+    random_hex = secrets.token_hex(24)
+    full_key = f"rs_{tier}_{random_hex}"
+    prefix = full_key[:12]
+    key_hash = hashlib.sha256(full_key.encode("utf-8")).hexdigest()
+    return full_key, prefix, key_hash
+
+def hash_api_key(raw_key: str) -> str:
+    """Compute SHA-256 hash of API key."""
+    return hashlib.sha256(raw_key.strip().encode("utf-8")).hexdigest()

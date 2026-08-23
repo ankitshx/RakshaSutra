@@ -169,13 +169,13 @@ def normalize_homoglyphs(text: str) -> str:
             result.append(char_lower)
     return "".join(result)
 
-def check_brand_impersonation(domain: str, full_host: str) -> Dict:
+def check_brand_impersonation(domain: str, full_host: Optional[str] = None) -> Dict:
     """
     Inspect domain and subdomains for typosquatting, IDN homoglyphs, and deceptive brand placement.
     Returns match details and confidence scores.
     """
     domain_clean = domain.lower()
-    host_clean = full_host.lower()
+    host_clean = (full_host or domain).lower()
     
     # Extract domain name without TLD (e.g., 'paypa1' from 'paypa1.com')
     domain_parts = domain_clean.split(".")

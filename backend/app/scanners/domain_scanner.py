@@ -43,11 +43,11 @@ def extract_domain_components(url_or_host: str) -> Dict[str, str]:
         "registered_domain": f"{extracted.domain}.{extracted.suffix}" if extracted.suffix else extracted.domain
     }
 
-def analyze_domain(domain_str: str, host_str: str) -> Dict[str, Any]:
+def analyze_domain(domain_str: str, host_str: Optional[str] = None) -> Dict[str, Any]:
     """
     Perform deep static and DNS analysis on the target domain.
     """
-    comp = extract_domain_components(host_str)
+    comp = extract_domain_components(host_str or domain_str)
     suffix = comp["suffix"].lower()
     subdomain = comp["subdomain"]
     domain_name = comp["domain_name"]

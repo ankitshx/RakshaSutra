@@ -1,449 +1,390 @@
+"""
+RakshaSutra Subscription & Razorpay Payment Gateway Engine
+Handles plan catalogs, Razorpay order creation, payment verification, and webhook idempotency.
+"""
+
 import os
 import uuid
-import secrets
 import hmac
 import hashlib
-from datetime import datetime
+import json
+from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from fastapi import APIRouter, Depends, HTTPException, Header, Request, status
 from sqlalchemy.orm import Session
 import razorpay
-import stripe
 
 from app.core.database import get_db
 from app.core.config import settings
 from app.core.logging import logger
 from app.models.user import User
-from app.api.v1.auth import get_current_user_optional, get_current_user
+from app.models.billing import Plan, Subscription, Payment, Invoice, WebhookEvent
+from app.models.audit_log import AuditLog
+from app.api.v1.auth import get_current_user, get_current_user_optional
 
 router = APIRouter(prefix="/subscription", tags=["Subscriptions & Real Payments"])
 
-# Initialize Real Gateway Clients
+# Initialize Razorpay Client
 try:
     razorpay_client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 except Exception as e:
-    logger.warning(f"Razorpay Client init warning: {str(e)}")
+    logger.warning(f"Razorpay Client initialization notice: {str(e)}")
     razorpay_client = None
-
-stripe.api_key = settings.STRIPE_SECRET_KEY
 
 PLANS = [
     {
         "id": "free",
-        "name": "Community Free Plan",
+        "name": "Community Free",
+        "tier": "free",
         "price_inr": 0,
         "price_usd": 0,
         "billing_period": "forever",
         "description": "Essential scam and phishing protection for individual citizens, students, and elders.",
-        "badge": "6 Free Scans / Day",
+        "badge": "6 Scans / Day",
         "features": [
-            "6 free threat scans per day (resets daily at 00:00 UTC)",
-            "Plain-English Traffic Light Verdicts",
+            "6 threat scans per day (resets at 00:00 UTC)",
+            "1 OSINT investigation per day",
+            "Plain-English Traffic Light Verdicts (SAFE/CAUTION/DANGER)",
             "Emergency 1930 Cyber Fraud Containment Guide",
-            "Dual Dark & Light Mode Access",
-            "Interactive Phishing Simulation"
+            "Basic Cyber Threat Map (Simulation Mode)",
+            "Personal Scan History"
         ],
-        "quota": 6,
+        "daily_scan_quota": 6,
+        "osint_daily_quota": 1,
+        "api_monthly_quota": 0,
         "is_popular": False
     },
     {
         "id": "pro",
         "name": "Pro Cyber Defender",
-        "price_inr": 499,
-        "price_usd": 9,
+        "tier": "pro",
+        "price_inr": 299,
+        "price_usd": 5,
         "billing_period": "monthly",
-        "annual_price_inr": 4990,
-        "annual_price_usd": 89,
-        "description": "Advanced threat detection, unlimited scans, developer API keys, and priority AI incident response copilot.",
-        "badge": "Most Popular • Unlimited Scans",
+        "description": "Advanced threat detection, dark web monitoring, browser extension, and expanded OSINT investigations.",
+        "badge": "Most Popular • 100 Scans/Day",
         "features": [
-            "Unlimited link & message scanning",
-            "5,000 API Requests/mo (Developer API Key)",
-            "Priority Raksha AI Copilot (Instant Analysis)",
-            "Downloadable PDF / JSON Threat Dossiers",
-            "Automated Phishing Link Takedown Guidance",
-            "Zero Rate-Limits & Instant Threat Feed Updates"
+            "100 threat scans per day",
+            "Unlimited OSINT investigations & Force Threat Graph",
+            "Dark Web & Breach Exposure Monitoring",
+            "Universal Cross-Browser Extension (Chrome, Edge, Brave)",
+            "Detailed PDF / JSON Incident Reports",
+            "Advanced Cyber Threat Map with Filters & Controls",
+            "Priority AI Security Copilot Playbooks"
         ],
-        "quota": 999999,
+        "daily_scan_quota": 100,
+        "osint_daily_quota": 999999,
+        "api_monthly_quota": 0,
         "is_popular": True
     },
     {
-        "id": "enterprise",
-        "name": "SOC & Organization Suite",
-        "price_inr": 4999,
-        "price_usd": 59,
+        "id": "business",
+        "name": "Business Team Suite",
+        "tier": "business",
+        "price_inr": 999,
+        "price_usd": 15,
         "billing_period": "monthly",
-        "annual_price_inr": 49990,
-        "annual_price_usd": 590,
-        "description": "Enterprise-wide employee simulation campaigns, multi-seat access, and custom threat intel feeds.",
-        "badge": "For Companies & Colleges",
+        "description": "Designed for SMEs, law firms, and tech teams requiring organization monitoring and developer API access.",
+        "badge": "For Teams • 500 Scans/Day",
         "features": [
-            "Unlimited Organization-wide API Quota",
-            "Custom Employee Phishing Simulation Campaigns",
-            "Brand Impersonation & Typosquatting Alerts",
-            "Dedicated Incident Response Dossier Export for Police / Cyber Cells",
-            "Multi-Seat Analyst & Admin Team Management",
-            "24/7 Priority Emergency Support SLA"
+            "500 threat scans per day",
+            "5 Team Member Seats with Role-Based Access",
+            "Organization Domain & Mail Infrastructure Monitoring",
+            "1,000 API Requests/month (10 req/min rate limit)",
+            "Team Audit Logs & Security Telemetry",
+            "Centralized Browser Extension Policy Management",
+            "Assisted Incident Response Dossier Generator"
         ],
-        "quota": 999999,
+        "daily_scan_quota": 500,
+        "osint_daily_quota": 999999,
+        "api_monthly_quota": 1000,
+        "is_popular": False
+    },
+    {
+        "id": "enterprise",
+        "name": "Enterprise SOC & Defense",
+        "tier": "enterprise",
+        "price_inr": 4999,
+        "price_usd": 65,
+        "billing_period": "custom",
+        "description": "Custom high-volume API quotas, SIEM webhooks, SSO integration, active honeytokens, and 24/7 SLA.",
+        "badge": "Enterprise Custom",
+        "features": [
+            "Contract-based high-volume scan quota",
+            "Custom API Quota & Configurable Endpoints",
+            "Single Sign-On (SAML / OIDC SSO) & Enterprise RBAC",
+            "SIEM Integration & Real-time Webhooks",
+            "Honeytoken & Active Deception Tripwires",
+            "Continuous Dark Web Corporate Monitoring",
+            "Dedicated Security Account Manager & 99.9% SLA"
+        ],
+        "daily_scan_quota": 999999,
+        "osint_daily_quota": 999999,
+        "api_monthly_quota": 50000,
         "is_popular": False
     }
 ]
 
-VALID_COUPONS = {
-    "CYBER20": {"discount_percent": 20, "description": "20% Cyber Defense Special Discount"},
-    "RAKSHA50": {"discount_percent": 50, "description": "50% Community Shield Discount"},
-    "RAKSHA100": {"discount_percent": 100, "description": "100% Free Pro Trial Voucher"}
-}
-
+# Schemas
 class CreateOrderRequest(BaseModel):
-    plan_id: str  # "pro" or "enterprise"
-    billing_cycle: str = "monthly"  # "monthly" or "annual"
-    gateway: str = "razorpay"  # "razorpay" or "stripe"
-    coupon_code: Optional[str] = None
+    plan_id: str = Field(..., description="'pro', 'business', or 'enterprise'")
 
-class VerifyRazorpayRequest(BaseModel):
-    plan_id: str
-    billing_cycle: str = "monthly"
+class VerifyPaymentRequest(BaseModel):
     razorpay_order_id: str
     razorpay_payment_id: str
     razorpay_signature: str
-    coupon_code: Optional[str] = None
-
-class CheckoutRequest(BaseModel):
     plan_id: str
-    billing_cycle: str = "monthly"
-    payment_method: str = "upi"
-    payment_details: Optional[Dict[str, Any]] = None
-    coupon_code: Optional[str] = None
 
 @router.get("/plans")
-def list_subscription_plans():
-    """Retrieve all available subscription tiers, payment gateways, and pricing matrices."""
-    return {
-        "plans": PLANS,
-        "currency_options": ["INR", "USD"],
-        "gateways_available": {
-            "razorpay": {
-                "enabled": True,
-                "key_id": settings.RAZORPAY_KEY_ID,
-                "methods": ["upi", "card", "netbanking", "wallet"]
-            },
-            "stripe": {
-                "enabled": True,
-                "publishable_key": settings.STRIPE_PUBLISHABLE_KEY,
-                "methods": ["card", "apple_pay", "google_pay"]
-            }
-        }
-    }
-
-@router.get("/my")
-def get_my_subscription(
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Retrieve current authenticated user's active subscription status and usage."""
-    today_str = datetime.utcnow().strftime("%Y-%m-%d")
-    if getattr(current_user, "last_scan_date", None) != today_str:
-        current_user.scans_today = 0
-        current_user.last_scan_date = today_str
-        db.commit()
-
-    tier = getattr(current_user, "subscription_tier", "free")
-    daily_quota = getattr(current_user, "daily_quota", 6)
-    scans_today = getattr(current_user, "scans_today", 0)
-    scans_used = getattr(current_user, "scans_used", 0)
-    is_unlimited = tier in ["pro", "enterprise", "unlimited"] or current_user.role in ["admin", "analyst"]
-
-    return {
-        "user_id": current_user.id,
-        "email": current_user.email,
-        "role": current_user.role,
-        "subscription_tier": tier,
-        "daily_quota": "Unlimited" if is_unlimited else daily_quota,
-        "scans_today": scans_today,
-        "scans_left_today": "Unlimited" if is_unlimited else max(0, daily_quota - scans_today),
-        "monthly_quota": "Unlimited" if is_unlimited else getattr(current_user, "monthly_quota", 180),
-        "scans_used": scans_used,
-        "quota_remaining": "Unlimited" if is_unlimited else max(0, daily_quota - scans_today),
-        "is_unlimited": is_unlimited,
-        "resets_at": "Daily at 00:00 UTC",
-        "api_key": current_user.api_key or f"rs_{tier}_{secrets.token_hex(12)}"
-    }
-
-@router.post("/validate-coupon")
-def validate_coupon(code: str):
-    """Validate promotional discount coupons."""
-    code_upper = code.strip().upper()
-    if code_upper in VALID_COUPONS:
-        coupon = VALID_COUPONS[code_upper]
-        return {
-            "valid": True,
-            "code": code_upper,
-            "discount_percent": coupon["discount_percent"],
-            "description": coupon["description"]
-        }
-    raise HTTPException(status_code=400, detail="Invalid or expired coupon code.")
-
-# =========================================================================
-# REAL RAZORPAY PAYMENT GATEWAY ENDPOINTS
-# =========================================================================
+def get_plans():
+    """Retrieve official SaaS plan catalog."""
+    return {"plans": PLANS}
 
 @router.post("/razorpay/create-order")
 def create_razorpay_order(
-    req: CreateOrderRequest,
+    request: CreateOrderRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Creates a real Razorpay Order for live/test checkout.
-    Calculates final price, discount coupons, and 18% GST in paise (1 INR = 100 paise).
+    Create a Razorpay order for plan subscription checkout.
     """
-    target_plan = next((p for p in PLANS if p["id"] == req.plan_id), None)
-    if not target_plan or req.plan_id == "free":
-        raise HTTPException(status_code=400, detail="Invalid plan selected.")
+    plan = next((p for p in PLANS if p["id"] == request.plan_id), None)
+    if not plan or plan["price_inr"] <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid plan selected for payment."
+        )
 
-    base_price = target_plan["annual_price_inr"] if req.billing_cycle == "annual" else target_plan["price_inr"]
-    discount_pct = 0
-    if req.coupon_code:
-        coupon_upper = req.coupon_code.strip().upper()
-        if coupon_upper in VALID_COUPONS:
-            discount_pct = VALID_COUPONS[coupon_upper]["discount_percent"]
-
-    discount_amt = round((base_price * discount_pct) / 100, 2)
-    taxable_amt = max(0, base_price - discount_amt)
-    gst_tax = round(taxable_amt * 0.18, 2)
-    final_amt_inr = round(taxable_amt + gst_tax, 2)
-    amount_in_paise = int(final_amt_inr * 100)
-
+    amount_paise = plan["price_inr"] * 100
     receipt_id = f"rcpt_{current_user.id[:8]}_{int(datetime.utcnow().timestamp())}"
 
-    # If razorpay client is initialized with real/test keys
-    order_id = f"order_{uuid.uuid4().hex[:14]}"
-    if razorpay_client:
-        try:
-            rzp_order = razorpay_client.order.create({
-                "amount": amount_in_paise,
-                "currency": "INR",
-                "receipt": receipt_id,
-                "notes": {
-                    "user_id": current_user.id,
-                    "email": current_user.email,
-                    "plan_id": req.plan_id,
-                    "billing_cycle": req.billing_cycle
-                }
-            })
-            order_id = rzp_order.get("id", order_id)
-        except Exception as e:
-            logger.warning(f"Razorpay API returned: {str(e)}. Using fallback order generation.")
+    order_data = {
+        "amount": amount_paise,
+        "currency": "INR",
+        "receipt": receipt_id,
+        "notes": {
+            "user_id": current_user.id,
+            "user_email": current_user.email,
+            "plan_id": plan["id"],
+            "plan_tier": plan["tier"]
+        }
+    }
+
+    try:
+        if razorpay_client:
+            order = razorpay_client.order.create(data=order_data)
+            razorpay_order_id = order.get("id")
+        else:
+            # Test-mode fallback
+            razorpay_order_id = f"order_test_{secrets.token_hex(8)}"
+    except Exception as e:
+        logger.error(f"Razorpay order creation error: {str(e)}")
+        razorpay_order_id = f"order_test_{secrets.token_hex(8)}"
+
+    # Record pending payment record
+    payment = Payment(
+        user_id=current_user.id,
+        razorpay_order_id=razorpay_order_id,
+        amount=amount_paise,
+        currency="INR",
+        status="created"
+    )
+    db.add(payment)
+    db.commit()
 
     return {
-        "order_id": order_id,
-        "amount_paise": amount_in_paise,
-        "amount_inr": final_amt_inr,
+        "success": True,
+        "order_id": razorpay_order_id,
+        "amount": amount_paise,
         "currency": "INR",
         "key_id": settings.RAZORPAY_KEY_ID,
-        "plan_id": req.plan_id,
-        "plan_name": target_plan["name"],
-        "billing_cycle": req.billing_cycle,
+        "plan_name": plan["name"],
+        "plan_id": plan["id"],
         "user_email": current_user.email,
-        "user_name": current_user.full_name or "Citizen Security Analyst"
+        "user_name": current_user.full_name or "Valued Defender"
     }
 
 @router.post("/razorpay/verify-payment")
 def verify_razorpay_payment(
-    req: VerifyRazorpayRequest,
+    request: VerifyPaymentRequest,
+    req: Request,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Cryptographically verifies the HMAC SHA256 signature returned by Razorpay.
-    Upon positive signature verification, unlocks unlimited scans and provisions Pro/Enterprise API keys.
+    Verify Razorpay payment signature and activate subscription entitlements.
     """
-    target_plan = next((p for p in PLANS if p["id"] == req.plan_id), PLANS[1])
-
-    # Cryptographic signature verification
-    msg = f"{req.razorpay_order_id}|{req.razorpay_payment_id}".encode()
-    expected_signature = hmac.new(
-        settings.RAZORPAY_KEY_SECRET.encode(),
-        msg,
-        hashlib.sha256
+    # 1. Cryptographic HMAC SHA-256 verification
+    generated_sig = hmac.new(
+        key=settings.RAZORPAY_KEY_SECRET.encode("utf-8"),
+        msg=f"{request.razorpay_order_id}|{request.razorpay_payment_id}".encode("utf-8"),
+        digestmod=hashlib.sha256
     ).hexdigest()
 
-    # Note: In development or test keys, we allow valid HMAC or valid test payment id
-    is_valid = (expected_signature == req.razorpay_signature) or req.razorpay_payment_id.startswith("pay_") or req.razorpay_signature.startswith("sig_")
-
-    if not is_valid:
+    is_valid = hmac.compare_digest(generated_sig, request.razorpay_signature)
+    
+    # In local development test mode, allow verification if test keys match
+    if not is_valid and not (settings.RAZORPAY_KEY_ID.startswith("rzp_test") and request.razorpay_signature.startswith("sig_test_")):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Payment signature verification failed. Possible payload tampering detected."
+            detail="Cryptographic payment signature verification failed."
         )
 
-    # Upgrade User Account
-    current_user.subscription_tier = req.plan_id
-    current_user.monthly_quota = 999999  # Unlimited
-    if current_user.role == "user":
-        current_user.role = "analyst"
-    
-    current_user.api_key = f"rs_{req.plan_id}_{secrets.token_hex(16)}"
-    db.commit()
-    db.refresh(current_user)
+    plan = next((p for p in PLANS if p["id"] == request.plan_id), None)
+    if not plan:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Unknown plan ID.")
 
-    tx_id = f"TXN_{datetime.utcnow().strftime('%Y%m%d')}_{uuid.uuid4().hex[:8].upper()}"
+    # 2. Update Payment record
+    payment = db.query(Payment).filter(Payment.razorpay_order_id == request.razorpay_order_id).first()
+    if not payment:
+        payment = Payment(
+            user_id=current_user.id,
+            razorpay_order_id=request.razorpay_order_id,
+            amount=plan["price_inr"] * 100,
+            currency="INR"
+        )
+        db.add(payment)
+
+    payment.razorpay_payment_id = request.razorpay_payment_id
+    payment.razorpay_signature = request.razorpay_signature
+    payment.status = "captured"
+    payment.method = "razorpay"
+
+    # 3. Create / Update Subscription record
+    subscription = db.query(Subscription).filter(
+        Subscription.user_id == current_user.id,
+        Subscription.status == "active"
+    ).first()
+
+    now = datetime.utcnow()
+    period_end = now + timedelta(days=30)
+
+    if not subscription:
+        subscription = Subscription(
+            user_id=current_user.id,
+            plan_id=plan["id"],
+            razorpay_order_id=request.razorpay_order_id,
+            status="active",
+            current_period_start=now,
+            current_period_end=period_end
+        )
+        db.add(subscription)
+    else:
+        subscription.plan_id = plan["id"]
+        subscription.razorpay_order_id = request.razorpay_order_id
+        subscription.status = "active"
+        subscription.current_period_end = period_end
+
+    # 4. Generate Invoice
+    invoice_num = f"INV-RS-{now.strftime('%Y%m')}-{secrets.token_hex(3).upper()}"
+    invoice = Invoice(
+        user_id=current_user.id,
+        subscription_id=subscription.id,
+        payment_id=payment.id,
+        invoice_number=invoice_num,
+        amount=plan["price_inr"] * 100,
+        tax_amount=int(plan["price_inr"] * 100 * 0.18),
+        status="paid"
+    )
+    db.add(invoice)
+
+    # 5. Activate User Tier & Quotas
+    current_user.subscription_tier = plan["tier"]
+    current_user.daily_quota = plan["daily_scan_quota"]
+    current_user.osint_quota = plan["osint_daily_quota"]
+
+    # Assign business_admin or enterprise_admin role if upgraded to team tiers
+    if plan["tier"] == "business" and current_user.role == "user":
+        current_user.role = "business_admin"
+    elif plan["tier"] == "enterprise" and current_user.role in ["user", "business_admin"]:
+        current_user.role = "enterprise_admin"
+
+    # Log audit event
+    audit = AuditLog(
+        actor_id=current_user.id,
+        actor_email=current_user.email,
+        actor_role=current_user.role,
+        action="SUBSCRIPTION_ACTIVATED",
+        target_type="plan",
+        target_id=plan["id"],
+        details={"payment_id": request.razorpay_payment_id, "amount_inr": plan["price_inr"]},
+        ip_address=req.client.host if req.client else "unknown"
+    )
+    db.add(audit)
+    db.commit()
 
     return {
         "success": True,
-        "message": f"Payment verified! Congratulations, you have successfully subscribed to {target_plan['name']}.",
-        "transaction_id": tx_id,
-        "payment_id": req.razorpay_payment_id,
-        "order_id": req.razorpay_order_id,
-        "invoice_number": f"INV-RS-{datetime.utcnow().year}-{secrets.token_hex(4).upper()}",
-        "plan_id": req.plan_id,
-        "plan_name": target_plan["name"],
-        "billing_cycle": req.billing_cycle,
-        "payment_gateway": "Razorpay",
-        "new_api_key": current_user.api_key,
-        "monthly_quota": "Unlimited",
+        "message": f"Successfully activated {plan['name']}! Your upgraded entitlements are now live.",
         "subscription_tier": current_user.subscription_tier,
-        "timestamp": datetime.utcnow().isoformat()
+        "daily_quota": current_user.daily_quota,
+        "osint_quota": current_user.osint_quota,
+        "invoice_number": invoice_num
     }
 
-# =========================================================================
-# REAL STRIPE INTERNATIONAL CHECKOUT ENDPOINTS
-# =========================================================================
-
-@router.post("/stripe/create-session")
-def create_stripe_session(
-    req: CreateOrderRequest,
-    current_user: User = Depends(get_current_user)
+@router.post("/razorpay/webhook")
+async def razorpay_webhook(
+    request: Request,
+    x_razorpay_signature: str = Header(None),
+    db: Session = Depends(get_db)
 ):
-    """Creates a real Stripe Checkout Session for international cards & Apple Pay."""
-    target_plan = next((p for p in PLANS if p["id"] == req.plan_id), PLANS[1])
-    unit_amount = 8900 if req.billing_cycle == "annual" else 900  # $9.00 = 900 cents
+    """
+    Authoritative Razorpay Webhook Handler with raw body HMAC verification and idempotency protection.
+    """
+    raw_body = await request.body()
+    body_str = raw_body.decode("utf-8")
 
-    session_id = f"cs_{uuid.uuid4().hex[:20]}"
-    checkout_url = f"http://localhost:5173/success?session_id={session_id}&plan_id={req.plan_id}"
+    # 1. Verify Webhook Signature
+    if settings.RAZORPAY_WEBHOOK_SECRET and x_razorpay_signature:
+        expected_sig = hmac.new(
+            key=settings.RAZORPAY_WEBHOOK_SECRET.encode("utf-8"),
+            msg=raw_body,
+            digestmod=hashlib.sha256
+        ).hexdigest()
+
+        if not hmac.compare_digest(expected_sig, x_razorpay_signature):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid webhook signature.")
 
     try:
-        if settings.STRIPE_SECRET_KEY and not settings.STRIPE_SECRET_KEY.startswith("sk_test_rakshasutra"):
-            stripe_session = stripe.checkout.Session.create(
-                payment_method_types=['card'],
-                line_items=[{
-                    'price_data': {
-                        'currency': 'usd',
-                        'product_data': {
-                            'name': f"RakshaSutra {target_plan['name']}",
-                            'description': 'Unlimited Cyber Threat Scanner & Developer API'
-                        },
-                        'unit_amount': unit_amount,
-                    },
-                    'quantity': 1,
-                }],
-                mode='payment',
-                customer_email=current_user.email,
-                success_url=f"http://localhost:5173/success?session_id={{CHECKOUT_SESSION_ID}}&plan_id={req.plan_id}",
-                cancel_url="http://localhost:5173/pricing",
-            )
-            session_id = stripe_session.id
-            checkout_url = stripe_session.url
-    except Exception as e:
-        logger.warning(f"Stripe session creation note: {str(e)}")
+        event_payload = json.loads(body_str)
+    except Exception:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload.")
 
-    return {
-        "session_id": session_id,
-        "checkout_url": checkout_url,
-        "publishable_key": settings.STRIPE_PUBLISHABLE_KEY,
-        "plan_id": req.plan_id,
-        "amount_usd": unit_amount / 100
-    }
+    event_id = event_payload.get("event_id") or event_payload.get("id") or str(uuid.uuid4())
+    event_type = event_payload.get("event", "unknown")
 
-# =========================================================================
-# UNIFIED SECURE CHECKOUT & INSTANT ELEVATION
-# =========================================================================
+    # 2. Idempotency Check: Ignore already processed events
+    existing_event = db.query(WebhookEvent).filter(WebhookEvent.event_id == event_id).first()
+    if existing_event:
+        return {"status": "ignored", "message": "Event already processed."}
 
-@router.post("/checkout")
-def process_checkout(
-    req: CheckoutRequest,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """
-    Unified checkout processing across UPI, Cards, Net Banking, or Crypto.
-    Instantly provisions elevated API keys and activates unlimited Pro/Enterprise tier.
-    """
-    target_plan = next((p for p in PLANS if p["id"] == req.plan_id), None)
-    if not target_plan or req.plan_id == "free":
-        raise HTTPException(status_code=400, detail="Invalid plan selected for checkout.")
-
-    # Calculate pricing and discount
-    base_price = target_plan["annual_price_inr"] if req.billing_cycle == "annual" else target_plan["price_inr"]
-    discount_pct = 0
-    discount_amt = 0
-
-    if req.coupon_code:
-        coupon_upper = req.coupon_code.strip().upper()
-        if coupon_upper in VALID_COUPONS:
-            discount_pct = VALID_COUPONS[coupon_upper]["discount_percent"]
-            discount_amt = round((base_price * discount_pct) / 100, 2)
-
-    taxable_amount = max(0, base_price - discount_amt)
-    gst_tax = round(taxable_amount * 0.18, 2)
-    final_amount = round(taxable_amount + gst_tax, 2)
-
-    # Upgrade User Account in Database
-    current_user.subscription_tier = req.plan_id
-    current_user.monthly_quota = 999999  # Unlimited
-    if current_user.role == "user":
-        current_user.role = "analyst"  # Promote to analyst for pro tools
-    
-    current_user.api_key = f"rs_{req.plan_id}_{secrets.token_hex(16)}"
+    webhook_record = WebhookEvent(
+        event_id=event_id,
+        event_type=event_type,
+        payload=event_payload,
+        status="processed"
+    )
+    db.add(webhook_record)
     db.commit()
-    db.refresh(current_user)
 
-    tx_id = f"TXN_{datetime.utcnow().strftime('%Y%m%d')}_{uuid.uuid4().hex[:8].upper()}"
+    # 3. Handle Webhook Events
+    if event_type == "payment.captured":
+        payment_entity = event_payload.get("payload", {}).get("payment", {}).get("entity", {})
+        order_id = payment_entity.get("order_id")
+        payment_id = payment_entity.get("id")
+        notes = payment_entity.get("notes", {})
+        user_id = notes.get("user_id")
+        plan_id = notes.get("plan_id")
 
-    return {
-        "success": True,
-        "message": f"Payment verified! Congratulations, you have successfully subscribed to {target_plan['name']}.",
-        "transaction_id": tx_id,
-        "invoice_number": f"INV-RS-{datetime.utcnow().year}-{secrets.token_hex(4).upper()}",
-        "plan_id": req.plan_id,
-        "plan_name": target_plan["name"],
-        "billing_cycle": req.billing_cycle,
-        "payment_method": req.payment_method,
-        "base_price": base_price,
-        "discount_applied": discount_amt,
-        "gst_tax_18": gst_tax,
-        "final_amount": final_amount,
-        "currency": "INR",
-        "new_api_key": current_user.api_key,
-        "monthly_quota": "Unlimited",
-        "subscription_tier": current_user.subscription_tier,
-        "timestamp": datetime.utcnow().isoformat()
-    }
+        if user_id and plan_id:
+            user = db.query(User).filter(User.id == user_id).first()
+            plan = next((p for p in PLANS if p["id"] == plan_id), None)
+            if user and plan:
+                user.subscription_tier = plan["tier"]
+                user.daily_quota = plan["daily_scan_quota"]
+                user.osint_quota = plan["osint_daily_quota"]
+                db.commit()
 
-@router.post("/instant-upgrade")
-def instant_upgrade(
-    plan_id: str = "pro",
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Instant 1-click upgrade button for immediate demo/subscription activation."""
-    target_plan = next((p for p in PLANS if p["id"] == plan_id), PLANS[1])
-
-    current_user.subscription_tier = target_plan["id"]
-    current_user.monthly_quota = 999999  # Unlimited
-    if current_user.role == "user":
-        current_user.role = "analyst"
-    current_user.api_key = f"rs_{target_plan['id']}_{secrets.token_hex(16)}"
-    db.commit()
-    db.refresh(current_user)
-
-    return {
-        "success": True,
-        "message": f"Upgraded to {target_plan['name']}! Unlimited threat scans are now active on your account.",
-        "subscription_tier": current_user.subscription_tier,
-        "monthly_quota": "Unlimited",
-        "new_api_key": current_user.api_key
-    }
+    return {"status": "success", "event_id": event_id}

@@ -1,6 +1,7 @@
 import re
 from typing import Dict, List, Any, Optional
 from app.models.scan import Scan
+from app.models.investigation import Investigation, EvidenceItem
 from app.schemas.ai import IncidentPlaybookOut
 
 # Built-in Incident Response Playbooks
@@ -60,153 +61,132 @@ INCIDENT_PLAYBOOKS = {
             "4. Check linked devices (WhatsApp Web) in settings and click 'Log out from all devices'."
         ],
         secondary_steps=[
-            "1. Check if your email associated with the social accounts was also breached.",
-            "2. Review connected apps and revoke permissions for any unrecognized integrations."
+            "1. Check recovery email and phone numbers in your email accounts (Gmail, Outlook).",
+            "2. Generate recovery codes for Google/Apple accounts."
         ],
         reporting_authorities=[
-            {"name": "WhatsApp Official Support", "contact": "support@whatsapp.com"},
-            {"name": "Meta Security Center", "contact": "https://facebook.com/hacked"}
+            {"name": "WhatsApp Official Security Support", "contact": "support@whatsapp.com"},
+            {"name": "National Cybercrime Portal", "contact": "https://cybercrime.gov.in"}
         ]
     )
 }
 
-# Domain Knowledge Base for General Cyber Inquiries
-KNOWLEDGE_RESPONSES = [
-    (
-        r"(recognize|identify|spot|detect).*(phishing|scam|fake)",
-        "### How to Spot a Phishing Attempt:\n\n"
-        "1. **Mismatched or Deceptive Domain**: Check the spelling of the domain name carefully (e.g. `sbi-kyc.top` instead of `onlinesbi.sbi`).\n"
-        "2. **Artificial Urgency & Fear**: Scammers use phrases like *'Account will be suspended in 24 hours'* or *'Electricity cut tonight'*.\n"
-        "3. **Requests for Sensitive Information**: Legitimate organizations never ask for your **password, OTP, PIN, or CVV** via SMS, email, or chat.\n"
-        "4. **Generic Greetings & Odd Grammar**: Messages addressing you as *'Dear Customer'* with irregular punctuation or awkward phrasing.\n"
-        "5. **Suspicious Attachments / Links**: Links pointing to URL shorteners or executable downloads (`.apk`, `.exe`, `.scr`).\n\n"
-        "💡 *Rule of Thumb:* If in doubt, never click. Navigate to the service directly by typing the official address in your browser."
-    ),
-    (
-        r"(what is|explain).*(mfa|2fa|two factor|multi factor)",
-        "### What is Multi-Factor Authentication (MFA/2FA)?\n\n"
-        "MFA is a security mechanism that requires you to provide **two or more distinct verification factors** before accessing your account:\n\n"
-        "- **Something you know**: Password or PIN\n"
-        "- **Something you have**: Authenticator app (Google Authenticator, Microsoft Authenticator), Hardware security key (YubiKey), or SMS code\n"
-        "- **Something you are**: Fingerprint, Face ID\n\n"
-        "🛡️ **Why MFA Matters:** Even if a phishing scam steals your password, the attacker cannot breach your account without your physical 2FA token. Authenticator apps and hardware keys are significantly more secure than SMS codes, which are vulnerable to SIM swapping."
-    ),
-    (
-        r"(upi|payment|qr code|refund).*(scam|fraud|money)",
-        "### How UPI & QR Code Scams Operate:\n\n"
-        "1. **Golden Rule of UPI**: You **NEVER enter your UPI PIN to RECEIVE money**. A UPI PIN is only required to *deduct* money from your account.\n"
-        "2. **QR Code Trap**: Scammers send a QR code claiming *'Scan this QR code to receive ₹10,000 refund/cashback'*. Scanning and entering your PIN instantly debits your bank balance!\n"
-        "3. **Test Payment Trick**: *'Send ₹1 to verify your account and I will return the full prize'*. Once you transfer ₹1, they request larger amounts or trigger a collect request.\n"
-        "4. **OLX / Marketplace Scams**: Fake buyers posing as military personnel or army officers sending collect requests or fake deposit screenshots.\n\n"
-        "🚨 If you are ever asked to enter your PIN to claim a prize or refund, **cancel the transaction immediately**."
-    ),
-    (
-        r"(password|secure password|passphrase|password manager)",
-        "### Password Security Best Practices:\n\n"
-        "1. **Use Long Passphrases**: 14+ characters combining 3 to 4 random unrelated words (e.g. `Velvet#Falcon92!Sunset`) are vastly stronger than short complex passwords.\n"
-        "2. **Never Reuse Passwords**: If one website suffers a data breach, credential-stuffing bots will automatically test that same password on your email, banking, and social accounts.\n"
-        "3. **Adopt a Dedicated Password Manager**: Tools like Bitwarden, 1Password, or KeePass generate and store unique, high-entropy passwords for all your logins.\n"
-        "4. **Pair with Authenticator 2FA**: Ensure your password manager master vault is protected with a physical key or app-based 2FA."
-    )
-]
-
 def generate_ai_security_response(
-    query: str, 
+    query: str,
     context_scan: Optional[Scan] = None,
-    history: List[Dict[str, str]] = []
+    context_investigation: Optional[Investigation] = None,
+    user_role: str = "normal_user", # normal_user, student, developer, business, soc_analyst
+    history: Optional[List[Dict[str, str]]] = None
 ) -> Dict[str, Any]:
     """
-    Generate an expert defensive cybersecurity response with incident guidance and suggestions.
+    Generate grounded, explainable cybersecurity guidance.
+    Uses structured investigation evidence strictly. Never invents facts.
     """
     q_lower = query.lower()
 
-    # 1. Check for emergency trigger / incident matching
-    matched_playbook = None
-    if any(term in q_lower for term in ["clicked", "opened link", "visited fake", "entered details", "fell for"]):
-        matched_playbook = INCIDENT_PLAYBOOKS["clicked_phishing_link"]
-    elif any(term in q_lower for term in ["otp", "pin", "shared otp", "sent money", "bank fraud", "cheated", "lost money", "upi fraud"]):
-        matched_playbook = INCIDENT_PLAYBOOKS["shared_otp_or_banking"]
-    elif any(term in q_lower for term in ["whatsapp hacked", "instagram hacked", "facebook hacked", "telegram hack", "account takeover"]):
-        matched_playbook = INCIDENT_PLAYBOOKS["whatsapp_or_social_hack"]
-
-    # 2. Check if user is asking about an active scan result in context
-    if context_scan and any(w in q_lower for w in ["this scan", "the report", "why is it dangerous", "explain this", "this link"]):
-        response_text = (
-            f"### Analysis of Target: `{context_scan.target_display or context_scan.target}`\n\n"
-            f"**Assigned Risk Score:** `{context_scan.risk_score}/100` ({context_scan.risk_level} RISK)\n\n"
-            f"**Findings Breakdown:**\n"
-            f"{context_scan.summary}\n\n"
-            f"**Why this is dangerous:**\n"
-            f"When a target is rated {context_scan.risk_level}, it exhibits indicators like deceptive lookalike characters, suspicious TLDs, or matches on active threat blacklists. Attackers use these techniques to bypass human suspicion and steal confidential data.\n\n"
-            f"**Recommended Action:**\n"
-            f"{context_scan.recommendation}"
-        )
+    # Match emergency keywords
+    if "clicked" in q_lower or "phishing" in q_lower or "fake link" in q_lower:
+        pb = INCIDENT_PLAYBOOKS["clicked_phishing_link"]
         return {
-            "response": response_text,
+            "response": (
+                f"🚨 **Emergency Phishing Guidance**: Follow these rapid containment steps immediately:\n\n"
+                + "\n".join(pb.immediate_steps)
+                + "\n\n**Secondary Actions:**\n"
+                + "\n".join(pb.secondary_steps)
+            ),
             "suggested_questions": [
-                "What should I do if I already clicked it?",
-                "How do attackers create lookalike domains?",
-                "How does RakshaSutra calculate this risk score?"
+                "What if I entered my password on the page?",
+                "How do I scan my phone for malware?",
+                "How do I enable 2-Factor Authentication?"
             ],
-            "related_playbook": matched_playbook,
-            "references": ["RakshaSutra Threat Telemetry", "NIST SP 800-63B Guidelines"]
+            "related_playbook": pb,
+            "references": ["OWASP Anti-Phishing Guide", "NIST SP 800-61 Rev 2"]
         }
 
-    # 3. Check domain knowledge triggers
-    for pat, text in KNOWLEDGE_RESPONSES:
-        if re.search(pat, q_lower):
-            return {
-                "response": text,
-                "suggested_questions": [
-                    "What should I do after clicking a suspicious link?",
-                    "How do UPI and QR code scams work?",
-                    "What is MFA and why is it important?",
-                    "How do attackers spoof banking websites?"
-                ],
-                "related_playbook": matched_playbook,
-                "references": ["CERT-In Security Advisory", "CISA Security Tips", "OWASP Awareness Guide"]
-            }
-
-    # 4. If an incident playbook triggered, emphasize it directly
-    if matched_playbook:
-        response_text = (
-            f"### 🚨 {matched_playbook.title}\n\n"
-            f"{matched_playbook.description}\n\n"
-            f"#### Immediate Action Steps:\n" +
-            "\n".join([f"- {step}" for step in matched_playbook.immediate_steps]) +
-            "\n\n#### Follow-up Protective Measures:\n" +
-            "\n".join([f"- {step}" for step in matched_playbook.secondary_steps])
-        )
+    if "otp" in q_lower or "bank" in q_lower or "money deducted" in q_lower or "fraud" in q_lower or "scam" in q_lower:
+        pb = INCIDENT_PLAYBOOKS["shared_otp_or_banking"]
         return {
-            "response": response_text,
+            "response": (
+                f"🚨 **Urgent Financial Fraud Action Plan**:\n\n"
+                + "\n".join(pb.immediate_steps)
+                + "\n\n📞 **Emergency Hotline**: Dial **1930** immediately (National Cyber Financial Fraud Reporting System)."
+            ),
             "suggested_questions": [
-                "Where can I report this cyber incident?",
-                "How can I secure my other accounts?",
-                "What is the Golden Hour in financial fraud?"
+                "What is the Golden Hour in cyber fraud?",
+                "How do I file a formal complaint on cybercrime.gov.in?",
+                "Will my bank refund the money?"
             ],
-            "related_playbook": matched_playbook,
-            "references": ["National Cyber Crime Portal", "RBI Consumer Protection Guidelines"]
+            "related_playbook": pb,
+            "references": ["Citizen Financial Cyber Fraud Reporting System (1930)", "RBI Circular on Customer Protection"]
         }
 
-    # 5. Default high-quality defensive assistant response
-    default_response = (
-        "### Raksha AI Defensive Guidance\n\n"
-        f"Thank you for consulting Raksha AI regarding: *\"{query}\"*\n\n"
-        "As your defensive security copilot, here are essential principles to keep in mind:\n\n"
-        "- **Verify Identity Out-of-Band**: Whenever you receive an unsolicited message requesting actions, verify with the organization using their official, known contact details.\n"
-        "- **Zero-Trust for Inbound Links**: Treat all short links and unsolicited alerts with skepticism before entering credentials.\n"
-        "- **Protect Authentication Tokens**: Never share One-Time Passcodes (OTPs), PINs, or authenticator prompt approvals.\n\n"
-        "Feel free to ask me to analyze a specific message, explain a threat vector, or guide you through an incident response checklist."
-    )
+    # If context investigation or scan is provided, explain it strictly based on findings
+    if context_investigation:
+        verdict = context_investigation.risk_level
+        risk_score = context_investigation.risk_score
+        target = context_investigation.normalized_target or context_investigation.target
+        explanation = context_investigation.plain_explanation or "Analysis completed."
 
+        if user_role == "student":
+            role_explanation = (
+                f"🎓 **Educational Cyber Breakdown** for `{target}`:\n\n"
+                f"- **Verdict:** {verdict} (Risk Score: {risk_score}/100, Confidence: {context_investigation.confidence_score}%)\n"
+                f"- **Core Concept:** Attackers exploit human deception (typosquatting, urgency lures) to bypass perimeter defenses.\n"
+                f"- **Evidence Found:** {explanation}\n\n"
+                f"**Key Learning:** Always inspect the actual Top-Level Domain (TLD) and TLS Certificate Issuer rather than trusting visual logos."
+            )
+        elif user_role == "developer":
+            sec_headers = context_investigation.raw_telemetry.get("http", {}).get("security_headers", {})
+            role_explanation = (
+                f"💻 **Developer & Security Engineering Report** for `{target}`:\n\n"
+                f"- **Verdict:** {verdict} (Risk: {risk_score}/100)\n"
+                f"- **Transport Security:** {context_investigation.raw_telemetry.get('tls', {}).get('protocol_version', 'N/A')}\n"
+                f"- **Security Headers Present:** {', '.join([k for k, v in sec_headers.items() if v]) or 'None'}\n"
+                f"- **Technical Rationale:** {explanation}\n\n"
+                f"**Recommendation:** Ensure Strict-Transport-Security (HSTS), Content-Security-Policy (CSP), and X-Frame-Options: DENY are configured."
+            )
+        elif user_role == "business" or user_role == "soc_analyst":
+            role_explanation = (
+                f"🛡️ **SOC & Incident Response Assessment** for `{target}`:\n\n"
+                f"- **Classification:** {verdict} | Risk: {risk_score}/100 | Confidence: {context_investigation.confidence_score}%\n"
+                f"- **Investigation ID:** `{context_investigation.id}`\n"
+                f"- **Evidence Summary:** {explanation}\n"
+                f"- **Recommended SOC Action:** Blacklist domain on perimeter firewall/EDR agents and distribute RFC 2822 notice to upstream registrar."
+            )
+        else: # normal_user
+            role_explanation = (
+                f"🔍 **Security Analysis for {target}**:\n\n"
+                f"**Result:** {verdict} ({'Dangerous link' if verdict == 'DANGER' else ('Caution needed' if verdict == 'CAUTION' else 'Appears clean')})\n\n"
+                f"{explanation}\n\n"
+                f"**What you should do:**\n"
+                + "\n".join([f"• {rec}" for rec in (context_investigation.recommendations or ["Stay vigilant when clicking links."])])
+            )
+
+        return {
+            "response": role_explanation,
+            "suggested_questions": [
+                "How do I generate an incident report dossier?",
+                "Can you monitor this target for changes?",
+                "Explain the DNS and TLS evidence."
+            ],
+            "related_playbook": None,
+            "references": ["RakshaSutra Evidence Engine v1.0", f"Investigation ID: {context_investigation.id}"]
+        }
+
+    # Default conversational response
     return {
-        "response": default_response,
+        "response": (
+            "👋 Hi, I am **Raksha AI Security Copilot**.\n\n"
+            "I can help you:\n"
+            "1. **Explain any investigation findings** in simple language.\n"
+            "2. **Guide immediate incident response** if you clicked a suspicious link or shared an OTP.\n"
+            "3. **Audit your security posture** and recommend hardening steps for your accounts."
+        ),
         "suggested_questions": [
-            "How do I recognize a phishing message?",
-            "What should I do if I entered my password on a fake site?",
-            "How do scammers trick people with UPI QR codes?",
-            "What are the best practices for strong passwords?"
+            "What should I do if I clicked a fake banking link?",
+            "How do I check if my email is in a dark web breach?",
+            "How does RakshaSutra calculate Risk vs Confidence?"
         ],
         "related_playbook": None,
-        "references": ["RakshaSutra Cybersecurity Knowledge Base"]
+        "references": ["RakshaSutra Knowledge Base"]
     }

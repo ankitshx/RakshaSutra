@@ -6,6 +6,11 @@ import { Navbar } from './components/common/Navbar';
 import { Footer } from './components/common/Footer';
 import { FloatingAiAssistant } from './components/common/FloatingAiAssistant';
 import { LandingPage } from './pages/LandingPage';
+import { InvestigationCenterPage } from './pages/InvestigationCenterPage';
+import { MonitoringPage } from './pages/MonitoringPage';
+import { SecurityPassportPage } from './pages/SecurityPassportPage';
+import { DeveloperPlaygroundPage } from './pages/DeveloperPlaygroundPage';
+import { TrustCenterPage } from './pages/TrustCenterPage';
 import { UrlScannerPage } from './pages/UrlScannerPage';
 import { MessageAnalyzerPage } from './pages/MessageAnalyzerPage';
 import { WebsiteAnalyzerPage } from './pages/WebsiteAnalyzerPage';
@@ -22,6 +27,7 @@ import { OsintReconPage } from './pages/OsintReconPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ScanReportDetailPage } from './pages/ScanReportDetailPage';
+import { LegalPages } from './pages/LegalPages';
 import type { ScanResponse } from './types';
 
 const MainApp: React.FC = () => {
@@ -41,6 +47,8 @@ const MainApp: React.FC = () => {
     setActiveTab('raksha-ai');
   };
 
+  const isLegalTab = ['privacy', 'terms', 'refund', 'security', 'contact'].includes(activeTab);
+
   return (
     <div className="min-h-screen flex flex-col bg-cyber-bg dark:bg-cyber-bg bg-slate-50 text-slate-100 dark:text-slate-100 text-slate-900 font-sans selection:bg-cyan-500 selection:text-slate-950 transition-colors duration-200">
       {/* Top Real-time Security Ticker */}
@@ -57,6 +65,13 @@ const MainApp: React.FC = () => {
             onViewReport={handleViewReport}
           />
         )}
+        {activeTab === 'investigation-center' && (
+          <InvestigationCenterPage onNavigateTab={setActiveTab} />
+        )}
+        {activeTab === 'monitoring' && <MonitoringPage />}
+        {activeTab === 'security-passport' && <SecurityPassportPage />}
+        {activeTab === 'developer-playground' && <DeveloperPlaygroundPage />}
+        {activeTab === 'trust-center' && <TrustCenterPage />}
         {activeTab === 'osint' && <OsintReconPage />}
         {activeTab === 'url-scanner' && (
           <UrlScannerPage onAskAI={handleAskAIWithScan} />
@@ -80,13 +95,13 @@ const MainApp: React.FC = () => {
         {activeTab === 'admin' && <AdminPage />}
         {activeTab === 'login' && (
           <LoginPage
-            onSuccess={() => setActiveTab('dashboard')}
+            onSuccess={() => setActiveTab('investigation-center')}
             onSwitchToRegister={() => setActiveTab('register')}
           />
         )}
         {activeTab === 'register' && (
           <RegisterPage
-            onSuccess={() => setActiveTab('dashboard')}
+            onSuccess={() => setActiveTab('investigation-center')}
             onSwitchToLogin={() => setActiveTab('login')}
           />
         )}
@@ -97,12 +112,18 @@ const MainApp: React.FC = () => {
             onAskAI={handleAskAIWithScan}
           />
         )}
+        {isLegalTab && (
+          <LegalPages
+            policyType={activeTab as any}
+            onBack={() => setActiveTab('landing')}
+          />
+        )}
       </main>
 
-      {/* Persistent Floating AI Threat Assistant & Emergency Playbook */}
+      {/* Floating AI Security Copilot Button */}
       <FloatingAiAssistant onOpenFullPage={() => setActiveTab('raksha-ai')} />
 
-      {/* Footer */}
+      {/* Footer with Legal & Emergency Information */}
       <Footer setActiveTab={setActiveTab} />
     </div>
   );

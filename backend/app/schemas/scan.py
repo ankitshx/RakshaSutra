@@ -38,6 +38,8 @@ class ScanResponse(BaseModel):
     target_display: str
     risk_score: int = Field(..., ge=0, le=100)
     risk_level: str  # "LOW", "MODERATE", "SUSPICIOUS", "HIGH"
+    verdict: str = "SAFE"  # "SAFE", "CAUTION", "DANGER"
+    confidence: str = "HIGH"  # "LOW", "MEDIUM", "HIGH"
     summary: str
     recommendation: str
     indicators: List[ThreatIndicatorOut] = []
@@ -54,6 +56,8 @@ class ScanHistoryItem(BaseModel):
     target_display: str
     risk_score: int
     risk_level: str
+    verdict: str = "SAFE"
+    confidence: str = "HIGH"
     summary: str
     indicators_count: int
     created_at: datetime

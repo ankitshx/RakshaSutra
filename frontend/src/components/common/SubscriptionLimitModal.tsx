@@ -32,6 +32,8 @@ interface SubscriptionModalProps {
   onSuccess?: () => void;
   title?: string;
   subtitle?: string;
+  limitType?: string;
+  onViewPlans?: () => void;
 }
 
 export const SubscriptionLimitModal: React.FC<SubscriptionModalProps> = ({
