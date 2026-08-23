@@ -53,6 +53,7 @@ SOCIAL_TARGETS = [
     {"name": "LeetCode", "cat": "Developer", "url": "https://leetcode.com/u/{}/", "check": "status_200", "icon": "code"},
 
     # Social & Messaging
+    {"name": "Instagram", "cat": "Social", "url": "https://www.instagram.com/api/v1/users/web_profile_info/?username={}", "check": "instagram_api", "icon": "instagram"},
     {"name": "Telegram", "cat": "Social", "url": "https://t.me/{}", "check": "telegram_check", "icon": "send"},
     {"name": "Reddit", "cat": "Social", "url": "https://www.reddit.com/user/{}/about.json", "check": "reddit_json", "icon": "message-circle"},
     {"name": "X (Twitter)", "cat": "Social", "url": "https://x.com/{}", "check": "status_200", "icon": "twitter"},
@@ -89,6 +90,8 @@ async def probe_single_target(client: httpx.AsyncClient, target: Dict[str, str],
     display_url = url
     if target["check"] == "reddit_json":
         display_url = f"https://www.reddit.com/user/{username}"
+    elif target["check"] == "instagram_api":
+        display_url = f"https://www.instagram.com/{username}/"
 
     res_data = {
         "platform": target["name"],
@@ -103,7 +106,11 @@ async def probe_single_target(client: httpx.AsyncClient, target: Dict[str, str],
     try:
         import time
         t0 = time.time()
-        r = await client.get(url, headers=HEADERS, timeout=3.0, follow_redirects=True)
+        headers = dict(HEADERS)
+        if target["check"] == "instagram_api":
+            headers["X-IG-App-ID"] = "936619743392459"
+
+        r = await client.get(url, headers=headers, timeout=3.5, follow_redirects=True)
         latency = int((time.time() - t0) * 1000)
         res_data["status_code"] = r.status_code
         res_data["latency_ms"] = latency
@@ -111,6 +118,13 @@ async def probe_single_target(client: httpx.AsyncClient, target: Dict[str, str],
         if target["check"] == "status_200":
             if r.status_code == 200 and "not found" not in r.text.lower() and "404" not in r.text:
                 res_data["exists"] = True
+        elif target["check"] == "instagram_api":
+            if r.status_code == 200:
+                data = r.json()
+                if "data" in data and data.get("data", {}).get("user"):
+                    res_data["exists"] = True
+            elif r.status_code == 404:
+                res_data["exists"] = False
         elif target["check"] == "reddit_json":
             if r.status_code == 200:
                 data = r.json()
