@@ -125,7 +125,7 @@ async function checkThreat(targetUrl) {
   };
 
   return (
-    <div className="space-y-10 max-w-6xl mx-auto font-mono text-slate-100">
+    <div className="space-y-10 max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-8 font-mono text-slate-100">
       {/* Top Header Banner */}
       <div className="space-y-3">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold">

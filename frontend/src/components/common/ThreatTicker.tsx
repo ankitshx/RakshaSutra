@@ -11,8 +11,8 @@ export const ThreatTicker: React.FC = () => {
   ];
 
   return (
-    <div className="w-full bg-slate-950/90 border-b border-cyan-500/20 py-1.5 px-4 overflow-hidden text-[11px] font-mono select-none">
-      <div className="max-w-7xl mx-auto flex items-center gap-3">
+    <div className="w-full bg-slate-950/90 border-b border-cyan-500/20 py-1.5 px-4 sm:px-6 lg:px-8 overflow-hidden text-[11px] font-mono select-none">
+      <div className="max-w-[1780px] mx-auto flex items-center gap-3">
         {/* Live Indicator Pill */}
         <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-cyan-950/80 border border-cyan-500/40 text-cyan-400 font-bold shrink-0 shadow-neon-cyan">
           <Radio className="w-3 h-3 text-cyan-400 animate-pulse" />

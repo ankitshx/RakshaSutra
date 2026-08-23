@@ -4,7 +4,7 @@ import { Shield, Lock } from 'lucide-react';
 export const Footer: React.FC<{ setActiveTab: (tab: string) => void }> = ({ setActiveTab }) => {
   return (
     <footer className="bg-slate-950 border-t border-cyber-border mt-20 text-slate-400 text-xs">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-[1780px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Brand Col */}
           <div className="md:col-span-1 space-y-3">

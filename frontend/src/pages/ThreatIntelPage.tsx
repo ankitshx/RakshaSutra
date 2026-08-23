@@ -50,7 +50,7 @@ export const ThreatIntelPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+    <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
       <div className="space-y-2 text-center sm:text-left">
         <div className="flex items-center gap-2">

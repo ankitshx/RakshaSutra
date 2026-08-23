@@ -69,7 +69,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   return (
     <>
       <header className="sticky top-0 z-40 bg-slate-950/80 dark:bg-slate-950/80 bg-white/80 backdrop-blur-2xl border-b border-cyber-border/80 dark:border-cyber-border/80 border-slate-200 transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-[1780px] mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Brand Logo */}
             <div

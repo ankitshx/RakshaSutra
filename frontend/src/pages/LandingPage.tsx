@@ -77,7 +77,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab, onViewRe
   return (
     <div className="space-y-10 py-4 sm:py-8">
       {/* 1. Top Threat Safety Alert Banner with Emergency 1930 Helpline Button */}
-      <section className="max-w-7xl mx-auto px-4">
+      <section className="max-w-[1780px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-cyan-500/10 border border-amber-500/30 flex flex-wrap items-center justify-between gap-4 shadow-lg">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-2xl bg-amber-500/20 text-amber-500 border border-amber-500/40">
@@ -104,12 +104,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab, onViewRe
       </section>
 
       {/* 2. Real-Time Global Cyber Attacks Counter Bar */}
-      <section className="max-w-7xl mx-auto px-4">
+      <section className="max-w-[1780px] mx-auto px-4 sm:px-6 lg:px-8">
         <GlobalLiveAttackCounter />
       </section>
 
       {/* 3. Main Hero Multi-Vector Command Scanner */}
-      <section className="max-w-7xl mx-auto px-4 space-y-6">
+      <section className="max-w-[1780px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <UnifiedCommandHero
           onUrlScanComplete={(report) => {
             setHeroReport(report);
@@ -130,7 +130,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab, onViewRe
       </section>
 
       {/* 4. Real-Time Cyber Warfare Defense Radar & Live Threat Stream */}
-      <section className="max-w-7xl mx-auto px-4 space-y-4">
+      <section className="max-w-[1780px] mx-auto px-4 sm:px-6 lg:px-8 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
@@ -199,7 +199,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab, onViewRe
       </section>
 
       {/* 5. Beginner-Friendly 3-Step Guide */}
-      <section className="max-w-7xl mx-auto px-4">
+      <section className="max-w-[1780px] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-6 sm:p-8 shadow-xl space-y-6">
           <div className="text-center space-y-1">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white font-sans">
@@ -251,7 +251,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab, onViewRe
       </section>
 
       {/* 6. 6-Feature Platform Explorer Grid */}
-      <section className="max-w-7xl mx-auto px-4 space-y-6">
+      <section className="max-w-[1780px] mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
         <div className="text-center space-y-1">
           <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white font-sans">
             Complete Cyber Protection Suite
