@@ -1,0 +1,81 @@
+/* RakshaSutra In-Page Safety Badge Styling */
+.rs-link-badge {
+  display: inline-flex;
+  align-items: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  padding: 1px 5px !important;
+  border-radius: 4px !important;
+  margin-left: 4px !important;
+  vertical-align: middle !important;
+  text-decoration: none !important;
+  line-height: 1.2 !important;
+  pointer-events: auto !important;
+  cursor: help !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+.rs-badge-danger {
+  background-color: #991b1b !important;
+  color: #fee2e2 !important;
+  border: 1px solid #ef4444 !important;
+  animation: rs-pulse-danger 2s infinite !important;
+}
+
+.rs-badge-warn {
+  background-color: #78350f !important;
+  color: #fef3c7 !important;
+  border: 1px solid #f59e0b !important;
+}
+
+@keyframes rs-pulse-danger {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.04); }
+}
+
+/* In-Page Toast Overlay */
+#rs-cyber-toast {
+  position: fixed !important;
+  bottom: 24px !important;
+  right: 24px !important;
+  z-index: 2147483647 !important;
+  padding: 12px 18px !important;
+  border-radius: 16px !important;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.4) !important;
+  backdrop-filter: blur(12px) !important;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  animation: rs-toast-slide 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.rs-toast-safe {
+  background-color: rgba(6, 78, 59, 0.95) !important;
+  border: 1.5px solid #10b981 !important;
+}
+
+.rs-toast-danger {
+  background-color: rgba(136, 19, 55, 0.95) !important;
+  border: 1.5px solid #f43f5e !important;
+}
+
+.rs-toast-warn {
+  background-color: rgba(120, 53, 15, 0.95) !important;
+  border: 1.5px solid #f59e0b !important;
+}
+
+.rs-toast-hide {
+  opacity: 0 !important;
+  transform: translateY(20px) scale(0.95) !important;
+}
+
+@keyframes rs-toast-slide {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

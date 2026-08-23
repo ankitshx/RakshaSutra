@@ -1,0 +1,319 @@
+/* RakshaSutra Threat Intervention Page Styling */
+:root {
+  --bg-dark: #030712;
+  --bg-card: #0b0f1d;
+  --rose-danger: #f43f5e;
+  --rose-glow: rgba(244, 63, 94, 0.35);
+  --cyan-accent: #00f0ff;
+  --emerald-safe: #10b981;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border-card: rgba(244, 63, 94, 0.3);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.glow-orb {
+  position: absolute;
+  top: 10%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(244, 63, 94, 0.15) 0%, rgba(3, 7, 18, 0) 70%);
+  pointer-events: none;
+}
+
+.block-container {
+  max-width: 680px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 20px;
+  position: relative;
+  z-index: 10;
+}
+
+/* Shield Icon Badge */
+.shield-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.shield-icon-wrapper {
+  width: 88px;
+  height: 88px;
+  border-radius: 26px;
+  background: rgba(244, 63, 94, 0.1);
+  border: 2px solid var(--rose-danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 35px var(--rose-glow);
+  animation: pulse-shield 2.5s infinite;
+}
+
+@keyframes pulse-shield {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 30px var(--rose-glow); }
+  50% { transform: scale(1.05); box-shadow: 0 0 45px rgba(244, 63, 94, 0.5); }
+}
+
+.warning-tag {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  color: #fda4af;
+  background: rgba(244, 63, 94, 0.15);
+  border: 1px solid var(--rose-danger);
+  padding: 4px 14px;
+  border-radius: 20px;
+}
+
+/* Typography */
+.block-title {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  color: #ffffff;
+  line-height: 1.25;
+}
+
+.block-subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  max-width: 580px;
+}
+
+/* Threat Analysis Card */
+.threat-card {
+  width: 100%;
+  background: var(--bg-card);
+  border: 1.5px solid var(--border-card);
+  border-radius: 20px;
+  padding: 20px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+
+.threat-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.threat-label {
+  font-size: 10px;
+  font-family: monospace;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.threat-url {
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fca5a5;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(244, 63, 94, 0.2);
+  word-break: break-all;
+}
+
+.threat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.threat-box {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #1e293b;
+  padding: 12px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.box-title {
+  font-size: 9px;
+  font-family: monospace;
+  color: var(--text-muted);
+}
+
+.box-val {
+  font-size: 12px;
+  font-weight: 800;
+  font-family: monospace;
+}
+
+.text-danger { color: #fb7185; }
+.text-safe { color: #34d399; }
+
+.threat-reason-box {
+  background: rgba(244, 63, 94, 0.08);
+  border: 1px solid rgba(244, 63, 94, 0.2);
+  border-radius: 12px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.reason-title {
+  font-size: 10px;
+  font-family: monospace;
+  font-weight: 800;
+  color: #fda4af;
+}
+
+.reason-desc {
+  font-size: 12px;
+  color: #e2e8f0;
+  line-height: 1.4;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 14px;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.btn {
+  flex: 1;
+  min-width: 220px;
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 800;
+  border-radius: 14px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-safe {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.btn-safe:hover {
+  background: linear-gradient(135deg, #34d399, #10b981);
+  transform: translateY(-1px);
+}
+
+.btn-emergency {
+  background: rgba(244, 63, 94, 0.15);
+  border: 1.5px solid var(--rose-danger);
+  color: #fda4af;
+}
+
+.btn-emergency:hover {
+  background: var(--rose-danger);
+  color: #ffffff;
+}
+
+/* Bypass Section */
+.bypass-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.bypass-toggle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.bypass-toggle:hover {
+  color: #ffffff;
+}
+
+.bypass-panel {
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px dashed #475569;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 520px;
+}
+
+.bypass-warn {
+  font-size: 11px;
+  color: #fca5a5;
+  line-height: 1.4;
+}
+
+.btn-outline-danger {
+  padding: 10px 16px;
+  font-size: 12px;
+  background: transparent;
+  border: 1px solid var(--rose-danger);
+  color: #fca5a5;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.btn-outline-danger:hover {
+  background: rgba(244, 63, 94, 0.2);
+}
+
+/* Footer */
+.block-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 10px;
+}
+
+.block-footer a {
+  color: var(--cyan-accent);
+  text-decoration: none;
+}
+
+.block-footer a:hover {
+  text-decoration: underline;
+}

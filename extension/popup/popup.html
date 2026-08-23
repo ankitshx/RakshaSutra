@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RakshaSutra Cyber Shield</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-brand">
+        <div class="shield-icon">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#00f0ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="brand-title">RakshaSutra</h1>
+          <span class="brand-tag">AI CYBER SHIELD v2.4</span>
+        </div>
+      </div>
+
+      <div class="status-pill active" id="global-status-pill">
+        <span class="status-dot"></span>
+        <span id="global-status-text">PROTECTED</span>
+      </div>
+    </header>
+
+    <!-- Current Tab Inspection Card -->
+    <section class="tab-card" id="tab-card">
+      <div class="tab-header">
+        <span class="tab-label">CURRENT ACTIVE TAB</span>
+        <span class="verdict-tag safe" id="current-verdict-tag">SAFE</span>
+      </div>
+
+      <div class="domain-info">
+        <span class="domain-text" id="current-domain">Detecting tab...</span>
+      </div>
+
+      <div class="security-metrics">
+        <div class="metric-item">
+          <span class="metric-title">SSL Encryption</span>
+          <strong class="metric-val safe" id="metric-ssl">Valid TLS 1.3</strong>
+        </div>
+        <div class="metric-item">
+          <span class="metric-title">Threat Status</span>
+          <strong class="metric-val safe" id="metric-threat">Clean</strong>
+        </div>
+        <div class="metric-item">
+          <span class="metric-title">Risk Score</span>
+          <strong class="metric-val safe" id="metric-risk">0 / 100</strong>
+        </div>
+      </div>
+
+      <p class="tab-reason" id="tab-reason">
+        Verified official domain with legitimate cryptographic certificate.
+      </p>
+
+      <div class="tab-actions">
+        <button class="btn btn-secondary btn-sm" id="btn-whitelist">
+          Whitelist Domain
+        </button>
+        <button class="btn btn-primary btn-sm" id="btn-rescan">
+          Re-Analyze Page
+        </button>
+      </div>
+    </section>
+
+    <!-- Quick Scan Bar -->
+    <section class="scan-section">
+      <label class="section-label">QUICK SCAN ANY LINK OR MESSAGE</label>
+      <div class="input-group">
+        <input type="text" id="quick-input" placeholder="Paste link or text to verify..." />
+        <button class="btn btn-cyan" id="btn-quick-scan">Scan</button>
+      </div>
+      <div class="quick-result" id="quick-result" style="display:none;"></div>
+    </section>
+
+    <!-- Protection Toggles -->
+    <section class="toggles-section">
+      <label class="section-label">REAL-TIME DEFENSE ENGINES</label>
+
+      <div class="toggle-row">
+        <div>
+          <span class="toggle-name">Pre-Navigation Shield</span>
+          <span class="toggle-desc">Blocks scam websites before connection</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggle-protection" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <div>
+          <span class="toggle-name">Download & APK Guard</span>
+          <span class="toggle-desc">Intercepts fake mobile banking trojans</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggle-downloads" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="toggle-row">
+        <div>
+          <span class="toggle-name">In-Page Safety Badges</span>
+          <span class="toggle-desc">Highlights dangerous links on social & webmail</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggle-badges" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </section>
+
+    <!-- Telemetry Statistics -->
+    <section class="stats-bar">
+      <div class="stat-col">
+        <span class="stat-num" id="stat-scans">14</span>
+        <span class="stat-label">Sites Inspected</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-col">
+        <span class="stat-num" id="stat-blocked">2</span>
+        <span class="stat-label">Scams Blocked</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-col">
+        <span class="stat-num text-cyan" id="stat-tier">PRO ACTIVE</span>
+        <span class="stat-label">Cloud Tier</span>
+      </div>
+    </section>
+
+    <!-- Cloud Account & Emergency Help Footer -->
+    <footer class="footer">
+      <a href="http://localhost:5173" target="_blank" class="footer-link">
+        Open SOC Dashboard ↗
+      </a>
+      <button class="emergency-btn" id="btn-emergency">
+        🚨 1930 Cyber Helpline
+      </button>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

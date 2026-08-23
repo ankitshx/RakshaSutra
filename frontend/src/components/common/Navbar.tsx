@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { SubscriptionLimitModal } from './SubscriptionLimitModal';
+import { ExtensionInstallModal } from './ExtensionInstallModal';
 import {
   Shield,
   Search,
@@ -33,6 +34,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
   const { theme, toggleTheme } = useTheme();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
 
   const navItems = [
     { id: 'landing', label: 'Command Center', icon: Shield },
@@ -133,6 +135,15 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
                   <span>Free ({scansLeftToday}/6 left today) • Upgrade</span>
                 </button>
               )}
+
+              {/* Browser Extension Modal Button */}
+              <button
+                onClick={() => setIsExtensionModalOpen(true)}
+                title="Get Universal AI Browser Extension"
+                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-500/50 text-cyan-300 text-xs font-mono font-bold transition-all shadow-sm cursor-pointer"
+              >
+                <span>🧩 Extension</span>
+              </button>
 
               {/* Theme Toggle Button */}
               <button
@@ -289,6 +300,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
       <SubscriptionLimitModal
         isOpen={isUpgradeModalOpen}
         onClose={() => setIsUpgradeModalOpen(false)}
+      />
+
+      {/* Browser Extension Install Modal */}
+      <ExtensionInstallModal
+        isOpen={isExtensionModalOpen}
+        onClose={() => setIsExtensionModalOpen(false)}
       />
     </>
   );
