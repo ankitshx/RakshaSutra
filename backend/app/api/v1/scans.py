@@ -15,6 +15,7 @@ from app.scanners.url_scanner import inspect_url_comprehensive
 from app.threat_intel.registry import threat_intel_registry
 from app.scanners.risk_engine import synthesize_risk_report
 from app.api.v1.auth import get_current_user_optional, get_current_user, enforce_api_quota
+from app.core.metrics import metrics
 
 router = APIRouter(prefix="/scans", tags=["URL Scanner & Reports"])
 
@@ -87,6 +88,9 @@ async def scan_url(
         indicators=inspection["findings"],
         impersonation_info=inspection["impersonation_info"]
     )
+
+    # Record Prometheus Observability Metrics
+    metrics.record_scan(scan_type="url", verdict=risk_report["risk_level"])
 
     elapsed_ms = round((time.time() - start_time) * 1000, 2)
     target_hash = hashlib.sha256(inspection["normalized_url"].encode()).hexdigest()

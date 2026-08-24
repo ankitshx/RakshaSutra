@@ -27,8 +27,8 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectScan }) =>
 
   if (!stats && isLoading) {
     return (
-      <div className="flex items-center justify-center py-20 text-cyan-400 font-mono text-sm">
-        Loading RakshaSutra Telemetry Dashboard...
+      <div className="flex items-center justify-center py-20 text-amber-400 font-mono text-sm">
+        Loading RakhshaSutra Telemetry Dashboard...
       </div>
     );
   }
@@ -41,7 +41,7 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectScan }) =>
     avg_analysis_time_ms: 45.2,
     active_providers_count: 3,
     risk_distribution: [
-      { level: 'HIGH', count: 2, percentage: 66.7, color: '#ef4444' },
+      { level: 'HIGH', count: 2, percentage: 66.7, color: '#f43f5e' },
       { level: 'SUSPICIOUS', count: 0, percentage: 0, color: '#f97316' },
       { level: 'MODERATE', count: 0, percentage: 0, color: '#f59e0b' },
       { level: 'LOW', count: 1, percentage: 33.3, color: '#10b981' }
@@ -56,90 +56,94 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectScan }) =>
   };
 
   return (
-    <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Header */}
-      <div className="space-y-2 text-center sm:text-left">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-xl bg-cyan-950/80 border border-cyan-500/40 text-cyan-400">
+    <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-24 font-sans selection:bg-amber-500 selection:text-slate-950">
+      {/* Header (RDS 2.0) */}
+      <div className="p-6 rounded-3xl bg-[#0c121e] border border-white/10 shadow-2xl flex flex-wrap items-center justify-between gap-4 relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-2xl bg-amber-950/80 border border-amber-500/40 text-amber-400 shadow-sutra-glow shrink-0">
             <LayoutDashboard className="w-5 h-5" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
-            Security Intelligence Dashboard
-          </h1>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
+              SECURITY INTELLIGENCE & TELEMETRY STREAM
+            </h1>
+            <p className="text-xs text-slate-400 font-mono">
+              Real-time aggregation of scanned vectors, risk distribution curves, and heuristic latency
+            </p>
+          </div>
         </div>
-        <p className="text-sm text-slate-400 max-w-2xl">
-          Real-time aggregation of scanned vectors, risk distribution curves, high-frequency threat categories, and telemetry latency.
-        </p>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-cyber-border backdrop-blur-md shadow-lg space-y-2">
-          <span className="text-xs font-mono text-slate-400 uppercase tracking-wider block">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 font-mono">
+        <div className="p-5 rounded-2xl bg-[#0c121e] border border-white/10 shadow-lg space-y-2">
+          <span className="text-xs text-slate-400 uppercase tracking-wider block">
             Total Scans
           </span>
           <div className="flex items-baseline justify-between">
-            <span className="text-3xl font-black text-white font-mono">{s.total_scans}</span>
-            <Activity className="w-4 h-4 text-cyan-400" />
+            <span className="text-3xl font-black text-white">{s.total_scans}</span>
+            <Activity className="w-4 h-4 text-amber-400" />
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-cyber-border backdrop-blur-md shadow-lg space-y-2">
-          <span className="text-xs font-mono text-slate-400 uppercase tracking-wider block">
+        <div className="p-5 rounded-2xl bg-[#0c121e] border border-white/10 shadow-lg space-y-2">
+          <span className="text-xs text-slate-400 uppercase tracking-wider block">
             Threats Intercepted
           </span>
           <div className="flex items-baseline justify-between">
-            <span className="text-3xl font-black text-rose-400 font-mono">{s.threats_detected}</span>
+            <span className="text-3xl font-black text-rose-400">{s.threats_detected}</span>
             <ShieldAlert className="w-4 h-4 text-rose-400" />
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-cyber-border backdrop-blur-md shadow-lg space-y-2">
-          <span className="text-xs font-mono text-slate-400 uppercase tracking-wider block">
-            Verified Clean/Low-Risk
+        <div className="p-5 rounded-2xl bg-[#0c121e] border border-white/10 shadow-lg space-y-2">
+          <span className="text-xs text-slate-400 uppercase tracking-wider block">
+            Safe Analyses
           </span>
           <div className="flex items-baseline justify-between">
-            <span className="text-3xl font-black text-emerald-400 font-mono">{s.safe_analyses}</span>
+            <span className="text-3xl font-black text-emerald-400">{s.safe_analyses}</span>
             <ShieldCheck className="w-4 h-4 text-emerald-400" />
           </div>
         </div>
 
-        <div className="p-5 rounded-2xl bg-slate-900/80 border border-cyber-border backdrop-blur-md shadow-lg space-y-2">
-          <span className="text-xs font-mono text-slate-400 uppercase tracking-wider block">
+        <div className="p-5 rounded-2xl bg-[#0c121e] border border-white/10 shadow-lg space-y-2">
+          <span className="text-xs text-slate-400 uppercase tracking-wider block">
             Avg Engine Latency
           </span>
           <div className="flex items-baseline justify-between">
-            <span className="text-3xl font-black text-amber-400 font-mono">{s.avg_analysis_time_ms} ms</span>
+            <span className="text-3xl font-black text-amber-400">{s.avg_analysis_time_ms}ms</span>
             <Clock className="w-4 h-4 text-amber-400" />
           </div>
         </div>
       </div>
 
-      {/* Graphs & Breakdowns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Risk Distribution Breakdown */}
-        <div className="p-6 rounded-2xl bg-slate-900/80 border border-cyber-border backdrop-blur-xl shadow-xl space-y-5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono flex items-center gap-2">
-              <BarChart3 className="w-3.5 h-3.5 text-cyan-400" /> Risk Level Distribution
+      {/* Middle Section: Risk Distribution + Threat Category Bars */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Risk Distribution Card */}
+        <div className="p-6 sm:p-8 rounded-3xl bg-[#0c121e] border border-white/10 shadow-xl space-y-6 font-mono">
+          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-amber-400" />
+              <span>Verdict Distribution</span>
             </h3>
-            <span className="text-[11px] font-mono text-slate-500">Historical Scans</span>
+            <span className="text-xs text-slate-400">{s.total_scans} Total Records</span>
           </div>
 
-          <div className="space-y-3">
-            {s.risk_distribution.map((item) => (
-              <div key={item.level} className="space-y-1 text-xs font-mono">
+          <div className="space-y-4 text-xs">
+            {s.risk_distribution.map((d) => (
+              <div key={d.level} className="space-y-1">
                 <div className="flex justify-between">
-                  <span className="text-slate-300 font-bold">{item.level}</span>
-                  <span className="text-slate-400">{item.count} scans ({item.percentage}%)</span>
+                  <span className="text-slate-300 font-bold uppercase">{d.level}</span>
+                  <span className="text-white">
+                    {d.count} ({d.percentage}%)
+                  </span>
                 </div>
-                <div className="w-full h-2.5 rounded-full bg-slate-950 overflow-hidden border border-slate-800">
+                <div className="w-full h-2 rounded-full bg-[#030508] overflow-hidden">
                   <div
                     className="h-full rounded-full transition-all duration-500"
-                    style={{
-                      width: `${Math.max(5, item.percentage)}%`,
-                      backgroundColor: item.color
-                    }}
+                    style={{ width: `${d.percentage}%`, backgroundColor: d.color }}
                   />
                 </div>
               </div>
@@ -147,24 +151,21 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectScan }) =>
           </div>
         </div>
 
-        {/* Threat Categories Breakdown */}
-        <div className="p-6 rounded-2xl bg-slate-900/80 border border-cyber-border backdrop-blur-xl shadow-xl space-y-5">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono flex items-center gap-2">
-              <Layers className="w-3.5 h-3.5 text-cyan-400" /> Frequent Attack Indicators
+        {/* Threat Categories Matrix */}
+        <div className="p-6 sm:p-8 rounded-3xl bg-[#0c121e] border border-white/10 shadow-xl space-y-6 font-mono">
+          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <Layers className="w-4 h-4 text-amber-400" />
+              <span>Top Threat Vectors Detected</span>
             </h3>
-            <span className="text-[11px] font-mono text-slate-500">Signal Density</span>
           </div>
 
-          <div className="space-y-2.5">
-            {s.threat_categories.map((cat, idx) => (
-              <div
-                key={idx}
-                className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono"
-              >
-                <span className="text-slate-200 font-medium">{cat.category}</span>
-                <span className="px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-500/30 font-bold">
-                  {cat.count} hits
+          <div className="space-y-4 text-xs">
+            {s.threat_categories.map((c) => (
+              <div key={c.category} className="flex items-center justify-between p-3 rounded-2xl bg-[#070b12] border border-white/5">
+                <span className="text-slate-200 font-bold">{c.category}</span>
+                <span className="px-2.5 py-0.5 rounded-full bg-amber-950 text-amber-300 border border-amber-500/40 text-[11px] font-black">
+                  {c.count} Intercepts
                 </span>
               </div>
             ))}
@@ -172,61 +173,37 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onSelectScan }) =>
         </div>
       </div>
 
-      {/* Recent Activity Table */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono flex items-center gap-2">
-            <Activity className="w-3.5 h-3.5 text-cyan-400" /> Recent Threat Telemetry Stream
-          </h3>
-          <span className="text-xs text-slate-400 font-mono">Live Activity</span>
-        </div>
+      {/* Recent Activity List */}
+      <div className="p-6 sm:p-8 rounded-3xl bg-[#0c121e] border border-white/10 shadow-xl space-y-4 font-mono text-xs">
+        <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+          <Clock className="w-4 h-4 text-amber-400" />
+          <span>Recent Activity Stream</span>
+        </h3>
 
-        <div className="overflow-x-auto rounded-2xl border border-cyber-border bg-slate-900/70 backdrop-blur-xl shadow-xl">
-          <table className="w-full text-left text-xs font-mono">
-            <thead className="bg-slate-950 text-slate-400 border-b border-slate-800 uppercase text-[10px]">
-              <tr>
-                <th className="p-3.5">Vector</th>
-                <th className="p-3.5">Target Display</th>
-                <th className="p-3.5">Risk Score</th>
-                <th className="p-3.5">Risk Level</th>
-                <th className="p-3.5">Timestamp</th>
-                <th className="p-3.5">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60">
-              {s.recent_activity.map((act) => (
-                <tr key={act.id} className="hover:bg-slate-800/40 transition-colors">
-                  <td className="p-3.5">
-                    <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-bold text-[10px]">
-                      {act.type}
-                    </span>
-                  </td>
-                  <td className="p-3.5 font-bold text-white max-w-[240px] truncate">
-                    {act.target}
-                  </td>
-                  <td className="p-3.5 font-bold text-slate-200">
-                    {act.risk_score} / 100
-                  </td>
-                  <td className="p-3.5">
-                    <RiskBadge level={act.risk_level} size="sm" showScore={false} />
-                  </td>
-                  <td className="p-3.5 text-slate-400">
-                    {new Date(act.timestamp).toLocaleTimeString()}
-                  </td>
-                  <td className="p-3.5">
-                    <button
-                      onClick={() => onSelectScan(act.id)}
-                      className="text-cyan-400 hover:underline flex items-center gap-1 font-bold"
-                    >
-                      <span>Report</span>
-                      <ArrowUpRight className="w-3.5 h-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {(!s.recent_activity || s.recent_activity.length === 0) ? (
+          <div className="p-8 text-center bg-[#070b12] rounded-2xl border border-white/5 text-slate-400">
+            No recent activity logged yet.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {s.recent_activity.map((act) => (
+              <div
+                key={act.scan_id}
+                onClick={() => onSelectScan(act.scan_id)}
+                className="flex items-center justify-between p-3.5 rounded-2xl bg-[#070b12] border border-white/5 hover:border-amber-500/40 transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-slate-500 text-[10px]">{new Date(act.timestamp).toLocaleTimeString()}</span>
+                  <span className="text-white font-bold truncate max-w-xs">{act.target}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <RiskBadge level={act.risk_level} />
+                  <ArrowUpRight className="w-4 h-4 text-slate-500 hover:text-amber-400" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

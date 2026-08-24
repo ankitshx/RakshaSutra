@@ -29,22 +29,22 @@ export const ScanReportDetailPage: React.FC<ScanReportDetailPageProps> = ({
   }, [scanId]);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-[1780px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 pb-24 font-sans selection:bg-amber-500 selection:text-slate-950">
       <button
         onClick={onBack}
-        className="flex items-center gap-1.5 text-xs font-mono text-cyan-400 hover:underline cursor-pointer"
+        className="flex items-center gap-1.5 text-xs font-mono text-amber-400 hover:underline cursor-pointer"
       >
         <ArrowLeft className="w-4 h-4" />
-        <span>Return to Dashboard / Scanner</span>
+        <span>Return to Dashboard / History</span>
       </button>
 
       {isLoading ? (
-        <div className="flex items-center justify-center py-20 text-cyan-400 font-mono text-xs">
+        <div className="flex items-center justify-center py-20 text-amber-400 font-mono text-xs">
           <Loader2 className="w-5 h-5 animate-spin mr-2" />
           <span>Retrieving Security Report #{scanId.slice(0, 8)}...</span>
         </div>
       ) : error ? (
-        <div className="p-6 rounded-2xl bg-rose-950/60 border border-rose-500/40 text-xs text-rose-300 space-y-2">
+        <div className="p-6 rounded-3xl bg-rose-950/40 border border-rose-500/40 text-xs text-rose-300 space-y-2 font-mono">
           <div className="flex items-center gap-2 font-bold text-sm">
             <AlertTriangle className="w-4 h-4" /> Unable to Load Report
           </div>

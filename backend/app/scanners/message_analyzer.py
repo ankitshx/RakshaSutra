@@ -2,6 +2,8 @@ import re
 from typing import Dict, List, Any, Optional
 from app.scanners.url_scanner import inspect_url_comprehensive
 from app.scanners.risk_engine import get_risk_level_info
+from app.core.pii_scrubber import pii_scrubber
+from app.core.metrics import metrics
 
 # Specific NLP detection categories & regex triggers
 PHISHING_PATTERNS = [
@@ -205,9 +207,15 @@ async def analyze_message_content(content: str, channel: str = "generic", sender
         summary = "No obvious phishing keywords, OTP requests, or high-risk scam patterns were detected in this text. Maintain standard vigilance."
         recommendation = "Always remember: Legitimate banks and services will never ask you for your passwords or OTPs over text or phone."
 
+    # Record Prometheus Observability Metrics
+    metrics.record_scan(scan_type=f"message_{channel}", verdict=risk_level)
+
+    # Scrub PII from sender/content if present
+    scrubbed_sender, _ = pii_scrubber.scrub_text(sender or "") if sender else (None, {})
+
     return {
         "channel": channel,
-        "sender": sender,
+        "sender": scrubbed_sender,
         "risk_score": final_score,
         "risk_level": risk_level,
         "summary": summary,

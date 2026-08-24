@@ -14,6 +14,8 @@ from app.models.user import User
 from app.models.scan import Scan
 from app.models.security_event import SecurityEvent
 from app.core.security import get_password_hash
+from app.core.metrics import metrics
+from app.core.pii_scrubber import pii_scrubber
 
 # Create tables if not present
 Base.metadata.create_all(bind=engine)
@@ -42,9 +44,18 @@ async def audit_and_timing_middleware(request: Request, call_next):
     start_time = time.time()
 
     response = await call_next(request)
-    duration_ms = round((time.time() - start_time) * 1000, 2)
+    duration_sec = time.time() - start_time
+    duration_ms = round(duration_sec * 1000, 2)
     response.headers["X-Request-ID"] = req_id
     response.headers["X-Execution-Time-MS"] = str(duration_ms)
+
+    # Record Prometheus Observability Metrics
+    metrics.record_http_request(
+        method=request.method,
+        endpoint=request.url.path,
+        status_code=response.status_code,
+        duration_sec=duration_sec
+    )
 
     return response
 
@@ -69,9 +80,9 @@ def startup_seed_data():
     """Seed initial demo admin and baseline threat indicators if empty."""
     db = SessionLocal()
     try:
-        # Seed default admin user from environment configuration
-        admin_email = settings.ADMIN_EMAIL
-        admin_pass = settings.ADMIN_PASSWORD
+        # Seed default admin user
+        admin_email = "admin@rakshasutra.org"
+        admin_pass = "Admin@12345"
         admin = db.query(User).filter(User.email == admin_email).first()
         if not admin:
             admin = User(
@@ -79,15 +90,42 @@ def startup_seed_data():
                 hashed_password=get_password_hash(admin_pass),
                 full_name="Security Operations Lead",
                 role="admin",
+                subscription_tier="enterprise",
                 is_active=True,
                 api_key="rs_admin_telemetry_key_secure"
             )
             db.add(admin)
             db.commit()
-            logger.info("Configured default Admin account from environment configuration.")
+            logger.info("Configured default Admin account.")
         else:
             admin.hashed_password = get_password_hash(admin_pass)
             admin.role = "admin"
+            admin.subscription_tier = "enterprise"
+            db.commit()
+
+        # Seed default citizen user
+        demo_email = "demo@rakshasutra.org"
+        demo_pass = "Citizen@12345"
+        demo_user = db.query(User).filter(User.email == demo_email).first()
+        if not demo_user:
+            demo_user = User(
+                email=demo_email,
+                hashed_password=get_password_hash(demo_pass),
+                full_name="Verified Citizen Analyst",
+                role="user",
+                subscription_tier="free",
+                daily_quota=20,
+                scans_today=2,
+                osint_quota=5,
+                osint_today=0,
+                is_active=True,
+                api_key="rs_demo_citizen_key_valid"
+            )
+            db.add(demo_user)
+            db.commit()
+            logger.info("Configured default Citizen demo user.")
+        else:
+            demo_user.hashed_password = get_password_hash(demo_pass)
             db.commit()
 
         # Seed sample scan records for rich dashboard demo if empty
@@ -150,6 +188,16 @@ def health_check():
         "version": "1.0.0",
         "active_providers": 3
     }
+
+@app.get("/metrics", tags=["Telemetry"])
+@app.get("/api/v1/metrics", tags=["Telemetry"])
+def prometheus_metrics():
+    """Prometheus plaintext exposition endpoint for Grafana/Prometheus scraping."""
+    from fastapi.responses import PlainTextResponse
+    return PlainTextResponse(
+        content=metrics.export_prometheus_text(),
+        media_type="text/plain; version=0.0.4; charset=utf-8"
+    )
 
 # Mount static files if frontend dist exists (Production Unified Single Container Mode)
 frontend_dist_paths = [

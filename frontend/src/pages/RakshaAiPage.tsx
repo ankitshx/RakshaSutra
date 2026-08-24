@@ -23,7 +23,7 @@ export const RakshaAiPage: React.FC = () => {
     {
       role: 'assistant',
       content:
-        "### 🛡️ Welcome to Raksha AI Copilot\n\nI am your dedicated **defensive cybersecurity assistant**. You can ask me to:\n\n- Explain why a specific URL or message is hazardous.\n- Guide you step-by-step through an **Incident Response Playbook** if you clicked a link or entered your password.\n- Explain cybersecurity concepts like MFA, UPI fraud mechanisms, and homoglyph attacks.\n\n*How can I assist your digital defense today?*",
+        "### 🛡️ Welcome to Rakhsha AI Copilot\n\nI am your dedicated **defensive cybersecurity assistant**. You can ask me to:\n\n- Explain why a specific URL or message is hazardous.\n- Guide you step-by-step through an **Incident Response Playbook** if you clicked a link or entered your password.\n- Explain cybersecurity concepts like MFA, UPI fraud mechanisms, and homoglyph attacks.\n\n*How can I assist your digital defense today?*",
       suggested_questions: [
         'How do I recognize a phishing message?',
         'I clicked a suspicious link, what should I do now?',
@@ -83,82 +83,102 @@ export const RakshaAiPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-      {/* Header */}
-      <div className="space-y-2 text-center sm:text-left">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-xl bg-cyan-950/80 border border-cyan-500/40 text-cyan-400">
+    <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-24 font-sans selection:bg-amber-500 selection:text-slate-950">
+      {/* Header (RDS 2.0) */}
+      <div className="p-6 rounded-3xl bg-[#0c121e] border border-white/10 shadow-2xl flex flex-wrap items-center justify-between gap-4 relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-2xl bg-amber-950/80 border border-amber-500/40 text-amber-400 shadow-sutra-glow shrink-0">
             <Bot className="w-5 h-5" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
-            Raksha AI — Security Copilot
-          </h1>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
+              RAKHSHA AI — GROUNDED COPILOT
+            </h1>
+            <p className="text-xs text-slate-400 font-mono">
+              Evidence-grounded explanations, plain-language translations, and instant crisis containment
+            </p>
+          </div>
         </div>
-        <p className="text-sm text-slate-400 max-w-2xl">
-          Defensive AI cybersecurity assistant for explaining scan findings, decoding social engineering tactics, and executing emergency incident response containment playbooks.
-        </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Chat Area */}
-        <div className="lg:col-span-8 flex flex-col h-[640px] rounded-2xl border border-cyber-border bg-slate-900/80 backdrop-blur-xl shadow-2xl overflow-hidden">
-          {/* Message Stream */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Left Side: Playbooks & Guidelines */}
+        <div className="space-y-4">
+          <div className="p-5 rounded-3xl bg-[#0c121e] border border-white/10 shadow-xl space-y-4 font-mono text-xs">
+            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <ShieldAlert className="w-4 h-4 text-amber-400" />
+              <span>Incident Response Guides</span>
+            </h3>
+
+            <div className="space-y-2">
+              {playbooks.map((pb) => (
+                <button
+                  key={pb.id}
+                  onClick={() => setSelectedPlaybook(pb)}
+                  className="w-full p-3 rounded-2xl bg-[#070b12] hover:bg-[#141d2e] border border-white/5 text-left text-slate-300 hover:text-white transition-colors flex items-center justify-between cursor-pointer"
+                >
+                  <span className="truncate">{pb.title}</span>
+                  <ChevronRight className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="p-5 rounded-3xl bg-rose-950/30 border border-rose-500/40 space-y-2 font-mono text-xs shadow-ruby-glow">
+            <div className="flex items-center gap-2 text-rose-300 font-bold">
+              <PhoneCall className="w-4 h-4 text-rose-400" />
+              <span>Urgent Financial Fraud?</span>
+            </div>
+            <p className="text-slate-300 font-sans text-[11px] leading-relaxed">
+              If you have lost money via unauthorized transaction or UPI, dial <strong>1930</strong> immediately.
+            </p>
+          </div>
+        </div>
+
+        {/* Right Side: Chat Messenger */}
+        <div className="lg:col-span-3 p-6 rounded-3xl bg-[#0c121e] border border-white/10 shadow-2xl flex flex-col h-[650px] justify-between relative overflow-hidden">
+          {/* Chat Messages Body */}
+          <div className="flex-1 overflow-y-auto space-y-4 pr-2 font-mono text-xs">
             {messages.map((m, idx) => (
               <div
                 key={idx}
                 className={`flex gap-3 ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {m.role === 'assistant' && (
-                  <div className="w-8 h-8 rounded-xl bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0 mt-1 shadow-neon-cyan">
+                  <div className="w-8 h-8 rounded-xl bg-amber-950/80 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-sutra-glow shrink-0">
                     <Bot className="w-4 h-4" />
                   </div>
                 )}
+
                 <div
-                  className={`max-w-[85%] rounded-2xl p-4 text-xs sm:text-sm leading-relaxed ${
+                  className={`p-4 rounded-2xl max-w-2xl font-sans text-sm space-y-2 ${
                     m.role === 'user'
-                      ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 font-semibold'
-                      : 'bg-slate-950 border border-slate-800 text-slate-200 shadow-lg'
+                      ? 'bg-[#141d2e] border border-amber-500/30 text-white font-mono text-xs'
+                      : 'bg-[#070b12] border border-white/10 text-slate-200 leading-relaxed'
                   }`}
                 >
-                  <div className="whitespace-pre-line prose-sm">{m.content}</div>
-
-                  {/* Playbook Trigger if present */}
-                  {m.related_playbook && (
-                    <div className="mt-3 p-3 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-200">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-xs flex items-center gap-1.5">
-                          <ShieldAlert className="w-4 h-4 text-rose-400" />
-                          {m.related_playbook.title}
-                        </span>
-                        <button
-                          onClick={() => setSelectedPlaybook(m.related_playbook!)}
-                          className="px-2.5 py-1 rounded bg-rose-900/60 hover:bg-rose-800 text-[11px] font-bold uppercase transition-colors"
-                        >
-                          View Steps
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  <div className="whitespace-pre-wrap">{m.content}</div>
 
                   {/* Suggested Question Chips */}
                   {m.suggested_questions && m.suggested_questions.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-slate-800/80 flex flex-wrap gap-1.5">
-                      {m.suggested_questions.map((sq, sIdx) => (
+                    <div className="pt-2 flex flex-wrap gap-1.5 font-mono text-[11px]">
+                      {m.suggested_questions.map((q, qIdx) => (
                         <button
-                          key={sIdx}
-                          onClick={() => handleSend(sq)}
-                          disabled={isLoading}
-                          className="px-2.5 py-1 rounded-full bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-300 text-[11px] border border-cyan-500/30 transition-colors cursor-pointer"
+                          key={qIdx}
+                          onClick={() => handleSend(q)}
+                          className="px-2.5 py-1 rounded-xl bg-[#0c121e] border border-white/10 hover:border-amber-500/40 text-amber-300 transition-colors cursor-pointer"
                         >
-                          {sq}
+                          {q}
                         </button>
                       ))}
                     </div>
                   )}
                 </div>
+
                 {m.role === 'user' && (
-                  <div className="w-8 h-8 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 shrink-0 mt-1">
+                  <div className="w-8 h-8 rounded-xl bg-[#141d2e] border border-white/10 flex items-center justify-center text-slate-300 shrink-0">
                     <User className="w-4 h-4" />
                   </div>
                 )}
@@ -166,14 +186,9 @@ export const RakshaAiPage: React.FC = () => {
             ))}
 
             {isLoading && (
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-xl bg-cyan-950 border border-cyan-500/40 flex items-center justify-center text-cyan-400 shrink-0">
-                  <Bot className="w-4 h-4" />
-                </div>
-                <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-cyan-400 flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Raksha AI analyzing threat intelligence...</span>
-                </div>
+              <div className="flex items-center gap-3 text-amber-400 font-mono text-xs">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>RakshaAI is generating grounded explanation...</span>
               </div>
             )}
             <div ref={chatBottomRef} />
@@ -185,134 +200,45 @@ export const RakshaAiPage: React.FC = () => {
               e.preventDefault();
               handleSend();
             }}
-            className="p-3 bg-slate-950 border-t border-slate-800 flex items-center gap-2"
+            className="pt-4 border-t border-white/10 flex gap-2 font-mono"
           >
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask Raksha AI a security question or paste a suspicious situation..."
-              disabled={isLoading}
-              className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500"
+              placeholder="Ask Rakhsha AI about a suspicious URL, scam tactic, or defense action..."
+              className="flex-1 px-4 py-3.5 rounded-2xl bg-[#030508] border border-white/10 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-amber-500 shadow-inner"
             />
             <button
               type="submit"
               disabled={isLoading || !input.trim()}
-              className="p-2.5 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 text-slate-950 font-bold transition-all disabled:opacity-40 cursor-pointer shadow-neon-cyan"
+              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 font-black text-xs uppercase flex items-center gap-2 shadow-sutra-glow disabled:opacity-50 cursor-pointer"
             >
               <Send className="w-4 h-4" />
+              <span>ASK</span>
             </button>
           </form>
         </div>
-
-        {/* Sidebar: Incident Playbooks & Helplines */}
-        <div className="lg:col-span-4 space-y-4">
-          <div className="p-5 rounded-2xl bg-slate-900/80 border border-cyber-border backdrop-blur-xl shadow-xl space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 font-mono flex items-center gap-2">
-              <ShieldAlert className="w-3.5 h-3.5 text-rose-400" /> Emergency Incident Playbooks
-            </h3>
-            <div className="space-y-2">
-              {playbooks.map((pb) => (
-                <div
-                  key={pb.id}
-                  onClick={() => setSelectedPlaybook(pb)}
-                  className="p-3 rounded-xl bg-slate-950 hover:bg-slate-850 border border-slate-800 hover:border-rose-500/40 cursor-pointer transition-all space-y-1 group"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-white group-hover:text-rose-400">
-                      {pb.title}
-                    </span>
-                    <ChevronRight className="w-3.5 h-3.5 text-slate-500 group-hover:text-rose-400" />
-                  </div>
-                  <p className="text-[11px] text-slate-400 line-clamp-2">
-                    {pb.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* National Helplines Box */}
-          <div className="p-5 rounded-2xl bg-slate-900/80 border border-cyber-border backdrop-blur-xl space-y-3 text-xs font-mono">
-            <h3 className="font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-2">
-              <PhoneCall className="w-3.5 h-3.5" /> Emergency Cyber Helplines
-            </h3>
-            <div className="space-y-2 text-slate-300">
-              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                <span className="text-rose-400 font-bold block">1930 (India)</span>
-                <span className="text-[11px] text-slate-400 font-sans">
-                  Citizen Financial Cyber Fraud Reporting System
-                </span>
-              </div>
-              <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800">
-                <span className="text-cyan-400 font-bold block">cybercrime.gov.in</span>
-                <span className="text-[11px] text-slate-400 font-sans">
-                  National Cyber Crime Reporting Portal
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
 
-      {/* Playbook Modal */}
+      {/* Selected Playbook Modal */}
       {selectedPlaybook && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="w-full max-w-2xl rounded-2xl bg-slate-950 border border-rose-500/50 p-6 space-y-5 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="text-lg font-bold text-white font-mono flex items-center gap-2">
-                <ShieldAlert className="w-5 h-5 text-rose-400" />
-                {selectedPlaybook.title}
-              </h3>
-              <button
-                onClick={() => setSelectedPlaybook(null)}
-                className="text-slate-400 hover:text-white font-mono text-sm px-2 py-1"
-              >
-                ✕ Close
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#030508]/85 backdrop-blur-md">
+          <div className="w-full max-w-xl rounded-3xl bg-[#0c121e] border border-white/10 p-6 space-y-4 shadow-2xl font-mono text-xs">
+            <div className="flex justify-between items-center border-b border-white/10 pb-3">
+              <h4 className="text-white font-bold">{selectedPlaybook.title}</h4>
+              <button onClick={() => setSelectedPlaybook(null)} className="text-slate-400 hover:text-white cursor-pointer">
+                ✕
               </button>
             </div>
-
-            <p className="text-xs text-slate-300">{selectedPlaybook.description}</p>
-
+            <p className="text-slate-300 font-sans">{selectedPlaybook.description}</p>
             <div className="space-y-2">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-rose-400 font-mono">
-                Immediate Action Steps (Containment):
-              </h4>
-              <div className="space-y-2">
-                {selectedPlaybook.immediate_steps.map((step, idx) => (
-                  <div
-                    key={idx}
-                    className="p-2.5 rounded-lg bg-rose-950/40 border border-rose-600/30 text-xs text-rose-200 font-medium"
-                  >
-                    {step}
-                  </div>
+              <span className="text-amber-400 font-bold uppercase">Ordered Action Steps:</span>
+              <ol className="list-decimal list-inside space-y-1.5 text-slate-200 font-sans">
+                {selectedPlaybook.action_steps.map((st: string, i: number) => (
+                  <li key={i}>{st}</li>
                 ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-cyan-400 font-mono">
-                Secondary Protective Measures:
-              </h4>
-              <div className="space-y-2">
-                {selectedPlaybook.secondary_steps.map((step, idx) => (
-                  <div
-                    key={idx}
-                    className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-300"
-                  >
-                    {step}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="pt-2 border-t border-slate-800 text-right">
-              <button
-                onClick={() => setSelectedPlaybook(null)}
-                className="px-5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold uppercase"
-              >
-                Done
-              </button>
+              </ol>
             </div>
           </div>
         </div>

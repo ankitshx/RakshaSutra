@@ -1,14 +1,13 @@
 import React, { useState } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
-import { ThreatTicker } from './components/common/ThreatTicker';
-import { Navbar } from './components/common/Navbar';
-import { Footer } from './components/common/Footer';
+import { AppShell } from './components/layout/AppShell';
 import { FloatingAiAssistant } from './components/common/FloatingAiAssistant';
 import { LandingPage } from './pages/LandingPage';
 import { InvestigationCenterPage } from './pages/InvestigationCenterPage';
 import { MonitoringPage } from './pages/MonitoringPage';
 import { SecurityPassportPage } from './pages/SecurityPassportPage';
+import { SecurityPosturePage } from './pages/SecurityPosturePage';
 import { DeveloperPlaygroundPage } from './pages/DeveloperPlaygroundPage';
 import { TrustCenterPage } from './pages/TrustCenterPage';
 import { UrlScannerPage } from './pages/UrlScannerPage';
@@ -28,6 +27,10 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ScanReportDetailPage } from './pages/ScanReportDetailPage';
 import { LegalPages } from './pages/LegalPages';
+import { DigitalSecurityMap } from './components/visualization/DigitalSecurityMap';
+import { EmergencyDefenseCenterPage } from './pages/EmergencyDefenseCenterPage';
+import { EvidenceVaultPage } from './pages/EvidenceVaultPage';
+import { ReportsCenterPage } from './pages/ReportsCenterPage';
 import type { ScanResponse } from './types';
 
 const MainApp: React.FC = () => {
@@ -36,6 +39,7 @@ const MainApp: React.FC = () => {
 
   const handleViewReport = (report: ScanResponse) => {
     setSelectedScanId(report.scan_id);
+    setActiveTab('report-detail');
   };
 
   const handleSelectScanFromAnywhere = (scanId: string) => {
@@ -50,15 +54,8 @@ const MainApp: React.FC = () => {
   const isLegalTab = ['privacy', 'terms', 'refund', 'security', 'contact'].includes(activeTab);
 
   return (
-    <div className="min-h-screen flex flex-col bg-cyber-bg dark:bg-cyber-bg bg-slate-50 text-slate-100 dark:text-slate-100 text-slate-900 font-sans selection:bg-cyan-500 selection:text-slate-950 transition-colors duration-200">
-      {/* Top Real-time Security Ticker */}
-      <ThreatTicker />
-
-      {/* Main Glassmorphic Navigation Bar */}
-      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
-
-      {/* Main Content Body */}
-      <main className="flex-1">
+    <AppShell activeTab={activeTab} setActiveTab={setActiveTab}>
+      <main className="w-full">
         {activeTab === 'landing' && (
           <LandingPage
             setActiveTab={setActiveTab}
@@ -68,7 +65,14 @@ const MainApp: React.FC = () => {
         {activeTab === 'investigation-center' && (
           <InvestigationCenterPage onNavigateTab={setActiveTab} />
         )}
+        {activeTab === 'security-map' && <DigitalSecurityMap />}
+        {activeTab === 'emergency-mode' && <EmergencyDefenseCenterPage />}
+        {activeTab === 'evidence-vault' && <EvidenceVaultPage />}
+        {activeTab === 'reports-center' && <ReportsCenterPage />}
         {activeTab === 'monitoring' && <MonitoringPage />}
+        {(activeTab === 'security-posture' || activeTab === 'security-radar') && (
+          <SecurityPosturePage onNavigateTab={setActiveTab} />
+        )}
         {activeTab === 'security-passport' && <SecurityPassportPage />}
         {activeTab === 'developer-playground' && <DeveloperPlaygroundPage />}
         {activeTab === 'trust-center' && <TrustCenterPage />}
@@ -122,10 +126,7 @@ const MainApp: React.FC = () => {
 
       {/* Floating AI Security Copilot Button */}
       <FloatingAiAssistant onOpenFullPage={() => setActiveTab('raksha-ai')} />
-
-      {/* Footer with Legal & Emergency Information */}
-      <Footer setActiveTab={setActiveTab} />
-    </div>
+    </AppShell>
   );
 };
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { api } from '../services/api';
 import type { ScanResponse } from '../types';
 import { ScanReportView } from '../components/scanner/ScanReportView';
-import { Search, Loader2, AlertTriangle, Sparkles } from 'lucide-react';
+import { Loader2, AlertTriangle, Sparkles, Zap } from 'lucide-react';
 
 interface UrlScannerPageProps {
   onAskAI: (scanId: string) => void;
@@ -65,32 +65,36 @@ export const UrlScannerPage: React.FC<UrlScannerPageProps> = ({ onAskAI }) => {
   };
 
   return (
-    <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-[1720px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-24 font-sans selection:bg-amber-500 selection:text-slate-950">
       {/* Header */}
-      <div className="space-y-2 text-center sm:text-left">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-xl bg-cyan-950/80 border border-cyan-500/40 text-cyan-400">
-            <Search className="w-5 h-5" />
+      <div className="p-6 rounded-3xl bg-[#0c121e] border border-white/10 shadow-2xl flex flex-wrap items-center justify-between gap-4 relative overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 rounded-2xl bg-amber-950/80 border border-amber-500/40 text-amber-400 shadow-sutra-glow shrink-0">
+            <Zap className="w-5 h-5" />
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white font-mono tracking-tight">
-            URL Security Scanner
-          </h1>
+          <div>
+            <h1 className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
+              URL & DOMAIN SECURITY SCANNER
+            </h1>
+            <p className="text-xs text-slate-400 font-mono">
+              Deterministic inspection for typosquatting, IDN homoglyphs, high-risk TLDs, and executable payloads
+            </p>
+          </div>
         </div>
-        <p className="text-sm text-slate-400 max-w-2xl">
-          Deep deterministic inspection for typosquatting, IDN homoglyphs, high-risk TLDs, IP representations, executable downloads, and malicious redirect hops.
-        </p>
       </div>
 
       {/* Input Box */}
-      <div className="p-6 rounded-2xl bg-slate-900/80 border border-cyber-border backdrop-blur-xl shadow-xl space-y-4">
+      <div className="p-6 sm:p-8 rounded-3xl bg-[#0c121e] border border-white/10 shadow-xl space-y-4 relative overflow-hidden">
         <form
           onSubmit={(e) => {
             e.preventDefault();
             handleScan();
           }}
-          className="space-y-3"
+          className="space-y-3 font-mono"
         >
-          <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 font-mono">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-300">
             Target URL or Hostname
           </label>
           <div className="flex flex-col sm:flex-row gap-2">
@@ -98,72 +102,65 @@ export const UrlScannerPage: React.FC<UrlScannerPageProps> = ({ onAskAI }) => {
               type="text"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="e.g. http://login-sbi-pan-update.xyz/verify.php"
-              disabled={isLoading}
-              className="flex-1 px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-sm text-white placeholder-slate-500 font-mono focus:outline-none focus:border-cyan-500 transition-colors"
+              placeholder="https://login-sbi-verify.xyz/otp or suspicious-host.top"
+              className="flex-1 px-4 py-3.5 rounded-2xl bg-[#030508] border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 text-sm shadow-inner transition-colors"
             />
             <button
               type="submit"
-              disabled={isLoading}
-              className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-extrabold text-xs uppercase tracking-wider shadow-neon-cyan transition-all flex items-center justify-center gap-2 shrink-0 disabled:opacity-50 cursor-pointer"
+              disabled={isLoading || !url.trim()}
+              className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs tracking-wider flex items-center justify-center gap-2 shadow-sutra-glow disabled:opacity-50 transition-all cursor-pointer shrink-0"
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Scanning...</span>
+                  <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                  <span>ANALYZING...</span>
                 </>
               ) : (
                 <>
                   <Sparkles className="w-4 h-4" />
-                  <span>Inspect URL</span>
+                  <span>SCAN LINK</span>
                 </>
               )}
             </button>
           </div>
-        </form>
 
-        {/* Preset Sample Links */}
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800/80 text-xs text-slate-400">
-          <span className="font-semibold">Quick Presets:</span>
-          {sampleScans.map((sample, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => {
-                setUrl(sample.url);
-                handleScan(sample.url);
-              }}
-              disabled={isLoading}
-              className="px-2.5 py-1 rounded bg-slate-950 hover:bg-slate-800 text-slate-300 hover:text-cyan-300 border border-slate-800 font-mono text-[11px] transition-colors"
-            >
-              {sample.label}
-            </button>
-          ))}
-        </div>
-      </div>
+          {step && (
+            <div className="flex items-center gap-2 text-xs text-amber-300/90 pt-1 animate-pulse">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+              <span>{step}</span>
+            </div>
+          )}
 
-      {/* Real-time Loader */}
-      {isLoading && (
-        <div className="p-4 rounded-xl bg-cyan-950/40 border border-cyan-500/30 flex items-center gap-3 text-xs text-cyan-300 animate-pulse font-mono">
-          <Loader2 className="w-4 h-4 animate-spin text-cyan-400 shrink-0" />
-          <span>{step}</span>
-        </div>
-      )}
+          {error && (
+            <div className="p-3 rounded-2xl bg-rose-950/80 border border-rose-500/50 text-rose-300 text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400" />
+              <span>{error}</span>
+            </div>
+          )}
 
-      {/* Error alert */}
-      {error && (
-        <div className="p-4 rounded-xl bg-rose-950/60 border border-rose-500/40 flex items-center gap-3 text-xs text-rose-300">
-          <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
-          <div>
-            <span className="font-bold block">Scan Encountered An Error</span>
-            <span>{error}</span>
+          {/* Sample Scans */}
+          <div className="pt-2 flex flex-wrap items-center gap-2 text-xs">
+            <span className="text-slate-400 text-[11px]">Quick Tests:</span>
+            {sampleScans.map((s) => (
+              <button
+                key={s.label}
+                type="button"
+                onClick={() => {
+                  setUrl(s.url);
+                  handleScan(s.url);
+                }}
+                className="px-3 py-1 rounded-xl bg-[#070b12] border border-white/10 hover:border-amber-500/40 text-slate-300 hover:text-amber-300 transition-colors cursor-pointer text-[11px]"
+              >
+                {s.label}
+              </button>
+            ))}
           </div>
-        </div>
-      )}
+        </form>
+      </div>
 
       {/* Report Result */}
       {report && (
-        <div className="space-y-6 pt-2">
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
           <ScanReportView report={report} onAskAI={onAskAI} />
         </div>
       )}

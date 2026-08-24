@@ -133,6 +133,8 @@ def synthesize_risk_report(
         threat_intel_result.get("hits", []),
         indicators
     )
+    recommendation = generate_recommendations(risk_level, impersonation_info)
+
     # Derive clear Traffic Light Verdict and Confidence Score
     if final_score >= 65:
         verdict = "DANGER"

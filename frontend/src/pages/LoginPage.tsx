@@ -9,8 +9,7 @@ import {
   ArrowRight,
   Eye,
   EyeOff,
-  CheckCircle2,
-  PhoneCall
+  CheckCircle2
 } from 'lucide-react';
 
 interface AuthPageProps {
@@ -53,166 +52,178 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onSuccess, onSwitchToRegist
     }
   };
 
+  const handleQuickDemoLogin = async (demoEmail: string, demoPass: string) => {
+    setEmail(demoEmail);
+    setPassword(demoPass);
+    setIsLoading(true);
+    setLoadingStep('Authenticating Demo Persona...');
+    setError(null);
+
+    try {
+      await login(demoEmail, demoPass);
+      onSuccess();
+    } catch (err: any) {
+      setError(err.message || 'Demo authentication failed.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="min-h-[85vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+    <div className="min-h-[85vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-8 sm:py-12 font-sans selection:bg-amber-500 selection:text-slate-950">
       <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
         
-        {/* Left Side: Brand Identity & Security Value Prop (Desktop) */}
+        {/* Left Side: Brand Identity & Security Value Prop (RDS 2.0) */}
         <div className="lg:col-span-6 space-y-6 text-center lg:text-left">
-          <div className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-mono font-bold">
-            <Shield className="w-4 h-4" />
-            <span>EXPLAINABLE CYBERSECURITY PLATFORM</span>
+          <div className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-amber-950/80 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold shadow-sutra-glow">
+            <Shield className="w-4 h-4 text-amber-400" />
+            <span>OPERATIONAL DEFENSE COMMAND CENTER</span>
           </div>
 
           <div className="space-y-3">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 dark:text-white font-sans">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white font-sans">
               Check Before <br className="hidden lg:block" />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-500">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-400 to-amber-200">
                 You Click.
               </span>
             </h1>
-            <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 max-w-md mx-auto lg:mx-0">
-              Sign in to access your threat scan history, OSINT investigations, dark web breach monitoring, and developer API keys.
+            <p className="text-sm sm:text-base text-slate-400 max-w-md mx-auto lg:mx-0 font-sans leading-relaxed">
+              Sign in to access persistent threat investigations, dark web breach alerts, active deception canaries, and cryptographic API keys.
             </p>
           </div>
 
           {/* Value Highlights */}
-          <div className="space-y-3 pt-2 text-left max-w-md mx-auto lg:mx-0">
-            <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-900/40 border border-slate-800/80">
-              <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
-              <div className="text-xs">
-                <span className="font-bold text-slate-200">Traffic Light Verdicts</span>
-                <p className="text-slate-400">Zero security jargon: Instant SAFE, CAUTION, or DANGER clarity.</p>
-              </div>
+          <div className="space-y-3 pt-2 text-left max-w-md mx-auto lg:mx-0 font-mono text-xs">
+            <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-[#0c121e] border border-white/10 shadow-lg">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span className="text-slate-300">Continuous 24/7 background domain & SSL drift monitoring</span>
             </div>
-
-            <div className="flex items-start gap-3 p-3 rounded-2xl bg-slate-900/40 border border-slate-800/80">
-              <CheckCircle2 className="w-5 h-5 text-cyan-400 shrink-0 mt-0.5" />
-              <div className="text-xs">
-                <span className="font-bold text-slate-200">6 Free Scans Daily</span>
-                <p className="text-slate-400">Resetting daily at 00:00 UTC with full access to 1930 Helpline advice.</p>
-              </div>
+            <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-[#0c121e] border border-white/10 shadow-lg">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span className="text-slate-300">k-Anonymity zero-knowledge dark web exposure audits</span>
             </div>
-          </div>
-
-          {/* Emergency Helpline note */}
-          <div className="pt-2 flex items-center justify-center lg:justify-start gap-2 text-xs text-slate-500">
-            <PhoneCall className="w-3.5 h-3.5 text-rose-400" />
-            <span>Immediate cyber fraud victim assistance: Dial <strong>1930</strong> (Toll-Free in India)</span>
+            <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-[#0c121e] border border-white/10 shadow-lg">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span className="text-slate-300">Active decoy honeytokens & intruder tripwires</span>
+            </div>
           </div>
         </div>
 
-        {/* Right Side: High-Performance Responsive Login Box */}
+        {/* Right Side: Authentication Box (RDS 2.0 Bastion Panel) */}
         <div className="lg:col-span-6 w-full max-w-md mx-auto">
-          <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/90 border border-cyber-border backdrop-blur-xl shadow-2xl space-y-6">
-            
+          <div className="p-6 sm:p-8 rounded-3xl bg-[#0c121e] border border-white/10 shadow-2xl space-y-6 relative overflow-hidden">
+            <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
+
             <div className="space-y-1">
-              <h2 className="text-xl sm:text-2xl font-bold text-white font-sans tracking-tight">
-                Account Sign In
+              <h2 className="text-xl sm:text-2xl font-black text-white font-mono tracking-tight">
+                SECURE SIGN IN
               </h2>
-              <p className="text-xs text-slate-400">
-                Enter your credentials to manage your security dashboard.
+              <p className="text-xs text-slate-400 font-mono">
+                Enter your credentials to enter your command console
               </p>
             </div>
 
             {error && (
-              <div className="p-4 rounded-2xl bg-rose-950/60 border border-rose-500/40 flex items-start gap-3 text-xs text-rose-300 animate-in fade-in duration-200">
-                <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-                <span>{error}</span>
+              <div className="p-3.5 rounded-2xl bg-rose-950/80 border border-rose-500/50 text-rose-300 text-xs font-mono flex items-start gap-2.5 animate-in fade-in duration-200">
+                <AlertTriangle className="w-4 h-4 shrink-0 text-rose-400 mt-0.5" />
+                <span className="leading-snug">{error}</span>
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              
-              {/* Email Address */}
+            <form onSubmit={handleSubmit} className="space-y-4 font-mono text-xs">
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 font-mono">
+                <label className="block text-slate-300 font-bold uppercase tracking-wider text-[11px]">
                   Email Address
                 </label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@company.com"
-                    required
-                    autoComplete="email"
-                    className="w-full pl-10 pr-4 py-3 min-h-[44px] rounded-2xl bg-slate-950/90 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-sans"
+                    placeholder="operator@security.org"
+                    disabled={isLoading}
+                    className="w-full pl-10 pr-4 py-3 rounded-2xl bg-[#030508] border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors shadow-inner"
                   />
                 </div>
               </div>
 
-              {/* Password */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 font-mono">
-                    Password
-                  </label>
-                  <a
-                    href="#forgot"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      alert('Password reset instructions: Please contact your security team or support@rakshasutra.org for identity verification.');
-                    }}
-                    className="text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
-                  >
-                    Forgot password?
-                  </a>
-                </div>
+                <label className="block text-slate-300 font-bold uppercase tracking-wider text-[11px]">
+                  Security Password
+                </label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••••••"
-                    required
-                    autoComplete="current-password"
-                    className="w-full pl-10 pr-11 py-3 min-h-[44px] rounded-2xl bg-slate-950/90 border border-slate-800 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all font-sans"
+                    disabled={isLoading}
+                    className="w-full pl-10 pr-10 py-3 rounded-2xl bg-[#030508] border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors shadow-inner"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-3 text-slate-400 hover:text-slate-200 p-1 cursor-pointer"
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
 
-              {/* Submit Button */}
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3.5 min-h-[44px] rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/40 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-sutra-glow flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 transition-all"
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
                     <span>{loadingStep}</span>
                   </>
                 ) : (
                   <>
-                    <span>Sign In Securely</span>
+                    <span>AUTHENTICATE & ENTER</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
             </form>
 
-            <div className="pt-2 text-center text-xs text-slate-400 border-t border-slate-800/80">
-              <span>Don't have an account yet? </span>
+            {/* Quick Demo Logins */}
+            <div className="pt-2 border-t border-white/10 space-y-2 font-mono text-xs">
+              <span className="text-[11px] text-slate-400 uppercase font-bold block text-center">
+                1-Click Quick Demo Access
+              </span>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin('demo@sharma1.org', 'DemoUser123!')}
+                  className="p-2.5 rounded-xl bg-[#070b12] hover:bg-[#141d2e] border border-white/10 text-slate-300 hover:text-amber-300 transition-colors text-center text-[11px] cursor-pointer"
+                >
+                  Demo User
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickDemoLogin('admin@sharma1.org', 'AdminSOC2026!')}
+                  className="p-2.5 rounded-xl bg-[#070b12] hover:bg-[#141d2e] border border-white/10 text-slate-300 hover:text-amber-300 transition-colors text-center text-[11px] cursor-pointer"
+                >
+                  Admin SOC
+                </button>
+              </div>
+            </div>
+
+            <div className="text-center font-mono text-xs pt-1">
+              <span className="text-slate-400">Need a new defense account? </span>
               <button
                 type="button"
                 onClick={onSwitchToRegister}
-                className="text-cyan-400 hover:text-cyan-300 font-bold hover:underline cursor-pointer ml-1"
+                className="text-amber-400 hover:underline font-bold cursor-pointer"
               >
-                Create Free Account
+                Create Account
               </button>
             </div>
-
           </div>
         </div>
 
