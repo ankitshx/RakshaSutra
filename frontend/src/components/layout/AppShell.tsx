@@ -22,11 +22,12 @@ import {
   Sliders,
   Zap,
   Globe,
-  ShieldCheck,
   Compass,
   LayoutGrid,
   Sparkles,
-  Radio
+  Radio,
+  Bug,
+  Building2
 } from 'lucide-react';
 
 interface AppShellProps {
@@ -46,6 +47,29 @@ export const AppShell: React.FC<AppShellProps> = ({
   });
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState<boolean>(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState<boolean>(false);
+  const [latencyMs, setLatencyMs] = useState<number | null>(null);
+  const [isOnline, setIsOnline] = useState<boolean>(true);
+
+  // Measure backend latency & connection heartbeat
+  useEffect(() => {
+    const checkPing = async () => {
+      const t0 = performance.now();
+      try {
+        const res = await fetch('/api/v1/health');
+        if (res.ok) {
+          setLatencyMs(Math.round(performance.now() - t0));
+          setIsOnline(true);
+        } else {
+          setIsOnline(false);
+        }
+      } catch {
+        setIsOnline(false);
+      }
+    };
+    checkPing();
+    const interval = setInterval(checkPing, 20000);
+    return () => clearInterval(interval);
+  }, []);
 
   const toggleSidebar = () => {
     setIsCollapsed(prev => {
@@ -72,9 +96,20 @@ export const AppShell: React.FC<AppShellProps> = ({
       title: 'COMMAND CENTER',
       items: [
         { id: 'landing', label: 'Command Overview', icon: LayoutGrid },
-        { id: 'security-posture', label: 'Security Radar', icon: Compass },
+        { id: 'security-posture', label: 'Security Posture 2.0', icon: Compass },
         { id: 'monitoring', label: 'Continuous Watchlist', icon: Bell },
         { id: 'dashboard', label: 'Telemetry Stream', icon: Activity }
+      ]
+    },
+    {
+      title: 'DIGITAL DEFENSE OS',
+      items: [
+        { id: 'attack-surface', label: 'Attack Surface (ASM)', icon: Globe, badge: 'ASM' },
+        { id: 'security-graph', label: 'Security Asset Graph', icon: Network, badge: 'Graph' },
+        { id: 'vulnerabilities', label: 'Vulnerability Intel', icon: Bug, badge: 'CVE' },
+        { id: 'alerts', label: 'SOC Alerts Pipeline', icon: Bell, badge: 'SOC' },
+        { id: 'incidents', label: 'Incident Response', icon: Flame, badge: 'IR' },
+        { id: 'organization', label: 'Workspace & RBAC', icon: Building2 }
       ]
     },
     {
@@ -97,27 +132,22 @@ export const AppShell: React.FC<AppShellProps> = ({
     {
       title: 'THREAT INTELLIGENCE',
       items: [
+        { id: 'cyber-news', label: 'Cyber Threat News', icon: Radio, badge: 'Hourly' },
         { id: 'threat-intel', label: 'Threat Intelligence', icon: Radio },
         { id: 'osint', label: 'OSINT Footprint Graph', icon: Network },
         { id: 'security-map', label: 'Digital Security Map', icon: Network }
       ]
     },
     {
-      title: 'EVIDENCE & AUDITING',
+      title: 'REPORTS & ACADEMY',
       items: [
+        { id: 'reports-center', label: 'Security Reports', icon: FileText },
         { id: 'evidence-vault', label: 'Evidence Vault', icon: Layers },
-        { id: 'reports-center', label: 'Report Dossier Center', icon: FileText },
         { id: 'security-passport', label: 'Security Passport', icon: Award },
-        { id: 'developer-playground', label: 'Developer API Gateway', icon: Terminal },
-        ...(isAdmin ? [{ id: 'admin', label: 'SOC Operations', icon: Sliders }] : [])
-      ]
-    },
-    {
-      title: 'ACADEMY & TRUST',
-      items: [
         { id: 'raksha-ai', label: 'RakshaAI Copilot', icon: Sparkles },
         { id: 'awareness', label: 'Security Academy', icon: Award },
-        { id: 'trust-center', label: 'Trust & Verification', icon: ShieldCheck }
+        { id: 'developer-playground', label: 'Developer API Gateway', icon: Terminal },
+        ...(isAdmin ? [{ id: 'admin', label: 'SOC Admin Operations', icon: Sliders }] : [])
       ]
     }
   ];
@@ -292,9 +322,16 @@ export const AppShell: React.FC<AppShellProps> = ({
 
             {/* Live Security Telemetry Badge */}
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0c121e] border border-white/10 text-[11px] font-mono">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
               <span className="text-slate-400">DEFENSIVE STATUS:</span>
-              <span className="text-emerald-300 font-bold">100% OPERATIONAL</span>
+              <span className={`font-bold ${isOnline ? 'text-emerald-300' : 'text-rose-400'}`}>
+                {isOnline ? '100% OPERATIONAL' : 'DEGRADED / OFFLINE'}
+              </span>
+              {latencyMs !== null && isOnline && (
+                <span className="text-[10px] text-amber-400/90 pl-1 border-l border-white/10">
+                  {latencyMs}ms
+                </span>
+              )}
             </div>
           </div>
 

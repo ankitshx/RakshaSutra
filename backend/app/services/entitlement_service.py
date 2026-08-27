@@ -3,7 +3,7 @@ RakshaSutra Entitlement & Authorization Service
 Authoritative server-side source of truth for all user plan limits, features, and quotas.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -103,7 +103,7 @@ class EntitlementService:
             return {"allowed": True, "tier": tier, "osint_today": getattr(user, "osint_today", 1), "osint_quota": "Unlimited"}
 
         # Free tier logic
-        today_str = datetime.utcnow().strftime("%Y-%m-%d")
+        today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         if user:
             if getattr(user, "last_osint_date", None) != today_str:
                 user.osint_today = 0

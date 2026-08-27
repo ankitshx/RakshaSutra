@@ -72,6 +72,23 @@ async def list_webhook_endpoints(
         for ep in endpoints
     ]
 
+@router.delete("/endpoints/{endpoint_id}")
+async def delete_webhook_endpoint(
+    endpoint_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete a registered webhook endpoint."""
+    ep = db.query(WebhookEndpoint).filter(
+        WebhookEndpoint.id == endpoint_id,
+        WebhookEndpoint.user_id == current_user.id
+    ).first()
+    if not ep:
+        raise HTTPException(status_code=404, detail="Webhook endpoint not found.")
+    db.delete(ep)
+    db.commit()
+    return {"status": "success", "message": "Webhook endpoint deleted successfully."}
+
 @router.post("/endpoints/{endpoint_id}/test")
 async def test_webhook_ping(
     endpoint_id: str,

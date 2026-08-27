@@ -16,7 +16,10 @@ import {
   Layers,
   ArrowRight,
   Sparkles,
-  Compass
+  Compass,
+  Globe,
+  Bug,
+  Building2
 } from 'lucide-react';
 
 interface CommandPaletteProps {
@@ -32,16 +35,27 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 }) => {
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [liveResults, setLiveResults] = useState<any[]>([]);
+  const [loadingLive, setLoadingLive] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const commandItems = [
+    // RakhshaSutra v3.0 Digital Defense OS Core
+    { id: 'attack-surface', category: 'Defense OS v3.0', label: 'Attack Surface Management (ASM)', icon: Globe, badge: 'ASM v3.0', action: () => onNavigate('attack-surface') },
+    { id: 'security-graph', category: 'Defense OS v3.0', label: 'Security Asset Graph 2.0', icon: Network, badge: 'Graph', action: () => onNavigate('security-graph') },
+    { id: 'vulnerabilities', category: 'Defense OS v3.0', label: 'Vulnerability Intelligence (CVE)', icon: Bug, badge: 'CVSS/EPSS', action: () => onNavigate('vulnerabilities') },
+    { id: 'alerts', category: 'Defense OS v3.0', label: 'SOC Alerts Pipeline', icon: Bell, badge: 'SOC', action: () => onNavigate('alerts') },
+    { id: 'incidents', category: 'Defense OS v3.0', label: 'SOC Incident Response Center', icon: Flame, badge: 'Incidents', action: () => onNavigate('incidents') },
+    { id: 'organization', category: 'Defense OS v3.0', label: 'Organization & RBAC 2.0 Workspace', icon: Building2, badge: 'Multi-Tenant', action: () => onNavigate('organization') },
+    { id: 'reports-center', category: 'Defense OS v3.0', label: 'Security Reports & Dossier Export', icon: FileText, badge: 'Reports', action: () => onNavigate('reports-center') },
+
     // Fast Actions
     { id: 'action-scan', category: 'Fast Actions', label: 'Investigate Target (URL, Domain, Email, IP)', icon: Sparkles, action: (q: string) => onNavigate('investigation-center', { target: q }) },
     { id: 'action-emergency', category: 'Emergency Response', label: 'Emergency Defense ("Something Happened?")', icon: ShieldAlert, badge: 'Critical', action: () => onNavigate('emergency-mode') },
     
     // Command Center
-    { id: 'landing', category: 'Command Center', label: 'Command Center Overview', icon: Shield, action: () => onNavigate('landing') },
-    { id: 'security-posture', category: 'Command Center', label: 'Security Radar & Posture Breakdown', icon: Compass, action: () => onNavigate('security-posture') },
+    { id: 'landing', category: 'Command Center', label: 'Global Command Center Overview', icon: Shield, action: () => onNavigate('landing') },
+    { id: 'security-posture', category: 'Command Center', label: 'Security Posture 2.0 (11 Dimensions)', icon: Compass, action: () => onNavigate('security-posture') },
     { id: 'monitoring', category: 'Command Center', label: 'Continuous Target Watchlist & Diffs', icon: Bell, action: () => onNavigate('monitoring') },
     { id: 'dashboard', category: 'Command Center', label: 'Telemetry Stream & System Logs', icon: Activity, action: () => onNavigate('dashboard') },
     
@@ -61,15 +75,59 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
 
     // Reports & Learn
     { id: 'evidence-vault', category: 'Reports', label: 'Evidence Vault & Verification Trail', icon: Layers, action: () => onNavigate('evidence-vault') },
-    { id: 'reports-center', category: 'Reports', label: 'Security Reports & Export Center', icon: FileText, action: () => onNavigate('reports-center') },
     { id: 'awareness', category: 'Learn', label: 'Security Academy & Interactive Labs', icon: Award, action: () => onNavigate('awareness') },
     { id: 'developer-playground', category: 'Developer', label: 'Developer REST API Gateway & Webhooks', icon: Terminal, action: () => onNavigate('developer-playground') }
   ];
 
-  const filtered = commandItems.filter(item => {
-    if (!query.trim()) return true;
-    return item.label.toLowerCase().includes(query.toLowerCase()) || item.category.toLowerCase().includes(query.toLowerCase());
-  });
+  // Live universal search fetch
+  useEffect(() => {
+    if (!query.trim() || query.length < 2) {
+      setLiveResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setLoadingLive(true);
+        const res = await fetch(`/api/v1/search?q=${encodeURIComponent(query.trim())}`);
+        if (res.ok) {
+          const data = await res.json();
+          const items: any[] = [];
+          
+          if (data.categories) {
+            Object.entries(data.categories).forEach(([catKey, catItems]: [string, any]) => {
+              catItems.forEach((item: any) => {
+                items.push({
+                  id: `live-${item.id}`,
+                  category: `Entity: ${catKey.toUpperCase()}`,
+                  label: item.title,
+                  subtitle: item.subtitle,
+                  badge: item.badge,
+                  icon: catKey === 'assets' ? Globe : (catKey === 'vulnerabilities' ? Bug : Search),
+                  action: () => onNavigate(item.link_tab, { entity_id: item.entity_id })
+                });
+              });
+            });
+          }
+          setLiveResults(items);
+        }
+      } catch (err) {
+        console.error('Universal search error:', err);
+      } finally {
+        setLoadingLive(false);
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const filtered = [
+    ...liveResults,
+    ...commandItems.filter(item => {
+      if (!query.trim()) return true;
+      return item.label.toLowerCase().includes(query.toLowerCase()) || item.category.toLowerCase().includes(query.toLowerCase());
+    })
+  ];
 
   useEffect(() => {
     if (isOpen) {
@@ -122,9 +180,10 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
               setQuery(e.target.value);
               setSelectedIndex(0);
             }}
-            placeholder="Type a command, search modules, or enter target to investigate..."
+            placeholder="Type a command, CVE, domain, IP, or entity (Ctrl+K)..."
             className="w-full bg-transparent text-sm text-white placeholder-slate-500 font-mono focus:outline-none"
           />
+          {loadingLive && <span className="text-[10px] font-mono text-amber-400 animate-pulse mr-2">Searching...</span>}
           <span className="px-2 py-0.5 rounded bg-[#141d2e] text-[10px] font-mono text-slate-400 border border-white/10 ml-2">
             ESC
           </span>
@@ -136,7 +195,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             <div className="p-8 text-center space-y-3">
               <Search className="w-8 h-8 text-slate-600 mx-auto" />
               <p className="text-xs text-slate-400 font-mono">
-                No matching security commands found for "{query}".
+                No matching security records found for "{query}".
               </p>
               <button
                 onClick={() => {
@@ -150,7 +209,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             </div>
           ) : (
             filtered.map((item, idx) => {
-              const Icon = item.icon;
+              const Icon = item.icon || Search;
               const isSelected = selectedIndex === idx;
               return (
                 <div
@@ -180,13 +239,13 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
                           {item.label}
                         </span>
                         {item.badge && (
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-500/40">
+                          <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-bold bg-amber-950/80 text-amber-300 border border-amber-500/40">
                             {item.badge}
                           </span>
                         )}
                       </div>
                       <span className="text-[10px] font-mono text-slate-400">
-                        {item.category}
+                        {item.subtitle || item.category}
                       </span>
                     </div>
                   </div>
@@ -212,7 +271,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
             <span>↵ Execute</span>
             <span>ESC Close</span>
           </div>
-          <span className="text-amber-400/80 font-bold">RakhshaSutra Command Console</span>
+          <span className="text-amber-400/80 font-bold">RakhshaSutra v3.0 Universal Search</span>
         </div>
       </div>
     </div>

@@ -5,7 +5,7 @@ Reads all environment variables and controls feature flags, security parameters,
 
 import os
 from typing import List
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "RakshaSutra"
@@ -31,8 +31,10 @@ class Settings(BaseSettings):
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://localhost:8080",
         "https://rakshasutra.org",
-        "https://app.rakshasutra.org"
+        "https://app.rakshasutra.org",
+        "*"
     ]
     
     # Threat Intelligence API Keys (Optional external enrichment)
@@ -62,8 +64,10 @@ class Settings(BaseSettings):
     HTTP_MAX_REDIRECTS: int = 4
     HTTP_MAX_BODY_SIZE_BYTES: int = 512 * 1024  # 512 KB
     
-    class Config:
-        case_sensitive = True
-        env_file = ".env"
+    model_config = SettingsConfigDict(
+        case_sensitive=True,
+        env_file=".env",
+        extra="ignore"
+    )
 
 settings = Settings()

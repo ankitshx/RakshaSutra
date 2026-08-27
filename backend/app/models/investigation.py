@@ -1,18 +1,21 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Integer, Float, Boolean, DateTime, Text, JSON, ForeignKey
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
+def utc_now():
+    return datetime.now(timezone.utc)
+
 def generate_investigation_id() -> str:
     """Generate professional, human-readable Investigation ID (e.g. RS-INV-2026-A89F2C)."""
-    year = datetime.utcnow().year
+    year = datetime.now(timezone.utc).year
     random_hex = uuid.uuid4().hex[:6].upper()
     return f"RS-INV-{year}-{random_hex}"
 
 def generate_passport_id() -> str:
     """Generate privacy-safe Security Passport ID (e.g. RS-PASS-2026-C4B8)."""
-    year = datetime.utcnow().year
+    year = datetime.now(timezone.utc).year
     random_hex = uuid.uuid4().hex[:4].upper()
     return f"RS-PASS-{year}-{random_hex}"
 
@@ -45,8 +48,8 @@ class Investigation(Base):
     scoring_breakdown = Column(JSON, default=dict) # Component score breakdown
     raw_telemetry = Column(JSON, default=dict) # DNS, TLS, HTTP, Page intelligence
     
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
 
     # Relationships
     evidence_items = relationship("EvidenceItem", back_populates="investigation", cascade="all, delete-orphan")
@@ -75,7 +78,7 @@ class EvidenceItem(Base):
     explanation = Column(Text, nullable=True)
     raw_data = Column(JSON, default=dict)
     
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
     investigation = relationship("Investigation", back_populates="evidence_items")
 
@@ -91,7 +94,7 @@ class InvestigationEvent(Base):
     description = Column(String(256), nullable=False)
     status = Column(String(16), default="SUCCESS", nullable=False) # SUCCESS, SKIPPED, FAILED, UNAVAILABLE
     duration_ms = Column(Float, default=0.0)
-    timestamp = Column(DateTime, default=datetime.utcnow, nullable=False)
+    timestamp = Column(DateTime, default=utc_now, nullable=False)
 
     investigation = relationship("Investigation", back_populates="timeline_events")
 
@@ -113,7 +116,7 @@ class MonitoredTarget(Base):
     last_verdict = Column(String(16), default="SAFE")
     
     last_state_snapshot = Column(JSON, default=dict) # DNS IPs, SSL cert hash, headers
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
     alerts = relationship("MonitoringAlert", back_populates="target", cascade="all, delete-orphan")
 
@@ -136,7 +139,7 @@ class MonitoringAlert(Base):
     diff_summary = Column(Text, nullable=True)
     
     is_read = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
     target = relationship("MonitoredTarget", back_populates="alerts")
 
@@ -158,8 +161,8 @@ class SecurityScoreCard(Base):
     privacy_controls_score = Column(Integer, default=80)
     
     recommendations = Column(JSON, default=list)
-    last_assessed_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    last_assessed_at = Column(DateTime, default=utc_now, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
 
 class WebhookEndpoint(Base):
@@ -174,7 +177,7 @@ class WebhookEndpoint(Base):
     is_active = Column(Boolean, default=True)
     
     subscribed_events = Column(JSON, default=lambda: ["investigation.completed", "threat.detected", "monitoring.alert"])
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
     deliveries = relationship("WebhookDelivery", back_populates="endpoint", cascade="all, delete-orphan")
 
@@ -194,7 +197,7 @@ class WebhookDelivery(Base):
     duration_ms = Column(Float, default=0.0)
     
     success = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
     endpoint = relationship("WebhookEndpoint", back_populates="deliveries")
 
@@ -209,7 +212,7 @@ class UserFeedback(Base):
     
     rating = Column(String(32), nullable=False) # CORRECT, FALSE_POSITIVE, MISSING_INFO, UNSURE
     comments = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=utc_now, nullable=False)
 
     investigation = relationship("Investigation", back_populates="feedback")
 
@@ -225,4 +228,4 @@ class AuthorizationRecord(Base):
     confirmed_ownership = Column(Boolean, default=True, nullable=False)
     ip_address = Column(String(64), nullable=True)
     user_agent = Column(String(512), nullable=True)
-    authorized_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    authorized_at = Column(DateTime, default=utc_now, nullable=False)

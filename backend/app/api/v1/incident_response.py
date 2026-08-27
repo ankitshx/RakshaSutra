@@ -6,7 +6,7 @@ Assisted workflow — does NOT automatically attack or disrupt external infrastr
 """
 
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 from urllib.parse import urlparse
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -78,8 +78,8 @@ def generate_incident_dossier(
     elif "aws" in domain or "amazonaws" in domain:
         registrar = REGISTRAR_DATABASE["aws"]
 
-    evidence_hash = hashlib.sha256(f"{url_str}|{domain}|{datetime.utcnow().strftime('%Y-%m-%d')}".encode()).hexdigest()
-    now_utc = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+    evidence_hash = hashlib.sha256(f"{url_str}|{domain}|{datetime.now(timezone.utc).strftime('%Y-%m-%d')}".encode()).hexdigest()
+    now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
     # RFC 2822 Abuse Letter
     rfc_notice = f"""To: {registrar['email']}

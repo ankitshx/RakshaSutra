@@ -20,7 +20,31 @@ from app.api.v1.osint import router as osint_router
 from app.api.v1.api_keys import router as api_keys_router
 from app.api.v1.legal import router as legal_router
 
+# RakhshaSutra v3.0 Routers
+from app.api.v1.assets import router as assets_router
+from app.api.v1.vulnerabilities import router as vulnerabilities_router
+from app.api.v1.alerts import router as alerts_router
+from app.api.v1.incidents import router as incidents_router
+from app.api.v1.automation import router as automation_router
+from app.api.v1.reports import router as reports_router
+from app.api.v1.events import router as events_router
+from app.api.v1.universal_search import router as search_router
+from app.api.v1.organizations import router as organizations_router
+from app.api.v1.cyber_news import router as cyber_news_router
+
 api_router = APIRouter()
+
+# RakhshaSutra v3.0 Core OS Routers
+api_router.include_router(assets_router)
+api_router.include_router(vulnerabilities_router)
+api_router.include_router(alerts_router)
+api_router.include_router(incidents_router)
+api_router.include_router(automation_router)
+api_router.include_router(reports_router)
+api_router.include_router(events_router)
+api_router.include_router(search_router)
+api_router.include_router(organizations_router)
+api_router.include_router(cyber_news_router)
 
 # Core Flagship Routers
 api_router.include_router(investigations_router)

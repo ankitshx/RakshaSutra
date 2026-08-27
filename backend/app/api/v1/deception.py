@@ -6,7 +6,7 @@ with silent telemetry capture for intrusion tripwires.
 
 import uuid
 import secrets
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
@@ -107,7 +107,7 @@ def create_honeytoken(
             "TRIGGER_ACTION": "HTTP GET / Image load"
         }
 
-    now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
     token_record = {
         "id": token_id,
@@ -159,7 +159,7 @@ def trip_honeytoken_webhook(
     client_ip = request.client.host if request.client else "unknown"
     user_agent = request.headers.get("user-agent", "Unknown Client")
     referer = request.headers.get("referer", None)
-    now_str = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+    now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
 
     if token_id in ACTIVE_HONEYTOKENS:
         token = ACTIVE_HONEYTOKENS[token_id]

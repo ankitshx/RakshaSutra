@@ -6,6 +6,7 @@ import type { AttentionItem } from '../components/command-center/AttentionRequir
 import { SecurityInbox } from '../components/command-center/SecurityInbox';
 import { UniversalInvestigator } from '../components/investigation/UniversalInvestigator';
 import { EmergencyPanicModal } from '../components/common/EmergencyPanicModal';
+import { CyberNewsTicker } from '../components/common/CyberNewsTicker';
 import {
   ShieldAlert,
   ShieldCheck,
@@ -16,7 +17,11 @@ import {
   Lock,
   Sparkles,
   Globe,
-  KeyRound
+  KeyRound,
+  Bug,
+  Flame,
+  Bell,
+  FileText
 } from 'lucide-react';
 
 interface LandingPageProps {
@@ -65,8 +70,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab }) => {
   };
 
   return (
-    <div className="max-w-[1780px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10 pb-24 font-sans selection:bg-amber-500 selection:text-slate-950">
+    <div className="max-w-[1780px] mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 space-y-6 sm:space-y-8 pb-24 font-sans selection:bg-amber-500 selection:text-slate-950">
       
+      {/* Hourly Cyber Threat News & Breaking Bulletins Ticker */}
+      <CyberNewsTicker
+        onNavigateToNews={() => setActiveTab('cyber-news')}
+        onInvestigateThreat={(target) => setActiveTab('investigation-center', { target })}
+      />
+
       {/* 1. Command Center Top Digital Security Status Banner (RDS 2.0) */}
       <section className="p-6 sm:p-8 rounded-3xl bg-[#0c121e] border border-white/10 shadow-2xl space-y-6 relative overflow-hidden">
         {/* Subtle decorative thread */}
@@ -145,6 +156,129 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab }) => {
         <UniversalInvestigator
           onInvestigate={handleStartInvestigation}
         />
+      </section>
+
+      {/* 2.5 RakhshaSutra v3.0 Digital Defense OS Command Modules */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <h3 className="text-sm font-mono font-bold text-white tracking-wide uppercase">
+              Digital Defense OS v3.0 Command Perimeters
+            </h3>
+          </div>
+          <span className="text-[11px] font-mono text-slate-500">Autonomous Telemetry & SOC Response</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div
+            onClick={() => setActiveTab('attack-surface')}
+            className="p-5 rounded-2xl bg-[#0c121e] border border-white/10 hover:border-amber-500/50 transition-all cursor-pointer space-y-2 group shadow-xl"
+          >
+            <div className="flex items-center justify-between">
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 group-hover:scale-105 transition-transform">
+                <Globe className="w-5 h-5" />
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-500/30">
+                ASM v3.0
+              </span>
+            </div>
+            <h4 className="text-sm font-bold font-mono text-white group-hover:text-amber-300">Attack Surface Management</h4>
+            <p className="text-xs text-slate-400 font-sans leading-relaxed">
+              Track apex domains, subdomains, certificates, and passive CT log drift.
+            </p>
+          </div>
+
+          <div
+            onClick={() => setActiveTab('security-graph')}
+            className="p-5 rounded-2xl bg-[#0c121e] border border-white/10 hover:border-cyan-500/50 transition-all cursor-pointer space-y-2 group shadow-xl"
+          >
+            <div className="flex items-center justify-between">
+              <div className="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 group-hover:scale-105 transition-transform">
+                <Network className="w-5 h-5" />
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-500/30">
+                Graph 2.0
+              </span>
+            </div>
+            <h4 className="text-sm font-bold font-mono text-white group-hover:text-cyan-300">Security Asset Graph</h4>
+            <p className="text-xs text-slate-400 font-sans leading-relaxed">
+              Interactive visual topology mapping assets, IPs, CVEs, and threat links.
+            </p>
+          </div>
+
+          <div
+            onClick={() => setActiveTab('vulnerabilities')}
+            className="p-5 rounded-2xl bg-[#0c121e] border border-white/10 hover:border-rose-500/50 transition-all cursor-pointer space-y-2 group shadow-xl"
+          >
+            <div className="flex items-center justify-between">
+              <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 group-hover:scale-105 transition-transform">
+                <Bug className="w-5 h-5" />
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-500/30">
+                CVE Intel
+              </span>
+            </div>
+            <h4 className="text-sm font-bold font-mono text-white group-hover:text-rose-300">Vulnerability Intelligence</h4>
+            <p className="text-xs text-slate-400 font-sans leading-relaxed">
+              Authoritative CVE database with CVSS 3.1 & EPSS probability metrics.
+            </p>
+          </div>
+
+          <div
+            onClick={() => setActiveTab('alerts')}
+            className="p-5 rounded-2xl bg-[#0c121e] border border-white/10 hover:border-amber-500/50 transition-all cursor-pointer space-y-2 group shadow-xl"
+          >
+            <div className="flex items-center justify-between">
+              <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 group-hover:scale-105 transition-transform">
+                <Bell className="w-5 h-5" />
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-950 text-amber-300 border border-amber-500/30">
+                SOC Pipeline
+              </span>
+            </div>
+            <h4 className="text-sm font-bold font-mono text-white group-hover:text-amber-300">SOC Alerts Pipeline</h4>
+            <p className="text-xs text-slate-400 font-sans leading-relaxed">
+              Real-time alert triage, deduplication, and single-click incident escalation.
+            </p>
+          </div>
+
+          <div
+            onClick={() => setActiveTab('incidents')}
+            className="p-5 rounded-2xl bg-[#0c121e] border border-white/10 hover:border-rose-500/50 transition-all cursor-pointer space-y-2 group shadow-xl"
+          >
+            <div className="flex items-center justify-between">
+              <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 group-hover:scale-105 transition-transform">
+                <Flame className="w-5 h-5" />
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-rose-950 text-rose-300 border border-rose-500/30">
+                Incident IR
+              </span>
+            </div>
+            <h4 className="text-sm font-bold font-mono text-white group-hover:text-rose-300">Incident Response Center</h4>
+            <p className="text-xs text-slate-400 font-sans leading-relaxed">
+              Containment checklists, forensic timeline logs, and analyst notes.
+            </p>
+          </div>
+
+          <div
+            onClick={() => setActiveTab('reports-center')}
+            className="p-5 rounded-2xl bg-[#0c121e] border border-white/10 hover:border-blue-500/50 transition-all cursor-pointer space-y-2 group shadow-xl"
+          >
+            <div className="flex items-center justify-between">
+              <div className="p-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400 group-hover:scale-105 transition-transform">
+                <FileText className="w-5 h-5" />
+              </div>
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-950 text-blue-300 border border-blue-500/30">
+                Dossier Export
+              </span>
+            </div>
+            <h4 className="text-sm font-bold font-mono text-white group-hover:text-blue-300">Security Reports</h4>
+            <p className="text-xs text-slate-400 font-sans leading-relaxed">
+              Executive summaries, compliance audits, and printable PDF reports.
+            </p>
+          </div>
+        </div>
       </section>
 
       {/* 3. Security Posture Radar (Central Radial Visualization) */}

@@ -26,14 +26,17 @@ def chat_with_raksha_ai(
     result = generate_ai_security_response(
         query=req.message,
         context_scan=context_scan,
-        history=history_dicts
+        history=history_dicts,
+        mode=req.mode
     )
 
     return AiChatResponse(
         response=result["response"],
+        mode=req.mode,
         suggested_questions=result.get("suggested_questions", []),
         related_playbook=result.get("related_playbook"),
-        references=result.get("references", [])
+        references=result.get("references", []),
+        evidence_citations=result.get("evidence_citations", [])
     )
 
 @router.get("/playbooks", response_model=List[IncidentPlaybookOut])

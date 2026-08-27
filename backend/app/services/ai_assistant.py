@@ -277,10 +277,11 @@ def generate_ai_security_response(
     context_scan: Optional[Scan] = None,
     context_investigation: Optional[Investigation] = None,
     user_role: str = "normal_user",
-    history: Optional[List[Dict[str, str]]] = None
+    history: Optional[List[Dict[str, str]]] = None,
+    mode: str = "guardian"
 ) -> Dict[str, Any]:
     """
-    Generate grounded, explainable cybersecurity guidance.
+    Generate grounded, explainable cybersecurity guidance in Analyst or Guardian mode.
     Uses structured investigation evidence strictly. Never invents facts.
     """
     q_text = query.strip()

@@ -638,5 +638,28 @@ export const api = {
   getTermsOfService: async (): Promise<any> => {
     const res = await fetch(`${API_BASE}/legal/terms-of-service`);
     return handleResponse<any>(res);
+  },
+
+  // Hourly Cyber News & Threat Dispatches
+  getCyberNews: async (category?: string, search?: string, limit: number = 30): Promise<any> => {
+    const params = new URLSearchParams();
+    if (category && category !== 'all') params.append('category', category);
+    if (search) params.append('search', search);
+    params.append('limit', limit.toString());
+    const res = await fetch(`${API_BASE}/cyber-news?${params.toString()}`);
+    return handleResponse<any>(res);
+  },
+
+  getBreakingCyberNews: async (limit: number = 5): Promise<any[]> => {
+    const res = await fetch(`${API_BASE}/cyber-news/breaking?limit=${limit}`);
+    return handleResponse<any[]>(res);
+  },
+
+  refreshCyberNews: async (): Promise<any> => {
+    const res = await fetch(`${API_BASE}/cyber-news/refresh`, {
+      method: 'POST',
+      headers: getAuthHeader()
+    });
+    return handleResponse<any>(res);
   }
 };

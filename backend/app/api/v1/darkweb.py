@@ -7,7 +7,7 @@ Zero-Knowledge Privacy: Passwords and sensitive PII are never stored or transmit
 
 import hashlib
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -66,7 +66,7 @@ async def fetch_live_hibp_breaches() -> List[Dict[str, Any]]:
     """Fetch verified breaches directory from HaveIBeenPwned public API."""
     global CACHED_HIBP_BREACHES, LAST_BREACH_FETCH_TIME
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     if CACHED_HIBP_BREACHES and LAST_BREACH_FETCH_TIME and (now - LAST_BREACH_FETCH_TIME).total_seconds() < 3600:
         return CACHED_HIBP_BREACHES
 
@@ -256,6 +256,6 @@ async def check_darkweb_exposure(
         compromised_data_types=compromised_data_types,
         breaches=matched_breaches,
         remediation_steps=remediation_steps,
-        scan_timestamp=datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+        scan_timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
         data_source="HaveIBeenPwned Verified Directory & Cloudflare k-Anonymity Index"
     )

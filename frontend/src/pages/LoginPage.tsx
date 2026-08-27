@@ -192,25 +192,45 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onSuccess, onSwitchToRegist
             </form>
 
             {/* Quick Demo Logins */}
-            <div className="pt-2 border-t border-white/10 space-y-2 font-mono text-xs">
+            <div className="pt-2 border-t border-white/10 space-y-3 font-mono text-xs">
               <span className="text-[11px] text-slate-400 uppercase font-bold block text-center">
                 1-Click Quick Demo Access
               </span>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => handleQuickDemoLogin('demo@sharma1.org', 'DemoUser123!')}
-                  className="p-2.5 rounded-xl bg-[#070b12] hover:bg-[#141d2e] border border-white/10 text-slate-300 hover:text-amber-300 transition-colors text-center text-[11px] cursor-pointer"
-                >
-                  Demo User
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleQuickDemoLogin('admin@sharma1.org', 'AdminSOC2026!')}
-                  className="p-2.5 rounded-xl bg-[#070b12] hover:bg-[#141d2e] border border-white/10 text-slate-300 hover:text-amber-300 transition-colors text-center text-[11px] cursor-pointer"
-                >
-                  Admin SOC
-                </button>
+              <button
+                type="button"
+                onClick={() => handleQuickDemoLogin('demo@rakshasutra.org', 'Citizen@12345')}
+                className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-300 hover:text-white transition-colors text-center text-[11px] font-bold cursor-pointer"
+              >
+                🛡️ Citizen Demo (1-Click)
+              </button>
+
+              {/* Administrative Access Credentials */}
+              <div className="p-3 rounded-2xl bg-[#030508] border border-white/10 space-y-2 text-[11px]">
+                <div className="text-slate-400 font-bold uppercase tracking-wider text-[10px] text-center border-b border-white/5 pb-1">
+                  🔑 Administrative Credentials
+                </div>
+                <div className="space-y-1.5 text-left text-slate-300">
+                  <div className="flex items-center justify-between">
+                    <span className="text-amber-400 font-bold">Super Admin:</span>
+                    <button
+                      type="button"
+                      onClick={() => { setEmail('superadmin@rakshasutra.org'); setPassword('SuperAdmin@12345'); }}
+                      className="text-[10px] text-amber-300 hover:underline cursor-pointer font-mono"
+                    >
+                      superadmin@rakshasutra.org / SuperAdmin@12345
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-blue-400 font-bold">Admin SOC:</span>
+                    <button
+                      type="button"
+                      onClick={() => { setEmail('admin@rakshasutra.org'); setPassword('Admin@12345'); }}
+                      className="text-[10px] text-blue-300 hover:underline cursor-pointer font-mono"
+                    >
+                      admin@rakshasutra.org / Admin@12345
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
 

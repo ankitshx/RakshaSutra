@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  rakshasutra-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rakshasutra_core
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - SECRET_KEY=${SECRET_KEY:-rakshasutra_super_secure_prod_key_2026_change_me}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@rakshasutra.org}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-ChangeThisAdminSecret2026!}
+      - DATABASE_URL=sqlite:///./rakshasutra.db
+      - VIRUSTOTAL_API_KEY=${VIRUSTOTAL_API_KEY:-}
+      - GOOGLE_SAFE_BROWSING_KEY=${GOOGLE_SAFE_BROWSING_KEY:-}
+      - ABUSEIPDB_API_KEY=${ABUSEIPDB_API_KEY:-}
+      - URLHAUS_API_KEY=${URLHAUS_API_KEY:-}
+      - RAZORPAY_KEY_ID=${RAZORPAY_KEY_ID:-rzp_test_rakshasutra_2026}
+      - RAZORPAY_KEY_SECRET=${RAZORPAY_KEY_SECRET:-rakshasutra_rzp_secret_key_dev}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    volumes:
+      - rakshasutra_data:/app/backend
+
+volumes:
+  rakshasutra_data:
+    driver: local

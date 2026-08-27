@@ -1,163 +1,287 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   FileText,
-  Download,
   Printer,
-  CheckCircle2
+  Sparkles,
+  RefreshCw
 } from 'lucide-react';
 
+interface SecurityReport {
+  id: string;
+  title: string;
+  report_type: string;
+  summary: string;
+  target_scope?: string;
+  overall_posture_score: number;
+  findings_summary: Record<string, number>;
+  created_at?: string;
+  content_markdown?: string;
+}
+
 export const ReportsCenterPage: React.FC = () => {
-  const [reportType, setReportType] = useState<'executive' | 'technical' | 'incident' | 'compliance'>('executive');
+  const [reports, setReports] = useState<SecurityReport[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [selectedReport, setSelectedReport] = useState<SecurityReport | null>(null);
+  const [isGenerateModalOpen, setIsGenerateModalOpen] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
+  // Form states
+  const [newTitle, setNewTitle] = useState('Q3 2026 Comprehensive Security Assessment');
+  const [newType, setNewType] = useState('EXECUTIVE_SUMMARY');
+  const [newScope, setNewScope] = useState('Entire Digital Infrastructure');
+
+  const fetchReports = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/v1/reports');
+      if (res.ok) {
+        const data = await res.json();
+        setReports(data);
+        if (data.length > 0 && !selectedReport) {
+          fetchReportDetail(data[0].id);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load reports:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchReportDetail = async (id: string) => {
+    try {
+      const res = await fetch(`/api/v1/reports/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        setSelectedReport(data);
+      }
+    } catch (err) {
+      console.error('Fetch report detail error:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const handleGenerateReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setGenerating(true);
+      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+      const res = await fetch('/api/v1/reports/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({
+          title: newTitle,
+          report_type: newType,
+          target_scope: newScope
+        })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setIsGenerateModalOpen(false);
+        fetchReports();
+        fetchReportDetail(data.id);
+      }
+    } catch (err) {
+      console.error('Report generation error:', err);
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const handlePrint = () => {
     window.print();
   };
 
-  const handleExportJson = () => {
-    const reportData = {
-      report_title: reportType === 'executive' ? 'Executive Digital Security Summary' :
-                    reportType === 'technical' ? 'Technical Threat & Forensics Dossier' :
-                    reportType === 'incident' ? 'Formal Incident Response Dossier' : 'NIST CSF 2.0 Compliance Posture Report',
-      generated_at: new Date().toISOString(),
-      platform: 'RakhshaSutra Personal Digital Security Command Center',
-      overall_security_score: 84,
-      posture_verdict: 'STABLE',
-      active_monitored_targets: 6,
-      zero_knowledge_verified: true,
-      executive_summary: 'Overall digital security perimeter remains stable with an 84/100 composite index. Zero active credential exposures detected across 900M+ dark web databases.',
-      top_recommendations: [
-        'Enforce strict DMARC reject (p=reject) on root domain mail records.',
-        'Review secondary port bindings on external IP hosts.',
-        'Maintain monthly dark web breach scans for all associated aliases.'
-      ]
-    };
-
-    const jsonStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(reportData, null, 2));
-    const downloadAnchor = document.createElement('a');
-    downloadAnchor.setAttribute("href", jsonStr);
-    downloadAnchor.setAttribute("download", `RakshaSutra_${reportType}_Report_${Date.now()}.json`);
-    document.body.appendChild(downloadAnchor);
-    downloadAnchor.click();
-    downloadAnchor.remove();
-  };
-
   return (
-    <div className="max-w-[1780px] mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 pb-24 font-sans selection:bg-amber-500 selection:text-slate-950">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
       
-      {/* Header (RDS 2.0) */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-[#0c121e] border border-white/10 shadow-2xl flex flex-wrap items-center justify-between gap-4 relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
-
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-amber-950/80 border border-amber-500/40 flex items-center justify-center text-amber-400 shadow-sutra-glow shrink-0">
-            <FileText className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="text-lg sm:text-xl font-black text-white font-mono tracking-wider">
-              SECURITY REPORTS & DOSSIER EXPORT CENTER
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-6 rounded-2xl bg-[#0c121e] border border-white/10 shadow-2xl backdrop-blur-xl">
+        <div>
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 rounded-xl bg-blue-500/10 border border-blue-500/30 text-blue-400">
+              <FileText className="w-5 h-5" />
+            </div>
+            <h1 className="text-xl sm:text-2xl font-bold font-mono text-white tracking-tight">
+              Security Reports & Dossier Generator
             </h1>
-            <p className="text-xs text-slate-400 font-mono">
-              Formal executive summaries, forensic investigation dossiers, and audit compliance packages
-            </p>
           </div>
+          <p className="mt-1.5 text-xs sm:text-sm text-slate-400 font-sans max-w-2xl">
+            Generate formal executive summaries, technical vulnerability audits, incident postmortems, and printable compliance dossiers.
+          </p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
-            onClick={handlePrint}
-            className="px-4 py-2.5 rounded-xl bg-[#070b12] hover:bg-[#141d2e] border border-white/10 text-slate-200 text-xs font-mono font-bold flex items-center gap-2 cursor-pointer transition-colors"
+            onClick={fetchReports}
+            className="p-2.5 rounded-xl bg-[#030508] border border-white/10 text-slate-400 hover:text-white cursor-pointer"
+            title="Refresh"
           >
-            <Printer className="w-4 h-4 text-amber-400" />
-            <span>Print Report (PDF)</span>
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
           <button
-            onClick={handleExportJson}
-            className="px-4 py-2.5 rounded-xl bg-[#141d2e] hover:bg-[#1b273d] border border-amber-500/40 text-amber-300 text-xs font-mono font-bold flex items-center gap-2 cursor-pointer transition-colors shadow-sutra-glow"
+            onClick={() => setIsGenerateModalOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-400 hover:to-blue-500 text-white font-mono text-xs font-bold transition-all cursor-pointer shadow-sutra-glow"
           >
-            <Download className="w-4 h-4" />
-            <span>Download JSON</span>
+            <Sparkles className="w-4 h-4" />
+            <span>Generate New Report</span>
           </button>
         </div>
       </div>
 
-      {/* Report Template Selector */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-mono text-xs">
-        {[
-          { id: 'executive', title: 'Executive Posture Summary', desc: 'High-level safety score, deltas, and strategic recommendations' },
-          { id: 'technical', title: 'Technical Threat Dossier', desc: 'Deep DNS, TLS, header audits, and forensic indicators' },
-          { id: 'incident', title: 'Incident Response Package', desc: 'CERT-In formatted notice and registrar abuse letter' },
-          { id: 'compliance', title: 'NIST CSF 2.0 Assessment', desc: 'Organizational control mapping and posture ratings' }
-        ].map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setReportType(t.id as any)}
-            className={`p-5 rounded-2xl border text-left transition-all cursor-pointer space-y-2 ${
-              reportType === t.id
-                ? 'bg-[#141d2e] border-l-2 border-l-amber-500 border-y border-r border-white/10 shadow-sutra-glow font-bold'
-                : 'bg-[#0c121e] border-white/10 text-slate-400 hover:text-white'
-            }`}
-          >
-            <h4 className="text-sm font-bold text-white font-mono">{t.title}</h4>
-            <p className="text-[11px] text-slate-400 font-sans leading-relaxed">{t.desc}</p>
-          </button>
-        ))}
-      </div>
+      {/* Split Workspace */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Left Column: Report List */}
+        <div className="lg:col-span-4 space-y-3">
+          <h3 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-wider">
+            Available Reports ({reports.length})
+          </h3>
 
-      {/* Preview Sheet Card */}
-      <div className="p-8 sm:p-12 rounded-3xl bg-[#0c121e] border border-white/10 shadow-2xl space-y-8 max-w-4xl mx-auto font-sans">
-        <div className="flex justify-between items-start border-b border-white/10 pb-6">
-          <div>
-            <span className="text-xs font-mono font-bold text-amber-400 uppercase tracking-widest block">
-              RAKSHASUTRA AUDIT REPORT
-            </span>
-            <h2 className="text-2xl font-black text-white font-mono mt-1">
-              {reportType === 'executive' && 'Executive Digital Security Summary'}
-              {reportType === 'technical' && 'Technical Threat & Forensics Dossier'}
-              {reportType === 'incident' && 'Formal Incident Response Dossier'}
-              {reportType === 'compliance' && 'NIST CSF 2.0 Compliance Assessment'}
-            </h2>
-            <span className="text-xs text-slate-400 font-mono">
-              Generated: {new Date().toLocaleString()} • Platform v1.0.0-PROD
-            </span>
-          </div>
+          <div className="space-y-2.5 max-h-[700px] overflow-y-auto pr-1">
+            {reports.length === 0 ? (
+              <div className="p-8 text-center text-slate-500 font-mono text-xs rounded-xl bg-[#0c121e] border border-white/10">
+                No security reports generated yet.
+              </div>
+            ) : (
+              reports.map(rep => (
+                <div
+                  key={rep.id}
+                  onClick={() => fetchReportDetail(rep.id)}
+                  className={`p-4 rounded-xl border transition-all cursor-pointer shadow-md space-y-2 ${
+                    selectedReport?.id === rep.id
+                      ? 'bg-blue-950/30 border-blue-500/50'
+                      : 'bg-[#0c121e] border-white/10 hover:border-white/20'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold text-blue-400">{rep.id}</span>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-slate-800 text-slate-300">
+                      Score: {rep.overall_posture_score}
+                    </span>
+                  </div>
 
-          <div className="text-right font-mono">
-            <span className="text-xs text-slate-400 uppercase block">Composite Index</span>
-            <span className="text-3xl font-black text-emerald-400">84/100</span>
+                  <h4 className="text-xs font-bold font-mono text-white line-clamp-1">{rep.title}</h4>
+                  <p className="text-[11px] text-slate-400 font-sans line-clamp-2">{rep.summary}</p>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-white/5 text-[10px] font-mono text-slate-500">
+                    <span>{rep.report_type}</span>
+                    <span>{rep.created_at?.split('T')[0]}</span>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
-        <div className="space-y-6 text-sm text-slate-200 leading-relaxed">
-          <div className="space-y-2">
-            <h4 className="text-xs font-mono font-bold uppercase text-slate-400 tracking-wider">
-              Executive Evaluation Narrative
-            </h4>
-            <p className="text-slate-300">
-              The audited digital perimeter exhibits hardened defensive controls across core identity vectors. All primary domain assets maintain valid TLS transport certificates and cryptographic k-Anonymity privacy lookups confirm zero leaked plaintext passwords in monitored breach registers.
-            </p>
-          </div>
+        {/* Right Column: Report Markdown & Print Preview */}
+        <div className="lg:col-span-8 rounded-2xl bg-[#0c121e] border border-white/10 p-6 shadow-2xl space-y-6">
+          {selectedReport ? (
+            <div className="space-y-6 text-xs font-mono">
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <div>
+                  <span className="text-[10px] font-mono text-blue-400 uppercase tracking-wider">
+                    {selectedReport.id} • {selectedReport.report_type}
+                  </span>
+                  <h3 className="text-lg font-bold font-mono text-white mt-1">{selectedReport.title}</h3>
+                </div>
 
-          <div className="space-y-3 pt-4 border-t border-white/10 font-mono text-xs">
-            <h4 className="text-xs font-bold uppercase text-slate-400 tracking-wider">
-              Prescribed Strategic Recommendations
-            </h4>
-            <ul className="space-y-2 text-slate-300">
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span>Enforce strict DMARC reject (<code className="text-amber-300">p=reject</code>) policy on root domain email records.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span>Review secondary open port bindings on monitored external cloud IP addresses.</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-                <span>Maintain automated monthly dark web monitoring for all registered developer aliases.</span>
-              </li>
-            </ul>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handlePrint}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#030508] border border-white/10 hover:border-white/30 text-slate-300 hover:text-white cursor-pointer font-bold"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Print / PDF</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Markdown Content Viewer */}
+              <div className="p-6 rounded-xl bg-[#030508] border border-white/10 text-slate-300 font-sans leading-relaxed whitespace-pre-wrap max-h-[600px] overflow-y-auto">
+                {selectedReport.content_markdown || selectedReport.summary}
+              </div>
+            </div>
+          ) : (
+            <div className="py-32 text-center text-slate-500 font-mono text-xs">
+              Select a report to preview its full markdown content and export options.
+            </div>
+          )}
+        </div>
+
+      </div>
+
+      {/* Generate Report Modal */}
+      {isGenerateModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#0c121e] border border-white/10 rounded-2xl p-6 space-y-4 shadow-2xl">
+            <h3 className="text-lg font-bold font-mono text-white flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-blue-400" />
+              <span>Generate Security Report</span>
+            </h3>
+            <form onSubmit={handleGenerateReport} className="space-y-3 text-xs font-mono">
+              <div>
+                <label className="text-slate-400 block mb-1">Report Title *</label>
+                <input
+                  type="text"
+                  required
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#030508] border border-white/10 text-white focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-1">Report Type</label>
+                <select
+                  value={newType}
+                  onChange={(e) => setNewType(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#030508] border border-white/10 text-white focus:outline-none"
+                >
+                  <option value="EXECUTIVE_SUMMARY">Executive Summary</option>
+                  <option value="SECURITY_ASSESSMENT">Security Assessment</option>
+                  <option value="ATTACK_SURFACE">Attack Surface Audit</option>
+                  <option value="VULNERABILITY_AUDIT">Vulnerability Audit</option>
+                  <option value="INCIDENT_POSTMORTEM">Incident Postmortem</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-1">Target Scope</label>
+                <input
+                  type="text"
+                  value={newScope}
+                  onChange={(e) => setNewScope(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-[#030508] border border-white/10 text-white focus:outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3">
+                <button
+                  type="button"
+                  onClick={() => setIsGenerateModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-[#030508] border border-white/10 text-slate-400 hover:text-white cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={generating}
+                  className="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-400 text-white font-bold cursor-pointer disabled:opacity-50"
+                >
+                  {generating ? 'Generating...' : 'Generate Report'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      </div>
+      )}
 
     </div>
   );

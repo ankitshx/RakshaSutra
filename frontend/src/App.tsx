@@ -31,6 +31,13 @@ import { DigitalSecurityMap } from './components/visualization/DigitalSecurityMa
 import { EmergencyDefenseCenterPage } from './pages/EmergencyDefenseCenterPage';
 import { EvidenceVaultPage } from './pages/EvidenceVaultPage';
 import { ReportsCenterPage } from './pages/ReportsCenterPage';
+import { AttackSurfacePage } from './pages/AttackSurfacePage';
+import { SecurityAssetGraphPage } from './pages/SecurityAssetGraphPage';
+import { VulnerabilityIntelligencePage } from './pages/VulnerabilityIntelligencePage';
+import { AlertsCenterPage } from './pages/AlertsCenterPage';
+import { IncidentsCenterPage } from './pages/IncidentsCenterPage';
+import { OrganizationPage } from './pages/OrganizationPage';
+import { CyberNewsPage } from './pages/CyberNewsPage';
 import type { ScanResponse } from './types';
 
 const MainApp: React.FC = () => {
@@ -62,6 +69,12 @@ const MainApp: React.FC = () => {
             onViewReport={handleViewReport}
           />
         )}
+        {activeTab === 'attack-surface' && <AttackSurfacePage />}
+        {activeTab === 'security-graph' && <SecurityAssetGraphPage />}
+        {activeTab === 'vulnerabilities' && <VulnerabilityIntelligencePage />}
+        {activeTab === 'alerts' && <AlertsCenterPage />}
+        {activeTab === 'incidents' && <IncidentsCenterPage />}
+        {activeTab === 'organization' && <OrganizationPage />}
         {activeTab === 'investigation-center' && (
           <InvestigationCenterPage onNavigateTab={setActiveTab} />
         )}
@@ -86,6 +99,9 @@ const MainApp: React.FC = () => {
         {activeTab === 'website-scanner' && <WebsiteAnalyzerPage />}
         {activeTab === 'darkweb' && <DarkWebMonitorPage />}
         {activeTab === 'deception' && <DeceptionPage />}
+        {activeTab === 'cyber-news' && (
+          <CyberNewsPage onInvestigateThreat={() => setActiveTab('investigation-center')} />
+        )}
         {activeTab === 'threat-intel' && <ThreatIntelPage />}
         {activeTab === 'raksha-ai' && <RakshaAiPage />}
         {activeTab === 'awareness' && <AwarenessPage />}
