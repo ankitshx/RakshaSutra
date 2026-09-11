@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { AppShell } from './components/layout/AppShell';
 import { FloatingAiAssistant } from './components/common/FloatingAiAssistant';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { LandingPage } from './pages/LandingPage';
 import { InvestigationCenterPage } from './pages/InvestigationCenterPage';
 import { MonitoringPage } from './pages/MonitoringPage';
@@ -41,8 +42,30 @@ import { CyberNewsPage } from './pages/CyberNewsPage';
 import type { ScanResponse } from './types';
 
 const MainApp: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<string>('landing');
+  const [activeTab, setActiveTabState] = useState<string>(() => {
+    const hash = window.location.hash.replace(/^#\/?/, '');
+    return hash || 'landing';
+  });
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
+
+  const setActiveTab = useCallback((tab: string) => {
+    setActiveTabState(tab);
+    if (window.location.hash.replace(/^#\/?/, '') !== tab) {
+      window.location.hash = tab;
+    }
+  }, []);
+
+  // Listen for browser back/forward buttons
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace(/^#\/?/, '');
+      if (hash && hash !== activeTab) {
+        setActiveTabState(hash);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [activeTab]);
 
   const handleViewReport = (report: ScanResponse) => {
     setSelectedScanId(report.scan_id);
@@ -150,7 +173,9 @@ export function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <MainApp />
+        <ErrorBoundary>
+          <MainApp />
+        </ErrorBoundary>
       </AuthProvider>
     </ThemeProvider>
   );

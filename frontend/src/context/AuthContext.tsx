@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { User } from '../types';
 import { api } from '../services/api';
 
@@ -18,10 +18,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('raksha_token'));
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem('raksha_token'));
+  const [isLoading, setIsLoading] = useState<boolean>(() => !!localStorage.getItem('raksha_token'));
 
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     const storedToken = localStorage.getItem('raksha_token');
     if (!storedToken) {
       setUser(null);
@@ -38,11 +38,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    refreshUser();
-  }, []);
+    if (token) {
+      refreshUser();
+    }
+  }, [token, refreshUser]);
 
   const login = async (email: string, password: string) => {
     const res = await api.login(email, password);

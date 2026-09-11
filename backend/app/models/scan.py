@@ -1,8 +1,11 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Integer, Float, Text, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+
+def utc_now():
+    return datetime.now(timezone.utc)
 
 class Scan(Base):
     __tablename__ = "scans"
@@ -27,7 +30,7 @@ class Scan(Base):
     # Full JSON payloads
     raw_results = Column(JSON, nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=utc_now, index=True)
     
     owner = relationship("User", back_populates="scans")
     indicators = relationship("ThreatIndicator", back_populates="scan", cascade="all, delete-orphan")
@@ -45,6 +48,6 @@ class ThreatIndicator(Base):
     explanation = Column(Text, nullable=False)
     score_impact = Column(Integer, default=0)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     scan = relationship("Scan", back_populates="indicators")

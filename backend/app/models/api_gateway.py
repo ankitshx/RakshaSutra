@@ -4,10 +4,13 @@ Enforces hashed API keys, per-key rate limits, and authoritative account-level q
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Integer, Float, Boolean, DateTime, ForeignKey, Index
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+
+def utc_now():
+    return datetime.now(timezone.utc)
 
 class APIKey(Base):
     __tablename__ = "api_keys"
@@ -23,7 +26,7 @@ class APIKey(Base):
     status = Column(String(20), default="active", index=True)  # "active", "revoked", "expired"
     rate_limit_per_min = Column(Integer, default=10)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
     last_used_at = Column(DateTime, nullable=True)
     expires_at = Column(DateTime, nullable=True)
 
@@ -44,7 +47,7 @@ class APIUsage(Base):
     processing_time_ms = Column(Float, default=0.0)
     credits_consumed = Column(Integer, default=1)
     
-    timestamp = Column(DateTime, default=datetime.utcnow, index=True)
+    timestamp = Column(DateTime, default=utc_now, index=True)
 
     api_key = relationship("APIKey", back_populates="usage_records")
 
@@ -57,7 +60,7 @@ class APIQuota(Base):
     
     monthly_limit = Column(Integer, default=1000)  # Business tier default: 1,000 req/mo
     requests_this_month = Column(Integer, default=0)
-    current_month = Column(String(7), default=lambda: datetime.utcnow().strftime("%Y-%m"))  # "YYYY-MM"
+    current_month = Column(String(7), default=lambda: datetime.now(timezone.utc).strftime("%Y-%m"))  # "YYYY-MM"
     
     last_request_at = Column(DateTime, nullable=True)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)

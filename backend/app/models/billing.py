@@ -4,10 +4,13 @@ Supports complete Razorpay subscription lifecycle, plans, payments, invoices, an
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Integer, Float, Boolean, DateTime, ForeignKey, JSON, Text
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+
+def utc_now():
+    return datetime.now(timezone.utc)
 
 class Plan(Base):
     __tablename__ = "plans"
@@ -30,7 +33,7 @@ class Plan(Base):
     # Feature matrix
     features = Column(JSON, nullable=True)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
 class Subscription(Base):
     __tablename__ = "subscriptions"
@@ -44,12 +47,12 @@ class Subscription(Base):
     razorpay_order_id = Column(String(100), nullable=True, index=True)
     
     status = Column(String(30), default="active", index=True)  # "active", "trialing", "past_due", "canceled", "expired"
-    current_period_start = Column(DateTime, default=datetime.utcnow)
+    current_period_start = Column(DateTime, default=utc_now)
     current_period_end = Column(DateTime, nullable=True)
     cancel_at_period_end = Column(Boolean, default=False)
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
 
     user = relationship("User", back_populates="subscriptions")
     payments = relationship("Payment", back_populates="subscription", cascade="all, delete-orphan")
@@ -74,7 +77,7 @@ class Payment(Base):
     error_code = Column(String(100), nullable=True)
     error_description = Column(Text, nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=utc_now, index=True)
 
     user = relationship("User", back_populates="payments")
     subscription = relationship("Subscription", back_populates="payments")
@@ -94,7 +97,7 @@ class Invoice(Base):
     status = Column(String(30), default="paid")  # "draft", "paid", "uncollectible", "void"
     invoice_pdf_url = Column(String(255), nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=utc_now, index=True)
 
     subscription = relationship("Subscription", back_populates="invoices")
 
@@ -107,4 +110,4 @@ class WebhookEvent(Base):
     payload = Column(JSON, nullable=False)
     status = Column(String(30), default="processed")  # "received", "processed", "failed", "ignored"
     error_message = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=utc_now, index=True)

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../../services/api';
 import type { IncidentDossier } from '../../types';
 import {
@@ -32,15 +32,8 @@ export const IncidentResponseModal: React.FC<IncidentResponseModalProps> = ({
   const [activeTab, setActiveTab] = useState<'evidence' | 'email' | 'certin' | 'firewall'>('evidence');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (isOpen && targetUrl) {
-      loadDossier();
-    }
-  }, [isOpen, targetUrl]);
-
-  if (!isOpen) return null;
-
-  const loadDossier = async () => {
+  const loadDossier = useCallback(async () => {
+    if (!targetUrl) return;
     setIsLoading(true);
     try {
       const res = await api.generateIncidentDossier(targetUrl, threatClassification);
@@ -50,7 +43,15 @@ export const IncidentResponseModal: React.FC<IncidentResponseModalProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [targetUrl, threatClassification]);
+
+  useEffect(() => {
+    if (isOpen && targetUrl) {
+      loadDossier();
+    }
+  }, [isOpen, targetUrl, loadDossier]);
+
+  if (!isOpen) return null;
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);

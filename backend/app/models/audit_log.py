@@ -4,9 +4,12 @@ Records immutable audit trails of all critical administrative, security, and aut
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, DateTime, JSON, Text
 from app.core.database import Base
+
+def utc_now():
+    return datetime.now(timezone.utc)
 
 class AuditLog(Base):
     __tablename__ = "audit_logs"
@@ -24,4 +27,4 @@ class AuditLog(Base):
     user_agent = Column(String(255), nullable=True)
     details = Column(JSON, nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=utc_now, index=True)

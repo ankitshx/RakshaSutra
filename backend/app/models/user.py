@@ -5,10 +5,13 @@ daily scan and OSINT quotas, and relationships to subscriptions and API keys.
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Boolean, DateTime, Integer, ForeignKey
 from sqlalchemy.orm import relationship
 from app.core.database import Base
+
+def utc_now():
+    return datetime.now(timezone.utc)
 
 class User(Base):
     __tablename__ = "users"
@@ -27,12 +30,12 @@ class User(Base):
     # Daily Scan Quotas
     daily_quota = Column(Integer, default=6, nullable=False)       # 6 free scans / day for free tier
     scans_today = Column(Integer, default=0, nullable=False)
-    last_scan_date = Column(String(20), default=lambda: datetime.utcnow().strftime("%Y-%m-%d"), nullable=True)
+    last_scan_date = Column(String(20), default=lambda: datetime.now(timezone.utc).strftime("%Y-%m-%d"), nullable=True)
     
     # Daily OSINT Quotas
     osint_quota = Column(Integer, default=1, nullable=False)       # 1 free OSINT / day for free tier
     osint_today = Column(Integer, default=0, nullable=False)
-    last_osint_date = Column(String(20), default=lambda: datetime.utcnow().strftime("%Y-%m-%d"), nullable=True)
+    last_osint_date = Column(String(20), default=lambda: datetime.now(timezone.utc).strftime("%Y-%m-%d"), nullable=True)
     
     # Reference metrics
     monthly_quota = Column(Integer, default=180, nullable=False)
@@ -41,8 +44,8 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     api_key = Column(String(64), unique=True, index=True, nullable=True)  # Legacy API key / demo
     
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
 
     # Relationships
     scans = relationship("Scan", back_populates="owner", cascade="all, delete-orphan")

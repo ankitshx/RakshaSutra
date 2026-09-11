@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Globe,
   Plus,
@@ -50,9 +50,8 @@ export const AttackSurfacePage: React.FC = () => {
   const [discovering, setDiscovering] = useState(false);
   const [discoveryResult, setDiscoveryResult] = useState<any>(null);
 
-  const fetchAssets = async () => {
+  const fetchAssets = useCallback(async () => {
     try {
-      setLoading(true);
       const res = await fetch('/api/v1/assets');
       if (res.ok) {
         const data = await res.json();
@@ -63,11 +62,11 @@ export const AttackSurfacePage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchAssets();
-  }, []);
+  }, [fetchAssets]);
 
   const handleCreateAsset = async (e: React.FormEvent) => {
     e.preventDefault();

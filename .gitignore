@@ -9,6 +9,8 @@ venv/
 ENV/
 env/
 *.db
+*.db-wal
+*.db-shm
 *.sqlite3
 .pytest_cache/
 

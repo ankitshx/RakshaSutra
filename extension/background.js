@@ -64,14 +64,23 @@ browserAPI.contextMenus.onClicked.addListener(async (info, tab) => {
       const blockUrl = browserAPI.runtime.getURL(`blocked/blocked.html?url=${encodeURIComponent(info.linkUrl)}&reason=${encodeURIComponent(verdict.reason)}&threat=${encodeURIComponent(verdict.threat_name)}`);
       browserAPI.tabs.create({ url: blockUrl, index: tab.index + 1 });
     } else {
-      browserAPI.tabs.sendMessage(tab.id, {
-        type: 'SHOW_TOAST',
-        data: {
-          url: info.linkUrl,
-          verdict: verdict.status,
-          message: verdict.message
-        }
-      });
+      try {
+        browserAPI.tabs.sendMessage(tab.id, {
+          type: 'SHOW_TOAST',
+          data: {
+            url: info.linkUrl,
+            verdict: verdict.status,
+            message: verdict.message
+          }
+        }, () => {
+          // Suppress unhandled error if tab is restricted/not ready
+          if (browserAPI.runtime.lastError) {
+            // Optional fallback notification
+          }
+        });
+      } catch {
+        // Tab not accessible
+      }
     }
   }
 });

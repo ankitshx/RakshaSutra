@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../../services/api';
 import {
   Radio,
@@ -139,21 +139,7 @@ export const LiveGlobalThreatFeed: React.FC<LiveThreatFeedProps> = ({ onSelectTh
   const [activeAttacksRate, setActiveAttacksRate] = useState<number>(18740);
   const [isLiveStreaming, setIsLiveStreaming] = useState<boolean>(true);
 
-  useEffect(() => {
-    loadInitialData();
-
-    // Periodic dynamic strike injection
-    const timer = setInterval(() => {
-      if (isLiveStreaming) {
-        injectDynamicStrike();
-        setActiveAttacksRate((prev) => prev + Math.floor(Math.random() * 7) - 3);
-      }
-    }, 3800);
-
-    return () => clearInterval(timer);
-  }, [isLiveStreaming]);
-
-  const loadInitialData = async () => {
+  const loadInitialData = useCallback(async () => {
     try {
       const res = await api.getLiveGlobalAttacks();
       if (res && res.attacks) {
@@ -167,18 +153,32 @@ export const LiveGlobalThreatFeed: React.FC<LiveThreatFeedProps> = ({ onSelectTh
     } catch {
       setAttacks(LIVE_STRIKES_POOL);
     }
-  };
+  }, []);
 
-  const injectDynamicStrike = () => {
+  const injectDynamicStrike = useCallback(() => {
     const randomStrike = LIVE_STRIKES_POOL[Math.floor(Math.random() * LIVE_STRIKES_POOL.length)];
     const newStrike: LiveAttackItem = {
       ...randomStrike,
-      id: `dyn-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      id: `dyn-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       time_ago: 'Just now'
     };
 
     setAttacks((prev) => [newStrike, ...prev.slice(0, 20)]);
-  };
+  }, []);
+
+  useEffect(() => {
+    loadInitialData();
+
+    // Periodic dynamic strike injection
+    const timer = setInterval(() => {
+      if (isLiveStreaming) {
+        injectDynamicStrike();
+        setActiveAttacksRate((prev) => prev + Math.floor(Math.random() * 7) - 3);
+      }
+    }, 3800);
+
+    return () => clearInterval(timer);
+  }, [isLiveStreaming, loadInitialData, injectDynamicStrike]);
 
   const filteredAttacks = selectedFilter === 'All'
     ? attacks

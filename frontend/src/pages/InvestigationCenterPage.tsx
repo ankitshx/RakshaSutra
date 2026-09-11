@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 import type { InvestigationResponse } from '../types';
 import {
@@ -37,14 +37,7 @@ export const InvestigationCenterPage: React.FC<InvestigationCenterPageProps> = (
   const [monitoringAdded, setMonitoringAdded] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (initialTarget && initialTarget.trim()) {
-      setTargetInput(initialTarget.trim());
-      handleStartInvestigation(undefined, initialTarget.trim());
-    }
-  }, [initialTarget]);
-
-  const handleStartInvestigation = async (e?: React.FormEvent, overrideTarget?: string) => {
+  const handleStartInvestigation = useCallback(async (e?: React.FormEvent, overrideTarget?: string) => {
     if (e) e.preventDefault();
     const cleanTarget = (overrideTarget || targetInput).trim();
     if (!cleanTarget || isLoading) return;
@@ -62,7 +55,14 @@ export const InvestigationCenterPage: React.FC<InvestigationCenterPageProps> = (
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [targetInput, isLoading]);
+
+  useEffect(() => {
+    if (initialTarget && initialTarget.trim()) {
+      setTargetInput(initialTarget.trim());
+      handleStartInvestigation(undefined, initialTarget.trim());
+    }
+  }, [initialTarget, handleStartInvestigation]);
 
   const handleMonitorTarget = async () => {
     if (!investigation) return;

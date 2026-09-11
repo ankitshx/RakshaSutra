@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 import { SecurityRadar } from '../components/command-center/SecurityRadar';
 import { AttentionRequiredStream } from '../components/command-center/AttentionRequiredStream';
 import type { AttentionItem } from '../components/command-center/AttentionRequiredStream';
 import { SecurityInbox } from '../components/command-center/SecurityInbox';
 import { UniversalInvestigator } from '../components/investigation/UniversalInvestigator';
+import { ProductionEmergencyHub } from '../components/command-center/ProductionEmergencyHub';
 import { EmergencyPanicModal } from '../components/common/EmergencyPanicModal';
 import { CyberNewsTicker } from '../components/common/CyberNewsTicker';
 import {
@@ -34,11 +35,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab }) => {
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [scoreData, setScoreData] = useState<any>(null);
 
-  useEffect(() => {
-    loadDashboardMetrics();
-  }, []);
-
-  const loadDashboardMetrics = async () => {
+  const loadDashboardMetrics = useCallback(async () => {
     try {
       const [stats, score] = await Promise.all([
         api.getDashboardStats().catch(() => null),
@@ -49,7 +46,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab }) => {
     } catch {
       // Graceful fallback
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadDashboardMetrics();
+  }, [loadDashboardMetrics]);
 
   const handleStartInvestigation = (target: string, type?: string) => {
     if (type === 'message') {
@@ -78,22 +79,24 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab }) => {
         onInvestigateThreat={(target) => setActiveTab('investigation-center', { target })}
       />
 
-      {/* 1. Command Center Top Digital Security Status Banner (RDS 2.0) */}
+      {/* 1. Production Enterprise Command Center Top Banner */}
       <section className="p-6 sm:p-8 rounded-3xl bg-[#0c121e] border border-white/10 shadow-2xl space-y-6 relative overflow-hidden">
-        {/* Subtle decorative thread */}
+        {/* Top subtle golden thread */}
         <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-amber-500/40 to-transparent" />
         
         <div className="flex flex-wrap items-center justify-between gap-6 relative">
-          <div className="space-y-1.5">
+          <div className="space-y-2 max-w-3xl">
             <div className="flex items-center gap-2 font-mono text-xs text-amber-400 font-bold uppercase tracking-wider">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>Protective Security Intelligence Center</span>
+              <span>RakshaSutra v3.0 • Autonomous Cyber Defense OS</span>
             </div>
+
             <h1 className="text-2xl sm:text-4xl font-black text-white font-mono tracking-tight">
-              Personal Cyber Defense Status: <span className="text-emerald-400">HARDENED</span>
+              Personal & Enterprise Defense Status: <span className="text-emerald-400">HARDENED</span>
             </h1>
-            <p className="text-xs sm:text-sm text-slate-300 font-sans max-w-2xl leading-relaxed">
-              Composite defensive posture score is <strong>{scoreData?.overall_score || 84}/100</strong>. Multi-vector threat telemetry is active across all 7 security perimeters.
+
+            <p className="text-xs sm:text-sm text-slate-300 font-sans leading-relaxed">
+              Composite defensive posture score is <strong>{scoreData?.overall_score || 84}/100</strong>. Real-time telemetry, automated threat detection, and CERT-In compliance feeds are active across all 7 operational security perimeters.
             </p>
           </div>
 
@@ -105,27 +108,31 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab }) => {
               <Sparkles className="w-4 h-4" />
               <span>NEW INVESTIGATION</span>
             </button>
+
             <button
-              onClick={() => setActiveTab('emergency-mode')}
+              onClick={() => setIsEmergencyModalOpen(true)}
               className="px-5 py-3 rounded-2xl bg-rose-950/60 hover:bg-rose-900 border border-rose-500/40 text-rose-300 font-bold text-xs font-mono tracking-wide flex items-center gap-2 transition-all cursor-pointer shadow-sm"
             >
               <ShieldAlert className="w-4 h-4 text-rose-400 animate-pulse" />
-              <span>EMERGENCY DEFENSE</span>
+              <span>EMERGENCY 1930</span>
             </button>
           </div>
         </div>
 
         {/* 4 Security Posture Metric Pills */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-white/10 font-mono text-xs">
-          <div className="p-4 rounded-2xl bg-[#070b12] border border-white/10 space-y-1">
+          <div className="p-4 rounded-2xl bg-[#070b12] border border-white/10 space-y-1 hover:border-emerald-500/40 transition-colors">
             <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Security Index</span>
             <div className="flex items-baseline justify-between">
-              <span className="text-2xl font-black text-white">{scoreData?.overall_score || 84}<span className="text-slate-400 text-xs">/100</span></span>
+              <span className="text-2xl font-black text-white">
+                {scoreData?.overall_score || 84}
+                <span className="text-slate-400 text-xs">/100</span>
+              </span>
               <span className="text-emerald-400 font-bold text-xs">+4pts</span>
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-[#070b12] border border-white/10 space-y-1">
+          <div className="p-4 rounded-2xl bg-[#070b12] border border-white/10 space-y-1 hover:border-emerald-500/40 transition-colors">
             <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Active Threat Level</span>
             <div className="flex items-baseline justify-between">
               <span className="text-2xl font-black text-emerald-400">LOW</span>
@@ -133,7 +140,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab }) => {
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-[#070b12] border border-white/10 space-y-1">
+          <div className="p-4 rounded-2xl bg-[#070b12] border border-white/10 space-y-1 hover:border-amber-500/40 transition-colors">
             <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Monitored Assets</span>
             <div className="flex items-baseline justify-between">
               <span className="text-2xl font-black text-amber-400">6 Targets</span>
@@ -141,7 +148,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab }) => {
             </div>
           </div>
 
-          <div className="p-4 rounded-2xl bg-[#070b12] border border-white/10 space-y-1">
+          <div className="p-4 rounded-2xl bg-[#070b12] border border-white/10 space-y-1 hover:border-cyan-500/40 transition-colors">
             <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Total Intercepts</span>
             <div className="flex items-baseline justify-between">
               <span className="text-2xl font-black text-white">{dashboardData?.total_scans || 18} Scans</span>
@@ -151,23 +158,28 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab }) => {
         </div>
       </section>
 
-      {/* 2. Signature Universal Fast Investigator Form */}
+      {/* 2. Universal Threat Forensics & Triage Bar */}
       <section>
         <UniversalInvestigator
           onInvestigate={handleStartInvestigation}
         />
       </section>
 
-      {/* 2.5 RakhshaSutra v3.0 Digital Defense OS Command Modules */}
+      {/* 3. National Cyber Incident Rapid Response & Golden Hour Recovery Center */}
+      <section>
+        <ProductionEmergencyHub />
+      </section>
+
+      {/* 4. Enterprise Digital Defense OS Perimeters */}
       <section className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
             <h3 className="text-sm font-mono font-bold text-white tracking-wide uppercase">
-              Digital Defense OS v3.0 Command Perimeters
+              Production Security Command Perimeters
             </h3>
           </div>
-          <span className="text-[11px] font-mono text-slate-500">Autonomous Telemetry & SOC Response</span>
+          <span className="text-[11px] font-mono text-slate-500">Autonomous Telemetry & Threat Triage</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -281,7 +293,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab }) => {
         </div>
       </section>
 
-      {/* 3. Security Posture Radar (Central Radial Visualization) */}
+      {/* 5. Security Posture Radar (Central Radial Visualization) */}
       <section>
         <SecurityRadar
           overallScore={scoreData?.overall_score || 84}
@@ -294,12 +306,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab }) => {
         />
       </section>
 
-      {/* 4. "What Needs My Attention?" Prioritized Triage Stream */}
+      {/* 6. "What Needs My Attention?" Prioritized Triage Stream */}
       <section>
         <AttentionRequiredStream onAction={handleAttentionAction} />
       </section>
 
-      {/* 5. Unified Security Inbox */}
+      {/* 7. Unified Security Inbox */}
       <section>
         <SecurityInbox
           onOpenInvestigation={(target) => setActiveTab('investigation-center', { target })}
@@ -307,7 +319,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab }) => {
         />
       </section>
 
-      {/* 6. My Digital Environment (Persistent Asset Overview) */}
+      {/* 8. My Digital Environment (Persistent Asset Overview) */}
       <section className="p-6 sm:p-8 rounded-3xl bg-[#0c121e] border border-white/10 shadow-2xl space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-white/10 pb-4">
           <div className="space-y-1">
@@ -408,17 +420,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab }) => {
         </div>
       </section>
 
-      {/* 7. Emergency 1930 / Golden Hour Guidance Banner */}
+      {/* 9. Emergency Golden Hour Quick Dial Footer Banner */}
       <section className="p-6 sm:p-8 rounded-3xl bg-rose-950/20 border border-rose-500/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
         <div className="space-y-1 text-center md:text-left">
           <div className="flex items-center justify-center md:justify-start gap-2">
             <ShieldAlert className="w-5 h-5 text-rose-400 animate-pulse" />
             <h3 className="text-base font-bold text-white font-mono">
-              Unauthorized Banking Transfers or Phishing Scam in Progress?
+              Suspect an Active Phishing Attack or Unauthorized Banking Debit?
             </h3>
           </div>
           <p className="text-xs text-slate-300 font-sans">
-            Report immediately to the Indian National Cyber Fraud Helpline within the <strong>"Golden Hour"</strong> to freeze illicit fund transfers.
+            Dial the Indian National Cyber Fraud Helpline immediately within the <strong>&quot;Golden Hour&quot;</strong> to issue automated inter-bank freeze liens.
           </p>
         </div>
 
@@ -435,7 +447,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab }) => {
             className="px-5 py-3 rounded-xl bg-[#070b12] hover:bg-[#141d2e] border border-white/10 text-slate-200 font-bold text-xs font-mono flex items-center gap-2 transition-colors cursor-pointer"
           >
             <Lock className="w-4 h-4 text-amber-400" />
-            <span>Emergency Containment Guide</span>
+            <span>Emergency Containment Playbook</span>
           </button>
         </div>
       </section>

@@ -1,7 +1,10 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Integer, Text, DateTime, JSON
 from app.core.database import Base
+
+def utc_now():
+    return datetime.now(timezone.utc)
 
 class SecurityEvent(Base):
     __tablename__ = "security_events"
@@ -13,7 +16,7 @@ class SecurityEvent(Base):
     request_path = Column(String(255), nullable=True)
     details = Column(JSON, nullable=True)
     request_id = Column(String(32), nullable=True, index=True)
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=utc_now, index=True)
 
 class AwarenessArticle(Base):
     __tablename__ = "awareness_articles"
@@ -28,4 +31,4 @@ class AwarenessArticle(Base):
     content = Column(Text, nullable=False)
     key_takeaways = Column(JSON, nullable=True)
     quiz_data = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)

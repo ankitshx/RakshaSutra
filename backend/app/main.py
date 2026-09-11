@@ -36,7 +36,29 @@ def seed_database():
     """Seed initial demo admin and baseline threat indicators if empty."""
     db = SessionLocal()
     try:
-        # Seed Super Admin user (rakshasutra.org)
+        # 1. Primary Configured Admin (from settings or environment variables)
+        configured_admin_email = settings.ADMIN_EMAIL
+        configured_admin_pass = settings.ADMIN_PASSWORD
+        configured_admin = db.query(User).filter(User.email == configured_admin_email).first()
+        if not configured_admin:
+            configured_admin = User(
+                email=configured_admin_email,
+                hashed_password=get_password_hash(configured_admin_pass),
+                full_name="Configured Operations Admin",
+                role="admin",
+                subscription_tier="enterprise",
+                is_active=True,
+                api_key="rs_admin_configured_key"
+            )
+            db.add(configured_admin)
+            db.commit()
+            logger.info(f"Configured primary Admin account from environment ({configured_admin_email}).")
+        else:
+            if not configured_admin.is_active:
+                configured_admin.is_active = True
+                db.commit()
+
+        # 2. Seed Super Admin user (rakshasutra.org)
         super_email = "superadmin@rakshasutra.org"
         super_pass = "SuperAdmin@12345"
         super_admin = db.query(User).filter(User.email == super_email).first()
@@ -54,57 +76,38 @@ def seed_database():
             db.commit()
             logger.info("Configured default SuperAdmin account.")
         else:
-            super_admin.hashed_password = get_password_hash(super_pass)
-            super_admin.role = "super_admin"
-            super_admin.subscription_tier = "enterprise"
-            super_admin.is_active = True
-            db.commit()
+            if not super_admin.is_active or super_admin.role != "super_admin":
+                super_admin.role = "super_admin"
+                super_admin.is_active = True
+                db.commit()
 
-        # Seed default admin user (rakshasutra.org)
+        # 3. Seed default admin user (rakshasutra.org) if different from configured
         admin_email = "admin@rakshasutra.org"
         admin_pass = "Admin@12345"
-        admin = db.query(User).filter(User.email == admin_email).first()
-        if not admin:
-            admin = User(
-                email=admin_email,
-                hashed_password=get_password_hash(admin_pass),
-                full_name="Security Operations Lead",
-                role="admin",
-                subscription_tier="enterprise",
-                is_active=True,
-                api_key="rs_admin_telemetry_key_secure"
-            )
-            db.add(admin)
-            db.commit()
-            logger.info("Configured default Admin account.")
+        if admin_email != configured_admin_email:
+            admin = db.query(User).filter(User.email == admin_email).first()
+            if not admin:
+                admin = User(
+                    email=admin_email,
+                    hashed_password=get_password_hash(admin_pass),
+                    full_name="Security Operations Lead",
+                    role="admin",
+                    subscription_tier="enterprise",
+                    is_active=True,
+                    api_key="rs_admin_telemetry_key_secure"
+                )
+                db.add(admin)
+                db.commit()
+                logger.info("Configured default Admin account.")
+            else:
+                if not admin.is_active or admin.role != "admin":
+                    admin.role = "admin"
+                    admin.is_active = True
+                    db.commit()
         else:
-            admin.hashed_password = get_password_hash(admin_pass)
-            admin.role = "admin"
-            admin.subscription_tier = "enterprise"
-            admin.is_active = True
-            db.commit()
+            admin = configured_admin
 
-        # Seed alternate admin (sharma1.org)
-        admin_alt = db.query(User).filter(User.email == "admin@sharma1.org").first()
-        if not admin_alt:
-            admin_alt = User(
-                email="admin@sharma1.org",
-                hashed_password=get_password_hash("AdminSOC2026!"),
-                full_name="SOC Lead Engineer",
-                role="admin",
-                subscription_tier="enterprise",
-                is_active=True,
-                api_key="rs_admin_sharma1_key"
-            )
-            db.add(admin_alt)
-            db.commit()
-        else:
-            admin_alt.hashed_password = get_password_hash("AdminSOC2026!")
-            admin_alt.role = "admin"
-            admin_alt.is_active = True
-            db.commit()
-
-        # Seed default citizen user (rakshasutra.org)
+        # 4. Seed default citizen user (rakshasutra.org)
         demo_email = "demo@rakshasutra.org"
         demo_pass = "Citizen@12345"
         demo_user = db.query(User).filter(User.email == demo_email).first()
@@ -126,11 +129,11 @@ def seed_database():
             db.commit()
             logger.info("Configured default Citizen demo user.")
         else:
-            demo_user.hashed_password = get_password_hash(demo_pass)
-            demo_user.is_active = True
-            db.commit()
+            if not demo_user.is_active:
+                demo_user.is_active = True
+                db.commit()
 
-        # Seed alternate demo user (sharma1.org)
+        # 5. Seed alternate demo user (sharma1.org)
         demo_alt = db.query(User).filter(User.email == "demo@sharma1.org").first()
         if not demo_alt:
             demo_alt = User(
@@ -148,9 +151,9 @@ def seed_database():
             db.add(demo_alt)
             db.commit()
         else:
-            demo_alt.hashed_password = get_password_hash("DemoUser123!")
-            demo_alt.is_active = True
-            db.commit()
+            if not demo_alt.is_active:
+                demo_alt.is_active = True
+                db.commit()
 
         # Seed sample scan records for rich dashboard demo if empty
         if db.query(Scan).count() == 0:
@@ -357,8 +360,6 @@ def seed_database():
     finally:
         db.close()
 
-seed_database()
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup logic
@@ -414,8 +415,9 @@ async def audit_and_timing_middleware(request: Request, call_next):
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     req_id = getattr(request.state, "request_id", "unknown")
     logger.warning(f"Validation error on {request.url.path} (ReqID: {req_id}): {exc.errors()}")
+    status_code = getattr(status, "HTTP_422_UNPROCESSABLE_CONTENT", status.HTTP_422_UNPROCESSABLE_ENTITY)
     return JSONResponse(
-        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        status_code=status_code,
         content={
             "message": "Invalid request parameters provided.",
             "errors": exc.errors(),

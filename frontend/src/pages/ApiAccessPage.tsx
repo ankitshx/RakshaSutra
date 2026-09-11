@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import type { Plan, APIKey, APIUsageSummary } from '../types';
@@ -13,6 +13,14 @@ import {
   Loader2,
   Trash2
 } from 'lucide-react';
+
+function generateSimulatedPaymentCredentials() {
+  const rand = () => Math.random().toString(36).substring(2, 12);
+  return {
+    paymentId: `pay_${rand()}`,
+    signature: `sig_test_${rand()}`
+  };
+}
 
 export const ApiAccessPage: React.FC = () => {
   const { user, isAuthenticated, refreshUser } = useAuth();
@@ -33,23 +41,16 @@ export const ApiAccessPage: React.FC = () => {
   const tier = (user?.subscription_tier || 'free').toLowerCase();
   const isBusinessOrHigher = tier === 'business' || tier === 'enterprise' || user?.role === 'admin' || user?.role === 'super_admin';
 
-  useEffect(() => {
-    loadPlans();
-    if (isAuthenticated) {
-      loadApiKeyData();
-    }
-  }, [isAuthenticated, tier]);
-
-  const loadPlans = async () => {
+  const loadPlans = useCallback(async () => {
     try {
       const res = await api.getPlans();
       setPlans(res.plans);
     } catch {
       // handled
     }
-  };
+  }, []);
 
-  const loadApiKeyData = async () => {
+  const loadApiKeyData = useCallback(async () => {
     try {
       if (isBusinessOrHigher) {
         const [keys, summary] = await Promise.all([
@@ -62,7 +63,14 @@ export const ApiAccessPage: React.FC = () => {
     } catch {
       // handled
     }
-  };
+  }, [isBusinessOrHigher]);
+
+  useEffect(() => {
+    loadPlans();
+    if (isAuthenticated) {
+      loadApiKeyData();
+    }
+  }, [isAuthenticated, tier, loadPlans, loadApiKeyData]);
 
   const handleSubscribe = async (plan: Plan) => {
     if (!isAuthenticated) {
@@ -85,13 +93,12 @@ export const ApiAccessPage: React.FC = () => {
     try {
       const orderRes = await api.createRazorpayOrder(plan.id);
       
-      const simulatedPaymentId = `pay_${Math.random().toString(36).substring(2, 12)}`;
-      const simulatedSig = `sig_test_${Math.random().toString(36).substring(2, 12)}`;
+      const { paymentId, signature } = generateSimulatedPaymentCredentials();
 
       const verifyRes = await api.verifyRazorpayPayment({
         razorpay_order_id: orderRes.order_id,
-        razorpay_payment_id: simulatedPaymentId,
-        razorpay_signature: simulatedSig,
+        razorpay_payment_id: paymentId,
+        razorpay_signature: signature,
         plan_id: plan.id
       });
 

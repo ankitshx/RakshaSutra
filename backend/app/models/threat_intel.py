@@ -1,7 +1,10 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Integer, Float, Text, DateTime, Boolean, JSON
 from app.core.database import Base
+
+def utc_now():
+    return datetime.now(timezone.utc)
 
 class ThreatFeedItem(Base):
     __tablename__ = "threat_feed_items"
@@ -15,8 +18,8 @@ class ThreatFeedItem(Base):
     description = Column(Text, nullable=True)
     tags = Column(JSON, nullable=True)
     is_active = Column(Boolean, default=True)
-    first_seen = Column(DateTime, default=datetime.utcnow)
-    last_seen = Column(DateTime, default=datetime.utcnow)
+    first_seen = Column(DateTime, default=utc_now)
+    last_seen = Column(DateTime, default=utc_now)
 
 class ProviderStatus(Base):
     __tablename__ = "provider_statuses"
@@ -28,5 +31,5 @@ class ProviderStatus(Base):
     latency_ms = Column(Float, default=0.0)
     total_queries = Column(Integer, default=0)
     cache_hits = Column(Integer, default=0)
-    last_sync = Column(DateTime, default=datetime.utcnow)
+    last_sync = Column(DateTime, default=utc_now)
     is_enabled = Column(Boolean, default=True)
