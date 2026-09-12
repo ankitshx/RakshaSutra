@@ -7,13 +7,8 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { LandingPage } from './pages/LandingPage';
 import { InvestigationCenterPage } from './pages/InvestigationCenterPage';
 import { MonitoringPage } from './pages/MonitoringPage';
-import { SecurityPassportPage } from './pages/SecurityPassportPage';
 import { SecurityPosturePage } from './pages/SecurityPosturePage';
-import { DeveloperPlaygroundPage } from './pages/DeveloperPlaygroundPage';
-import { TrustCenterPage } from './pages/TrustCenterPage';
-import { UrlScannerPage } from './pages/UrlScannerPage';
 import { MessageAnalyzerPage } from './pages/MessageAnalyzerPage';
-import { WebsiteAnalyzerPage } from './pages/WebsiteAnalyzerPage';
 import { ThreatIntelPage } from './pages/ThreatIntelPage';
 import { RakshaAiPage } from './pages/RakshaAiPage';
 import { AwarenessPage } from './pages/AwarenessPage';
@@ -23,14 +18,11 @@ import { AdminPage } from './pages/AdminPage';
 import { ApiAccessPage } from './pages/ApiAccessPage';
 import { DarkWebMonitorPage } from './pages/DarkWebMonitorPage';
 import { DeceptionPage } from './pages/DeceptionPage';
-import { OsintReconPage } from './pages/OsintReconPage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ScanReportDetailPage } from './pages/ScanReportDetailPage';
 import { LegalPages } from './pages/LegalPages';
-import { DigitalSecurityMap } from './components/visualization/DigitalSecurityMap';
 import { EmergencyDefenseCenterPage } from './pages/EmergencyDefenseCenterPage';
-import { EvidenceVaultPage } from './pages/EvidenceVaultPage';
 import { ReportsCenterPage } from './pages/ReportsCenterPage';
 import { AttackSurfacePage } from './pages/AttackSurfacePage';
 import { SecurityAssetGraphPage } from './pages/SecurityAssetGraphPage';
@@ -98,28 +90,21 @@ const MainApp: React.FC = () => {
         {activeTab === 'alerts' && <AlertsCenterPage />}
         {activeTab === 'incidents' && <IncidentsCenterPage />}
         {activeTab === 'organization' && <OrganizationPage />}
-        {activeTab === 'investigation-center' && (
+        {(activeTab === 'investigation-center' || activeTab === 'url-scanner' || activeTab === 'website-scanner' || activeTab === 'osint') && (
           <InvestigationCenterPage onNavigateTab={setActiveTab} />
         )}
-        {activeTab === 'security-map' && <DigitalSecurityMap />}
+        {activeTab === 'security-map' && <SecurityAssetGraphPage />}
         {activeTab === 'emergency-mode' && <EmergencyDefenseCenterPage />}
-        {activeTab === 'evidence-vault' && <EvidenceVaultPage />}
+        {activeTab === 'evidence-vault' && <ReportsCenterPage />}
         {activeTab === 'reports-center' && <ReportsCenterPage />}
         {activeTab === 'monitoring' && <MonitoringPage />}
-        {(activeTab === 'security-posture' || activeTab === 'security-radar') && (
+        {(activeTab === 'security-posture' || activeTab === 'security-radar' || activeTab === 'security-passport' || activeTab === 'trust-center') && (
           <SecurityPosturePage onNavigateTab={setActiveTab} />
         )}
-        {activeTab === 'security-passport' && <SecurityPassportPage />}
-        {activeTab === 'developer-playground' && <DeveloperPlaygroundPage />}
-        {activeTab === 'trust-center' && <TrustCenterPage />}
-        {activeTab === 'osint' && <OsintReconPage />}
-        {activeTab === 'url-scanner' && (
-          <UrlScannerPage onAskAI={handleAskAIWithScan} />
-        )}
+        {activeTab === 'developer-playground' && <ApiAccessPage />}
         {activeTab === 'message-scanner' && (
           <MessageAnalyzerPage onAskAI={handleAskAIWithScan} />
         )}
-        {activeTab === 'website-scanner' && <WebsiteAnalyzerPage />}
         {activeTab === 'darkweb' && <DarkWebMonitorPage />}
         {activeTab === 'deception' && <DeceptionPage />}
         {activeTab === 'cyber-news' && (

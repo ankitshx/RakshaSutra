@@ -2,9 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   Search,
   Shield,
-  Zap,
   Activity,
-  Award,
   Bell,
   Network,
   Eye,
@@ -12,8 +10,6 @@ import {
   ShieldAlert,
   Flame,
   FileText,
-  Lock,
-  Layers,
   ArrowRight,
   Sparkles,
   Compass,
@@ -61,22 +57,16 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     
     // Investigation Tools
     { id: 'investigation-center', category: 'Investigate', label: 'Universal Threat Investigation Center', icon: Search, badge: 'Flagship', action: () => onNavigate('investigation-center') },
-    { id: 'url-scanner', category: 'Investigate', label: 'URL & Destination Link Scanner', icon: Zap, action: () => onNavigate('url-scanner') },
     { id: 'message-scanner', category: 'Investigate', label: 'SMS & Messaging Scam Analyzer', icon: FileText, action: () => onNavigate('message-scanner') },
-    { id: 'website-scanner', category: 'Investigate', label: 'Website Security & TLS Certificate Audit', icon: Lock, action: () => onNavigate('website-scanner') },
     
     // Intelligence & Protect
-    { id: 'osint', category: 'Intelligence', label: 'OSINT Footprinting & Interactive Threat Graph', icon: Network, action: () => onNavigate('osint') },
     { id: 'darkweb', category: 'Intelligence', label: 'Dark Web Breach Exposure & k-Anonymity', icon: Eye, action: () => onNavigate('darkweb') },
-    { id: 'security-map', category: 'Intelligence', label: 'Interactive Digital Security Map', icon: Network, action: () => onNavigate('security-map') },
     { id: 'threat-intel', category: 'Intelligence', label: 'Global Threat Intelligence Feed', icon: Activity, action: () => onNavigate('threat-intel') },
     { id: 'deception', category: 'Protect', label: 'Active Intruder Honeytokens & Canary Traps', icon: Flame, action: () => onNavigate('deception') },
     { id: 'raksha-ai', category: 'Protect', label: 'Raksha AI Security Copilot & Playbooks', icon: Sparkles, action: () => onNavigate('raksha-ai') },
 
-    // Reports & Learn
-    { id: 'evidence-vault', category: 'Reports', label: 'Evidence Vault & Verification Trail', icon: Layers, action: () => onNavigate('evidence-vault') },
-    { id: 'awareness', category: 'Learn', label: 'Security Academy & Interactive Labs', icon: Award, action: () => onNavigate('awareness') },
-    { id: 'developer-playground', category: 'Developer', label: 'Developer REST API Gateway & Webhooks', icon: Terminal, action: () => onNavigate('developer-playground') }
+    // Developer & Operations
+    { id: 'api-access', category: 'Developer', label: 'Developer REST API Gateway & API Keys', icon: Terminal, action: () => onNavigate('api-access') }
   ];
 
   // Live universal search fetch

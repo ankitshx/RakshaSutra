@@ -13,7 +13,7 @@ import {
   Eye,
   RefreshCw,
   ArrowUpRight,
-  Award,
+  FileText,
   Layers
 } from 'lucide-react';
 
@@ -204,11 +204,11 @@ export const SecurityPosturePage: React.FC<SecurityPosturePageProps> = ({ onNavi
           </button>
 
           <button
-            onClick={() => onNavigateTab?.('security-passport')}
+            onClick={() => onNavigateTab?.('reports-center')}
             className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-mono font-black flex items-center gap-2 transition-all cursor-pointer shadow-sutra-glow"
           >
-            <Award className="w-3.5 h-3.5" />
-            <span>VIEW SAFETY PASSPORT</span>
+            <FileText className="w-3.5 h-3.5" />
+            <span>EXPORT AUDIT REPORT</span>
           </button>
         </div>
       </div>
@@ -220,9 +220,9 @@ export const SecurityPosturePage: React.FC<SecurityPosturePageProps> = ({ onNavi
           overallScore={compositeScore}
           onSelectDimension={(dimId) => {
             if (dimId === 'exposure') onNavigateTab?.('darkweb');
-            else if (dimId === 'email' || dimId === 'network') onNavigateTab?.('osint');
-            else if (dimId === 'websites') onNavigateTab?.('website-scanner');
-            else onNavigateTab?.('security-passport');
+            else if (dimId === 'email' || dimId === 'network') onNavigateTab?.('investigation-center');
+            else if (dimId === 'websites') onNavigateTab?.('attack-surface');
+            else onNavigateTab?.('reports-center');
           }}
         />
       </section>

@@ -5,7 +5,6 @@ import {
   Shield,
   Search,
   Activity,
-  Award,
   Bell,
   Network,
   Eye,
@@ -14,13 +13,11 @@ import {
   Flame,
   FileText,
   Lock,
-  Layers,
+  PhoneCall,
   ChevronLeft,
   ChevronRight,
-  PhoneCall,
   LogOut,
   Sliders,
-  Zap,
   Globe,
   Compass,
   LayoutGrid,
@@ -93,12 +90,13 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   const navGroups = [
     {
-      title: 'COMMAND CENTER',
+      title: 'COMMAND & POSTURE',
       items: [
         { id: 'landing', label: 'Command Overview', icon: LayoutGrid },
         { id: 'security-posture', label: 'Security Posture 2.0', icon: Compass },
         { id: 'monitoring', label: 'Continuous Watchlist', icon: Bell },
-        { id: 'dashboard', label: 'Telemetry Stream', icon: Activity }
+        { id: 'dashboard', label: 'Telemetry Stream', icon: Activity },
+        { id: 'cyber-news', label: 'Cyber Threat News', icon: Radio, badge: 'Hourly' }
       ]
     },
     {
@@ -113,40 +111,22 @@ export const AppShell: React.FC<AppShellProps> = ({
       ]
     },
     {
-      title: 'INVESTIGATE & FORENSICS',
+      title: 'THREAT INVESTIGATION',
       items: [
         { id: 'investigation-center', label: 'Universal Threat Center', icon: Search, badge: 'Omni' },
-        { id: 'url-scanner', label: 'URL & Link Scanner', icon: Zap },
         { id: 'message-scanner', label: 'SMS & Phish Analyzer', icon: FileText },
-        { id: 'website-scanner', label: 'Website & TLS Audit', icon: Globe }
+        { id: 'threat-intel', label: 'Threat Intelligence', icon: Radio }
       ]
     },
     {
-      title: 'ACTIVE DEFENSE & HONEYNET',
+      title: 'ACTIVE DEFENSE & OPS',
       items: [
+        { id: 'emergency-mode', label: 'Emergency Defense (1930)', icon: ShieldAlert, highlight: true },
         { id: 'darkweb', label: 'Dark Web Breach Radar', icon: Eye },
         { id: 'deception', label: 'Honeytoken Deception', icon: Flame, roleGated: true },
-        { id: 'emergency-mode', label: 'Emergency Defense', icon: ShieldAlert, highlight: true }
-      ]
-    },
-    {
-      title: 'THREAT INTELLIGENCE',
-      items: [
-        { id: 'cyber-news', label: 'Cyber Threat News', icon: Radio, badge: 'Hourly' },
-        { id: 'threat-intel', label: 'Threat Intelligence', icon: Radio },
-        { id: 'osint', label: 'OSINT Footprint Graph', icon: Network },
-        { id: 'security-map', label: 'Digital Security Map', icon: Network }
-      ]
-    },
-    {
-      title: 'REPORTS & ACADEMY',
-      items: [
-        { id: 'reports-center', label: 'Security Reports', icon: FileText },
-        { id: 'evidence-vault', label: 'Evidence Vault', icon: Layers },
-        { id: 'security-passport', label: 'Security Passport', icon: Award },
+        { id: 'reports-center', label: 'Security Reports & Export', icon: FileText },
+        { id: 'api-access', label: 'Developer API & Keys', icon: Terminal },
         { id: 'raksha-ai', label: 'RakshaAI Copilot', icon: Sparkles },
-        { id: 'awareness', label: 'Security Academy', icon: Award },
-        { id: 'developer-playground', label: 'Developer API Gateway', icon: Terminal },
         ...(isAdmin ? [{ id: 'admin', label: 'SOC Admin Operations', icon: Sliders }] : [])
       ]
     }

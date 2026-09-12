@@ -315,7 +315,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab }) => {
       <section>
         <SecurityInbox
           onOpenInvestigation={(target) => setActiveTab('investigation-center', { target })}
-          onViewEvidence={(evt) => setActiveTab('evidence-vault', { eventId: evt.id })}
+          onViewEvidence={(evt) => setActiveTab('reports-center', { eventId: evt.id })}
         />
       </section>
 
@@ -337,10 +337,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ setActiveTab }) => {
           </div>
 
           <button
-            onClick={() => setActiveTab('security-map')}
+            onClick={() => setActiveTab('security-graph')}
             className="text-xs text-amber-400 hover:underline font-mono flex items-center gap-1 font-bold cursor-pointer"
           >
-            <span>Open Interactive Security Map</span>
+            <span>Open Security Asset Graph</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>
