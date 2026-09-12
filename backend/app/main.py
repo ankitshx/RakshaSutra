@@ -59,8 +59,8 @@ def seed_database():
                 db.commit()
 
         # 2. Seed Super Admin user (rakshasutra.org)
-        super_email = "superadmin@rakshasutra.org"
-        super_pass = "SuperAdmin@12345"
+        super_email = os.getenv("SUPERADMIN_EMAIL", "superadmin@rakshasutra.org")
+        super_pass = os.getenv("SUPERADMIN_PASSWORD", "SuperAdmin@12345")
         super_admin = db.query(User).filter(User.email == super_email).first()
         if not super_admin:
             super_admin = User(

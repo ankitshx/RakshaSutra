@@ -11,16 +11,9 @@ import {
   Check,
   Plus,
   Loader2,
-  Trash2
+  Trash2,
+  Sparkles
 } from 'lucide-react';
-
-function generateSimulatedPaymentCredentials() {
-  const rand = () => Math.random().toString(36).substring(2, 12);
-  return {
-    paymentId: `pay_${rand()}`,
-    signature: `sig_test_${rand()}`
-  };
-}
 
 export const ApiAccessPage: React.FC = () => {
   const { user, isAuthenticated, refreshUser } = useAuth();
@@ -39,7 +32,8 @@ export const ApiAccessPage: React.FC = () => {
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const tier = (user?.subscription_tier || 'free').toLowerCase();
-  const isBusinessOrHigher = tier === 'business' || tier === 'enterprise' || user?.role === 'admin' || user?.role === 'super_admin';
+  // In Community Free Mode: All authenticated users can access and generate developer API keys freely
+  const isBusinessOrHigher = true;
 
   const loadPlans = useCallback(async () => {
     try {
@@ -74,16 +68,7 @@ export const ApiAccessPage: React.FC = () => {
 
   const handleSubscribe = async (plan: Plan) => {
     if (!isAuthenticated) {
-      alert('Please sign in or create an account to upgrade your subscription plan.');
-      return;
-    }
-
-    if (plan.tier === 'free') {
-      return;
-    }
-
-    if (plan.tier === 'enterprise') {
-      alert('Enterprise custom deployment: Please contact our security solutions architects at enterprise@rakshasutra.org to establish custom SLAs and volume licensing.');
+      alert('Please sign in or create an account to activate defense tiers.');
       return;
     }
 
@@ -91,24 +76,14 @@ export const ApiAccessPage: React.FC = () => {
     setActionMessage(null);
 
     try {
-      const orderRes = await api.createRazorpayOrder(plan.id);
-      
-      const { paymentId, signature } = generateSimulatedPaymentCredentials();
-
-      const verifyRes = await api.verifyRazorpayPayment({
-        razorpay_order_id: orderRes.order_id,
-        razorpay_payment_id: paymentId,
-        razorpay_signature: signature,
-        plan_id: plan.id
-      });
-
-      if (verifyRes.success) {
-        setActionMessage(`Successfully upgraded to ${plan.name}! Invoice: ${verifyRes.invoice_number}`);
+      const res = await api.activateFreeTier(plan.id);
+      if (res.success) {
+        setActionMessage(res.message);
         await refreshUser();
         loadApiKeyData();
       }
     } catch (err: any) {
-      alert(err.message || 'Payment processing simulation failed.');
+      alert(err.message || 'Failed to activate plan.');
     } finally {
       setProcessingPlanId(null);
     }
@@ -203,10 +178,28 @@ console.log(response.data.verdict);`
         </div>
       )}
 
+      {/* Community Free Public Access Banner */}
+      <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-950/80 via-cyan-950/60 to-slate-900 border border-emerald-500/40 text-emerald-300 font-mono flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-2xl">
+        <div className="flex items-center gap-3">
+          <Sparkles className="w-6 h-6 text-emerald-400 shrink-0 animate-pulse" />
+          <div>
+            <span className="font-bold text-white text-sm uppercase tracking-wider block">
+              🎉 Community Public Access: 100% Free Forever
+            </span>
+            <span className="text-slate-300 text-xs font-sans">
+              All threat scanners, OSINT reconnaissance engines, and developer API credentials are completely free to use. No payment required.
+            </span>
+          </div>
+        </div>
+        <span className="px-3.5 py-1.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 text-[11px] font-black uppercase tracking-wider shrink-0">
+          FREE ACTIVE
+        </span>
+      </div>
+
       {/* Subscription Pricing Grid */}
       <div className="space-y-4">
         <h3 className="text-sm font-bold font-mono text-white uppercase tracking-wider">
-          API & Defense Platform Tiers
+          API & Defense Platform Tiers (Community Free Access)
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -232,11 +225,11 @@ console.log(response.data.verdict);`
                     )}
                   </div>
 
-                  <div className="flex items-baseline gap-1 font-mono">
+                  <div className="flex items-baseline gap-2 font-mono">
                     <span className="text-3xl font-black text-white">
-                      {p.price_inr === 0 ? 'Free' : `₹${p.price_inr}`}
+                      ₹0
                     </span>
-                    {p.price_inr > 0 && <span className="text-xs text-slate-400">/{p.billing_period}</span>}
+                    <span className="text-xs text-emerald-400 font-bold uppercase">(100% Free)</span>
                   </div>
 
                   <ul className="space-y-2 text-xs text-slate-300 font-sans">
@@ -255,10 +248,10 @@ console.log(response.data.verdict);`
                   className={`w-full py-3.5 rounded-2xl font-mono text-xs font-black uppercase tracking-wider transition-all cursor-pointer ${
                     isCurrent
                       ? 'bg-[#070b12] text-slate-500 border border-white/5 cursor-default'
-                      : 'bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 text-slate-950 shadow-sutra-glow'
+                      : 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-400 text-slate-950 shadow-sutra-glow'
                   }`}
                 >
-                  {processingPlanId === p.id ? 'PROCESSING PAYMENT...' : isCurrent ? 'ACTIVE PLAN' : `UPGRADE TO ${p.name.toUpperCase()}`}
+                  {processingPlanId === p.id ? 'ACTIVATING TIER...' : isCurrent ? 'ACTIVE TIER (FREE)' : `ACTIVATE ${p.name.toUpperCase()} (FREE)`}
                 </button>
               </div>
             );

@@ -141,6 +141,47 @@ def get_plans():
     """Retrieve official SaaS plan catalog."""
     return {"plans": PLANS}
 
+@router.post("/activate-free-tier")
+def activate_free_tier(
+    request: CreateOrderRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Instantly activate any plan tier freely during Community Public Access.
+    No payment or credit card required.
+    """
+    plan = next((p for p in PLANS if p["id"] == request.plan_id), None)
+    if not plan:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid plan selected."
+        )
+    current_user.subscription_tier = plan["tier"]
+    current_user.daily_quota = 999999
+    current_user.osint_quota = 999999
+    db.commit()
+    db.refresh(current_user)
+
+    audit = AuditLog(
+        actor_id=current_user.id,
+        actor_email=current_user.email,
+        actor_role=current_user.role,
+        action="FREE_TIER_ACTIVATION",
+        target_type="subscription",
+        target_id=plan["id"],
+        details=json.dumps({"plan": plan["name"], "tier": plan["tier"], "cost": 0}),
+        ip_address="internal"
+    )
+    db.add(audit)
+    db.commit()
+
+    return {
+        "success": True,
+        "message": f"Successfully unlocked {plan['name']}! All features are active and 100% free.",
+        "tier": plan["tier"]
+    }
+
 @router.post("/razorpay/create-order")
 def create_razorpay_order(
     request: CreateOrderRequest,

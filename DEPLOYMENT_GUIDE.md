@@ -131,14 +131,22 @@ For deployment on an Ubuntu/Debian server (AWS EC2, DigitalOcean, Linode, Hetzne
 
 ---
 
-## 🔑 Default Login Credentials for First Launch
+## 🎁 Community Free Access Mode (100% Free)
 
-Once deployed, log into the dashboard using either of the provisioned roles:
+RakhshaSutra currently operates in **Community Free Public Access Mode**:
+- **Zero Payment Required:** All citizens, developers, and organizations can perform unlimited threat scans, deep OSINT footprinting, and generate developer API tokens without paying or needing a credit card.
+- **No Paywalls:** All quotas (`daily_quota = 999999`) and enterprise capabilities are enabled out-of-the-box. Payment gateway setup can be deferred for a later date.
 
-| Role | Email | Default Password | Description |
-| :--- | :--- | :--- | :--- |
-| **Super Admin** | `superadmin@rakshasutra.org` | `SuperAdmin@12345` | Root system access, Upgrade Advisor, Telemetry |
-| **SOC Admin** | `admin@rakshasutra.org` | `Admin@12345` | SOC alert triage, incident containment, threat intel |
-| **Citizen Demo** | `demo@rakshasutra.org` | `Citizen@12345` | Citizen threat scanners, personal dashboard |
+---
 
-> ⚠️ **Security Tip:** After logging into production for the first time, make sure to change the admin passwords in your user settings or environment variables!
+## 🔑 Secure Administrator Access (Secret Credentials)
+
+Administrative passwords are **NOT** publicly displayed on the login page to ensure maximum confidentiality. You can customize them in your deployment platform's private environment variables:
+
+| Role | Environment Variable (Email) | Environment Variable (Password) | Default (Fallback) | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| **Super Admin** | `SUPERADMIN_EMAIL` | `SUPERADMIN_PASSWORD` | `superadmin@rakshasutra.org` / `SuperAdmin@12345` | Root system control, Upgrade Advisor, Telemetry |
+| **SOC Admin** | `ADMIN_EMAIL` | `ADMIN_PASSWORD` | `admin@rakshasutra.org` / `Admin@12345` | SOC alert triage, incident containment, threat intel |
+| **Citizen Demo** | *Public 1-Click* | *Public 1-Click* | `demo@rakshasutra.org` / `Citizen@12345` | Public demo access for regular citizens |
+
+> 🔒 **Security Best Practice:** In production (e.g. on Render, Cloud Run, or VPS), set your own private `ADMIN_PASSWORD` and `SUPERADMIN_PASSWORD` in the environment settings. The system will automatically use your secret credentials upon startup.

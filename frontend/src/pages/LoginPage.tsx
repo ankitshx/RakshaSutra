@@ -203,35 +203,6 @@ export const LoginPage: React.FC<AuthPageProps> = ({ onSuccess, onSwitchToRegist
               >
                 🛡️ Citizen Demo (1-Click)
               </button>
-
-              {/* Administrative Access Credentials */}
-              <div className="p-3 rounded-2xl bg-[#030508] border border-white/10 space-y-2 text-[11px]">
-                <div className="text-slate-400 font-bold uppercase tracking-wider text-[10px] text-center border-b border-white/5 pb-1">
-                  🔑 Administrative Credentials
-                </div>
-                <div className="space-y-1.5 text-left text-slate-300">
-                  <div className="flex items-center justify-between">
-                    <span className="text-amber-400 font-bold">Super Admin:</span>
-                    <button
-                      type="button"
-                      onClick={() => { setEmail('superadmin@rakshasutra.org'); setPassword('SuperAdmin@12345'); }}
-                      className="text-[10px] text-amber-300 hover:underline cursor-pointer font-mono"
-                    >
-                      superadmin@rakshasutra.org / SuperAdmin@12345
-                    </button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-blue-400 font-bold">Admin SOC:</span>
-                    <button
-                      type="button"
-                      onClick={() => { setEmail('admin@rakshasutra.org'); setPassword('Admin@12345'); }}
-                      className="text-[10px] text-blue-300 hover:underline cursor-pointer font-mono"
-                    >
-                      admin@rakshasutra.org / Admin@12345
-                    </button>
-                  </div>
-                </div>
-              </div>
             </div>
 
             <div className="text-center font-mono text-xs pt-1">

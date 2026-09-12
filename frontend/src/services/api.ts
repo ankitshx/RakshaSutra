@@ -416,6 +416,15 @@ export const api = {
     return handleResponse<{ plans: Plan[] }>(res);
   },
 
+  activateFreeTier: async (plan_id: string): Promise<any> => {
+    const res = await fetch(`${API_BASE}/subscription/activate-free-tier`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+      body: JSON.stringify({ plan_id })
+    });
+    return handleResponse<any>(res);
+  },
+
   createRazorpayOrder: async (planOrObj: string | { plan_id: string; [key: string]: any }): Promise<any> => {
     const plan_id = typeof planOrObj === 'object' ? planOrObj.plan_id : planOrObj;
     const res = await fetch(`${API_BASE}/subscription/razorpay/create-order`, {

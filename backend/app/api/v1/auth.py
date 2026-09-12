@@ -138,10 +138,10 @@ def register_user(
         hashed_password=get_password_hash(request.password),
         full_name=request.full_name,
         role="user",
-        subscription_tier="free",
-        daily_quota=6,
+        subscription_tier="enterprise" if EntitlementService.COMMUNITY_FREE_MODE else "free",
+        daily_quota=999999 if EntitlementService.COMMUNITY_FREE_MODE else 6,
         scans_today=0,
-        osint_quota=1,
+        osint_quota=999999 if EntitlementService.COMMUNITY_FREE_MODE else 1,
         osint_today=0,
         is_active=True
     )
