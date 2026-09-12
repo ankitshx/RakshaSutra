@@ -661,5 +661,22 @@ export const api = {
       headers: getAuthHeader()
     });
     return handleResponse<any>(res);
+  },
+
+  // Super Admin Upgrade Advisor
+  getUpgradeAdvisor: async (): Promise<any> => {
+    const res = await fetch(`${API_BASE}/admin/upgrade-advisor`, {
+      headers: getAuthHeader()
+    });
+    return handleResponse<any>(res);
+  },
+
+  executeUpgradeAction: async (actionId: string): Promise<any> => {
+    const res = await fetch(`${API_BASE}/admin/upgrade-advisor/execute`, {
+      method: 'POST',
+      headers: getAuthHeader(),
+      body: JSON.stringify({ action_id: actionId })
+    });
+    return handleResponse<any>(res);
   }
 };

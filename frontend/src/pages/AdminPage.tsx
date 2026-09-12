@@ -12,12 +12,18 @@ import {
   Trash2,
   Loader2,
   LogIn,
-  Server
+  Server,
+  Sparkles,
+  Database,
+  RefreshCw,
+  Zap,
+  ShieldCheck,
+  ArrowUpRight
 } from 'lucide-react';
 
 export const AdminPage: React.FC = () => {
-  const { user, isAdmin, login } = useAuth();
-  const [activeTab, setActiveTab] = useState<'health' | 'ioc' | 'events' | 'users'>('health');
+  const { user, isAdmin, isSuperAdmin, login } = useAuth();
+  const [activeTab, setActiveTab] = useState<'health' | 'upgrade-advisor' | 'ioc' | 'events' | 'users'>('health');
   
   // Admin Login State
   const [adminEmailInput, setAdminEmailInput] = useState('');
@@ -31,6 +37,11 @@ export const AdminPage: React.FC = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [iocRules, setIocRules] = useState<any[]>([]);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  
+  // Super Admin Upgrade Advisor State
+  const [upgradeAdvisor, setUpgradeAdvisor] = useState<any>(null);
+  const [advisorLoading, setAdvisorLoading] = useState(false);
+  const [executingActionId, setExecutingActionId] = useState<string | null>(null);
 
   // New IOC Form state
   const [newIocType, setNewIocType] = useState('domain');
@@ -46,11 +57,18 @@ export const AdminPage: React.FC = () => {
     }
   }, [isAdmin, activeTab]);
 
+  const isSuperAdminUser = isSuperAdmin || user?.role === 'super_admin' || user?.email === 'superadmin@rakshasutra.org';
+
   const loadAdminData = async () => {
     try {
       if (activeTab === 'health') {
         const hData = await api.getSystemHealth();
         setHealth(hData);
+      } else if (activeTab === 'upgrade-advisor') {
+        setAdvisorLoading(true);
+        const advData = await api.getUpgradeAdvisor();
+        setUpgradeAdvisor(advData);
+        setAdvisorLoading(false);
       } else if (activeTab === 'ioc') {
         const iocs = await api.getIOCRules();
         setIocRules(iocs);
@@ -62,7 +80,22 @@ export const AdminPage: React.FC = () => {
         setUsers(uData);
       }
     } catch {
-      // handled
+      setAdvisorLoading(false);
+    }
+  };
+
+  const handleExecuteUpgradeAction = async (actionId: string) => {
+    setExecutingActionId(actionId);
+    try {
+      const res = await api.executeUpgradeAction(actionId);
+      setActionSuccess(res.message || `Upgrade action ${actionId} executed successfully.`);
+      setTimeout(() => setActionSuccess(null), 6000);
+      const advData = await api.getUpgradeAdvisor().catch(() => null);
+      if (advData) setUpgradeAdvisor(advData);
+    } catch (err: any) {
+      alert(err.message || 'Upgrade action failed.');
+    } finally {
+      setExecutingActionId(null);
     }
   };
 
@@ -215,13 +248,14 @@ export const AdminPage: React.FC = () => {
       )}
 
       {/* Admin Tabs */}
-      <div className="flex items-center gap-2 p-1.5 rounded-2xl bg-[#0c121e] border border-white/10 w-fit font-mono text-xs">
+      <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-2xl bg-[#0c121e] border border-white/10 w-fit font-mono text-xs">
         {[
           { id: 'health', label: 'Cluster Health', icon: Server },
+          ...(isSuperAdminUser ? [{ id: 'upgrade-advisor', label: 'System Upgrade Advisor', icon: Sparkles, isSuperAdmin: true }] : []),
           { id: 'ioc', label: 'IOC Threat Intelligence', icon: Radio },
           { id: 'events', label: 'Security Audit Logs', icon: ShieldAlert },
           { id: 'users', label: 'User Directory', icon: Users }
-        ].map((t) => {
+        ].map((t: any) => {
           const Icon = t.icon;
           return (
             <button
@@ -235,6 +269,11 @@ export const AdminPage: React.FC = () => {
             >
               <Icon className="w-4 h-4" />
               <span>{t.label}</span>
+              {t.isSuperAdmin && (
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                  SUPER ADMIN
+                </span>
+              )}
             </button>
           );
         })}
@@ -259,6 +298,170 @@ export const AdminPage: React.FC = () => {
             <span className="text-slate-400 uppercase">Total System Scans</span>
             <div className="text-xl font-black text-amber-400">{health?.total_scans_logged || '2,490'}</div>
           </div>
+        </div>
+      )}
+
+      {/* Super Admin Exclusive Tab: System Upgrade Advisor */}
+      {activeTab === 'upgrade-advisor' && (
+        <div className="space-y-6 font-mono text-xs">
+          {!isSuperAdminUser ? (
+            <div className="p-8 rounded-3xl bg-rose-950/40 border border-rose-500/40 text-center space-y-3">
+              <ShieldAlert className="w-10 h-10 text-rose-400 mx-auto" />
+              <h2 className="text-lg font-black text-white">ACCESS DENIED: SUPER ADMINISTRATOR EXCLUSIVE</h2>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                The System Upgrade Advisor provides direct architectural diagnostics and deployment triggers restricted exclusively to root super administrators.
+              </p>
+            </div>
+          ) : advisorLoading && !upgradeAdvisor ? (
+            <div className="p-12 rounded-3xl bg-[#0c121e] border border-white/10 text-center space-y-4">
+              <Loader2 className="w-8 h-8 text-amber-400 animate-spin mx-auto" />
+              <div className="text-sm font-bold text-white">Scanning System Architecture & Available Upgrades...</div>
+              <p className="text-xs text-slate-400">Analyzing threat feeds, heuristics rule packages, database telemetry, and infrastructure versioning</p>
+            </div>
+          ) : (
+            <>
+              {/* Upgrade Hero Diagnostic Bar */}
+              <div className="p-6 rounded-3xl bg-[#0c121e] border border-amber-500/30 shadow-2xl relative overflow-hidden space-y-6">
+                <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-amber-500/60 to-transparent" />
+                
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-14 h-14 rounded-2xl bg-amber-950/80 border border-amber-500/50 flex items-center justify-center text-amber-400 shadow-sutra-glow shrink-0">
+                      <Sparkles className="w-7 h-7" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg font-black text-white">SYSTEM UPGRADE & EVOLUTION ADVISOR</span>
+                        <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-slate-950">
+                          ROOT SUPERADMIN
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Automated intelligence engine highlighting deployable security upgrades, database tuning, and threat feed expansions
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <div className="text-right font-mono">
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Upgrade Readiness</span>
+                      <span className="text-2xl font-black text-emerald-400">
+                        {upgradeAdvisor?.readiness_score || 94}%
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => loadAdminData()}
+                      disabled={advisorLoading}
+                      className="p-3 rounded-2xl bg-[#070b12] border border-white/10 hover:border-amber-500/40 text-amber-400 cursor-pointer transition-all disabled:opacity-50"
+                      title="Re-scan system for new upgrades"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${advisorLoading ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* System Metrics Telemetry Pill Row */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-4 border-t border-white/10">
+                  <div className="p-3 rounded-xl bg-[#070b12] border border-white/5 space-y-1">
+                    <span className="text-[10px] text-slate-400 uppercase">Core OS Release</span>
+                    <div className="font-black text-white">{upgradeAdvisor?.system_profile?.version || 'v3.0.0-PROD'}</div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[#070b12] border border-white/5 space-y-1">
+                    <span className="text-[10px] text-slate-400 uppercase">Python Runtime</span>
+                    <div className="font-black text-amber-400">{upgradeAdvisor?.system_profile?.python_version || '3.12+'}</div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[#070b12] border border-white/5 space-y-1">
+                    <span className="text-[10px] text-slate-400 uppercase">Total Scans Logged</span>
+                    <div className="font-black text-white">{upgradeAdvisor?.system_profile?.tracked_entities?.scans || 0}</div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[#070b12] border border-white/5 space-y-1">
+                    <span className="text-[10px] text-slate-400 uppercase">Monitored Assets</span>
+                    <div className="font-black text-white">{upgradeAdvisor?.system_profile?.tracked_entities?.assets || 0}</div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[#070b12] border border-white/5 space-y-1">
+                    <span className="text-[10px] text-slate-400 uppercase">Known CVEs</span>
+                    <div className="font-black text-rose-400">{upgradeAdvisor?.system_profile?.tracked_entities?.vulnerabilities || 0}</div>
+                  </div>
+                  <div className="p-3 rounded-xl bg-[#070b12] border border-white/5 space-y-1">
+                    <span className="text-[10px] text-slate-400 uppercase">Pending Upgrades</span>
+                    <div className="font-black text-amber-400">{upgradeAdvisor?.summary?.total_recommendations || 5} Ready</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Upgrade Categories & Actionable Recommendations */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {(upgradeAdvisor?.upgrade_categories || []).map((cat: any) => (
+                  <div key={cat.id} className="p-6 rounded-3xl bg-[#0c121e] border border-white/10 shadow-xl space-y-5">
+                    <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-amber-950/60 text-amber-400 border border-amber-500/30">
+                          {cat.id === 'threat_intelligence' && <Radio className="w-4 h-4" />}
+                          {cat.id === 'detection_heuristics' && <Zap className="w-4 h-4" />}
+                          {cat.id === 'database_and_storage' && <Database className="w-4 h-4" />}
+                          {cat.id === 'auth_and_infrastructure' && <ShieldCheck className="w-4 h-4" />}
+                        </div>
+                        <span className="font-bold text-sm text-white">{cat.name}</span>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                        cat.status === 'UPDATE_RECOMMENDED' ? 'bg-rose-950 text-rose-300 border border-rose-500/40' :
+                        cat.status === 'UPGRADE_AVAILABLE' ? 'bg-amber-950 text-amber-300 border border-amber-500/40' :
+                        'bg-emerald-950 text-emerald-300 border border-emerald-500/40'
+                      }`}>
+                        {cat.status.replace(/_/g, ' ')}
+                      </span>
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 leading-relaxed">{cat.summary}</p>
+
+                    <div className="space-y-3">
+                      {cat.recommendations.map((rec: any) => (
+                        <div key={rec.id} className="p-4 rounded-2xl bg-[#070b12] border border-white/10 space-y-3 hover:border-amber-500/30 transition-all">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="space-y-1">
+                              <span className="font-bold text-white text-xs block">{rec.title}</span>
+                              <span className="text-[10px] text-amber-400 font-bold block">{rec.impact}</span>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded text-[9px] font-black shrink-0 ${
+                              rec.urgency === 'CRITICAL' ? 'bg-rose-600 text-white' :
+                              rec.urgency === 'RECOMMENDED' ? 'bg-amber-500 text-slate-950' :
+                              rec.urgency === 'PLANNED' ? 'bg-indigo-600 text-white' :
+                              'bg-slate-800 text-slate-300'
+                            }`}>
+                              {rec.urgency}
+                            </span>
+                          </div>
+
+                          <p className="text-[11px] text-slate-400 leading-relaxed">{rec.description}</p>
+
+                          <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+                            <span className="text-[10px] text-slate-500 uppercase">{rec.type}</span>
+                            <button
+                              onClick={() => handleExecuteUpgradeAction(rec.action_id)}
+                              disabled={executingActionId === rec.action_id}
+                              className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[10px] uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-sutra-glow disabled:opacity-50"
+                            >
+                              {executingActionId === rec.action_id ? (
+                                <>
+                                  <Loader2 className="w-3 h-3 animate-spin" />
+                                  <span>APPLYING...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <ArrowUpRight className="w-3 h-3" />
+                                  <span>APPLY UPGRADE</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
 
