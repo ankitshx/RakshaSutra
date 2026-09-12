@@ -475,6 +475,13 @@ frontend_dist = next((p for p in frontend_dist_paths if os.path.exists(p)), None
 if frontend_dist:
     app.mount("/assets", StaticFiles(directory=os.path.join(frontend_dist, "assets")), name="assets")
     
+    @app.get("/", include_in_schema=False)
+    async def serve_root():
+        index_path = os.path.join(frontend_dist, "index.html")
+        if os.path.isfile(index_path):
+            return FileResponse(index_path)
+        return JSONResponse({"status": "healthy", "service": "RakshaSutra OS", "version": "3.0.0-PROD"})
+
     @app.get("/{full_path:path}", include_in_schema=False)
     async def serve_spa_frontend(full_path: str):
         if full_path.startswith("api/") or full_path.startswith("docs") or full_path.startswith("redoc") or full_path.startswith("openapi.json"):
@@ -483,3 +490,13 @@ if frontend_dist:
         if os.path.isfile(file_path):
             return FileResponse(file_path)
         return FileResponse(os.path.join(frontend_dist, "index.html"))
+else:
+    @app.get("/", include_in_schema=False)
+    async def serve_root_api():
+        return JSONResponse({
+            "status": "healthy",
+            "service": "RakshaSutra Continuous Digital Defense OS",
+            "version": "3.0.0-PROD",
+            "documentation": "/docs",
+            "telemetry_health": "/health"
+        })

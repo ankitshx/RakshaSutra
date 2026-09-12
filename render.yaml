@@ -5,9 +5,17 @@ services:
     plan: free
     region: oregon
     dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
     autoDeploy: true
     envVars:
-      - key: SECRET_KEY
-        generateValue: true
       - key: PORT
         value: 8080
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_EMAIL
+        value: admin@rakshasutra.org
+      - key: ADMIN_PASSWORD
+        generateValue: true
+      - key: DATABASE_URL
+        value: sqlite:///./rakshasutra.db
