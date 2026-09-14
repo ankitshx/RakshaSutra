@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE, getAuthHeader } from '../services/api';
 import {
   Building2,
   Users,
@@ -42,16 +43,17 @@ export const OrganizationPage: React.FC = () => {
   const fetchOrgData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/organizations/current', {
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      const res = await fetch(`${API_BASE}/organizations/current`, {
+        headers: getAuthHeader()
       });
       if (res.ok) {
         const data = await res.json();
         setOrgData(data);
       }
 
-      const matrixRes = await fetch('/api/v1/organizations/roles/permissions-matrix');
+      const matrixRes = await fetch(`${API_BASE}/organizations/roles/permissions-matrix`, {
+        headers: getAuthHeader()
+      });
       if (matrixRes.ok) {
         const mData = await matrixRes.json();
         setMatrixData(mData);

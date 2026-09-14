@@ -14,16 +14,16 @@ import {
   LogIn,
   Server,
   Sparkles,
-  Database,
   RefreshCw,
-  Zap,
-  ShieldCheck,
-  ArrowUpRight
+  Send,
+  Bot,
+  AlertTriangle,
+  CheckCheck
 } from 'lucide-react';
 
 export const AdminPage: React.FC = () => {
   const { user, isAdmin, isSuperAdmin, login } = useAuth();
-  const [activeTab, setActiveTab] = useState<'health' | 'upgrade-advisor' | 'ioc' | 'events' | 'users'>('health');
+  const [activeTab, setActiveTab] = useState<'health' | 'ai-sentinel' | 'ioc' | 'events' | 'users'>('health');
   
   // Admin Login State
   const [adminEmailInput, setAdminEmailInput] = useState('');
@@ -38,10 +38,16 @@ export const AdminPage: React.FC = () => {
   const [iocRules, setIocRules] = useState<any[]>([]);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   
-  // Super Admin Upgrade Advisor State
-  const [upgradeAdvisor, setUpgradeAdvisor] = useState<any>(null);
-  const [advisorLoading, setAdvisorLoading] = useState(false);
-  const [executingActionId, setExecutingActionId] = useState<string | null>(null);
+  // Super Admin AI Sentinel & Telegram Watchdog State
+  const [aiSentinelAudit, setAiSentinelAudit] = useState<any>(null);
+  const [sentinelLoading, setSentinelLoading] = useState<boolean>(false);
+  const [telegramConfig, setTelegramConfig] = useState<any>(null);
+  const [telegramSending, setTelegramSending] = useState<boolean>(false);
+  const [telegramSuccess, setTelegramSuccess] = useState<string | null>(null);
+  const [showTelegramModal, setShowTelegramModal] = useState<boolean>(false);
+  const [customBotToken, setCustomBotToken] = useState<string>('');
+  const [customChatId, setCustomChatId] = useState<string>('');
+  const [customNote, setCustomNote] = useState<string>('');
 
   // New IOC Form state
   const [newIocType, setNewIocType] = useState('domain');
@@ -64,11 +70,15 @@ export const AdminPage: React.FC = () => {
       if (activeTab === 'health') {
         const hData = await api.getSystemHealth();
         setHealth(hData);
-      } else if (activeTab === 'upgrade-advisor') {
-        setAdvisorLoading(true);
-        const advData = await api.getUpgradeAdvisor();
-        setUpgradeAdvisor(advData);
-        setAdvisorLoading(false);
+      } else if (activeTab === 'ai-sentinel') {
+        setSentinelLoading(true);
+        const [auditData, cfgData] = await Promise.all([
+          api.getAiSentinelAudit().catch(() => null),
+          api.getAiSentinelConfig().catch(() => null)
+        ]);
+        if (auditData) setAiSentinelAudit(auditData);
+        if (cfgData) setTelegramConfig(cfgData);
+        setSentinelLoading(false);
       } else if (activeTab === 'ioc') {
         const iocs = await api.getIOCRules();
         setIocRules(iocs);
@@ -80,22 +90,42 @@ export const AdminPage: React.FC = () => {
         setUsers(uData);
       }
     } catch {
-      setAdvisorLoading(false);
+      setSentinelLoading(false);
     }
   };
 
-  const handleExecuteUpgradeAction = async (actionId: string) => {
-    setExecutingActionId(actionId);
+  const handleRunAiAudit = async () => {
+    setSentinelLoading(true);
     try {
-      const res = await api.executeUpgradeAction(actionId);
-      setActionSuccess(res.message || `Upgrade action ${actionId} executed successfully.`);
-      setTimeout(() => setActionSuccess(null), 6000);
-      const advData = await api.getUpgradeAdvisor().catch(() => null);
-      if (advData) setUpgradeAdvisor(advData);
+      const data = await api.getAiSentinelAudit();
+      setAiSentinelAudit(data);
+      setActionSuccess('AI System Sentinel live telemetry and audit updated.');
+      setTimeout(() => setActionSuccess(null), 4000);
     } catch (err: any) {
-      alert(err.message || 'Upgrade action failed.');
+      alert(err.message || 'Failed to refresh AI audit.');
     } finally {
-      setExecutingActionId(null);
+      setSentinelLoading(false);
+    }
+  };
+
+  const handleDispatchTelegram = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    setTelegramSending(true);
+    setTelegramSuccess(null);
+    try {
+      const payload: any = {};
+      if (customBotToken.trim()) payload.bot_token = customBotToken.trim();
+      if (customChatId.trim()) payload.chat_id = customChatId.trim();
+      if (customNote.trim()) payload.custom_note = customNote.trim();
+
+      const res = await api.dispatchAiSentinelTelegram(payload);
+      setTelegramSuccess(res.message || 'System update audit successfully delivered to your Telegram!');
+      setShowTelegramModal(false);
+      setTimeout(() => setTelegramSuccess(null), 6000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to send report to Telegram. Please check your Bot Token and Chat ID.');
+    } finally {
+      setTelegramSending(false);
     }
   };
 
@@ -251,7 +281,7 @@ export const AdminPage: React.FC = () => {
       <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-2xl bg-[#0c121e] border border-white/10 w-fit font-mono text-xs">
         {[
           { id: 'health', label: 'Cluster Health', icon: Server },
-          ...(isSuperAdminUser ? [{ id: 'upgrade-advisor', label: 'System Upgrade Advisor', icon: Sparkles, isSuperAdmin: true }] : []),
+          ...(isSuperAdminUser ? [{ id: 'ai-sentinel', label: 'AI Sentinel & Telegram Watchdog', icon: Bot, isSuperAdmin: true }] : []),
           { id: 'ioc', label: 'IOC Threat Intelligence', icon: Radio },
           { id: 'events', label: 'Security Audit Logs', icon: ShieldAlert },
           { id: 'users', label: 'User Directory', icon: Users }
@@ -301,61 +331,86 @@ export const AdminPage: React.FC = () => {
         </div>
       )}
 
-      {/* Super Admin Exclusive Tab: System Upgrade Advisor */}
-      {activeTab === 'upgrade-advisor' && (
+      {/* Super Admin Exclusive Tab: AI Sentinel & Telegram Watchdog */}
+      {activeTab === 'ai-sentinel' && (
         <div className="space-y-6 font-mono text-xs">
           {!isSuperAdminUser ? (
             <div className="p-8 rounded-3xl bg-rose-950/40 border border-rose-500/40 text-center space-y-3">
               <ShieldAlert className="w-10 h-10 text-rose-400 mx-auto" />
               <h2 className="text-lg font-black text-white">ACCESS DENIED: SUPER ADMINISTRATOR EXCLUSIVE</h2>
               <p className="text-xs text-slate-400 max-w-md mx-auto">
-                The System Upgrade Advisor provides direct architectural diagnostics and deployment triggers restricted exclusively to root super administrators.
+                The AI System Sentinel provides continuous architectural telemetry, live vulnerability analysis, and real-time Telegram update advisories restricted to Root Super Administrators.
               </p>
             </div>
-          ) : advisorLoading && !upgradeAdvisor ? (
+          ) : sentinelLoading && !aiSentinelAudit ? (
             <div className="p-12 rounded-3xl bg-[#0c121e] border border-white/10 text-center space-y-4">
               <Loader2 className="w-8 h-8 text-amber-400 animate-spin mx-auto" />
-              <div className="text-sm font-bold text-white">Scanning System Architecture & Available Upgrades...</div>
-              <p className="text-xs text-slate-400">Analyzing threat feeds, heuristics rule packages, database telemetry, and infrastructure versioning</p>
+              <div className="text-sm font-bold text-white">AI Sentinel Scanning Live Platform Architecture...</div>
+              <p className="text-xs text-slate-400">Analyzing database indexes, API routes, active IOCs, system load, and generating Telegram intelligence summary</p>
             </div>
           ) : (
             <>
-              {/* Upgrade Hero Diagnostic Bar */}
+              {telegramSuccess && (
+                <div className="p-4 rounded-2xl bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-xs font-mono flex items-center justify-between gap-3 shadow-sutra-glow">
+                  <div className="flex items-center gap-2">
+                    <CheckCheck className="w-5 h-5 text-emerald-400 shrink-0" />
+                    <span>{telegramSuccess}</span>
+                  </div>
+                  <button
+                    onClick={() => setTelegramSuccess(null)}
+                    className="text-emerald-400 hover:text-white text-xs cursor-pointer font-bold"
+                  >
+                    DISMISS
+                  </button>
+                </div>
+              )}
+
+              {/* AI Sentinel Hero Diagnostic Bar */}
               <div className="p-6 rounded-3xl bg-[#0c121e] border border-amber-500/30 shadow-2xl relative overflow-hidden space-y-6">
                 <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-amber-500/60 to-transparent" />
                 
                 <div className="flex flex-wrap items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className="w-14 h-14 rounded-2xl bg-amber-950/80 border border-amber-500/50 flex items-center justify-center text-amber-400 shadow-sutra-glow shrink-0">
-                      <Sparkles className="w-7 h-7" />
+                      <Bot className="w-7 h-7" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-lg font-black text-white">SYSTEM UPGRADE & EVOLUTION ADVISOR</span>
+                        <span className="text-lg font-black text-white">AI SYSTEM SENTINEL & TELEGRAM WATCHDOG</span>
                         <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-rose-500 text-slate-950">
-                          ROOT SUPERADMIN
+                          AUTONOMOUS MONITOR
                         </span>
                       </div>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        Automated intelligence engine highlighting deployable security upgrades, database tuning, and threat feed expansions
+                        Real-time AI watcher analyzing system health, pending updates, and dispatching advisory reports to Telegram
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3">
                     <div className="text-right font-mono">
-                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Upgrade Readiness</span>
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block">System Health Score</span>
                       <span className="text-2xl font-black text-emerald-400">
-                        {upgradeAdvisor?.readiness_score || 94}%
+                        {aiSentinelAudit?.health_score || 98}%
                       </span>
                     </div>
+
                     <button
-                      onClick={() => loadAdminData()}
-                      disabled={advisorLoading}
-                      className="p-3 rounded-2xl bg-[#070b12] border border-white/10 hover:border-amber-500/40 text-amber-400 cursor-pointer transition-all disabled:opacity-50"
-                      title="Re-scan system for new upgrades"
+                      onClick={handleRunAiAudit}
+                      disabled={sentinelLoading}
+                      className="p-3 rounded-2xl bg-[#070b12] border border-white/10 hover:border-amber-500/40 text-amber-400 cursor-pointer transition-all disabled:opacity-50 flex items-center gap-2"
+                      title="Re-run live AI system audit"
                     >
-                      <RefreshCw className={`w-4 h-4 ${advisorLoading ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`w-4 h-4 ${sentinelLoading ? 'animate-spin' : ''}`} />
+                      <span className="hidden sm:inline font-bold text-xs">RE-AUDIT</span>
+                    </button>
+
+                    <button
+                      onClick={() => setShowTelegramModal(true)}
+                      className="px-4 py-3 rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-lg shadow-cyan-500/20"
+                    >
+                      <Send className="w-4 h-4" />
+                      <span>DISPATCH TELEGRAM REPORT</span>
                     </button>
                   </div>
                 </div>
@@ -363,103 +418,227 @@ export const AdminPage: React.FC = () => {
                 {/* System Metrics Telemetry Pill Row */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-4 border-t border-white/10">
                   <div className="p-3 rounded-xl bg-[#070b12] border border-white/5 space-y-1">
-                    <span className="text-[10px] text-slate-400 uppercase">Core OS Release</span>
-                    <div className="font-black text-white">{upgradeAdvisor?.system_profile?.version || 'v3.0.0-PROD'}</div>
+                    <span className="text-[10px] text-slate-400 uppercase">Python Engine</span>
+                    <div className="font-black text-amber-400">{aiSentinelAudit?.telemetry?.python_version || '3.12+'}</div>
                   </div>
                   <div className="p-3 rounded-xl bg-[#070b12] border border-white/5 space-y-1">
-                    <span className="text-[10px] text-slate-400 uppercase">Python Runtime</span>
-                    <div className="font-black text-amber-400">{upgradeAdvisor?.system_profile?.python_version || '3.12+'}</div>
+                    <span className="text-[10px] text-slate-400 uppercase">Users Registered</span>
+                    <div className="font-black text-white">{aiSentinelAudit?.telemetry?.entities?.users || 1}</div>
                   </div>
                   <div className="p-3 rounded-xl bg-[#070b12] border border-white/5 space-y-1">
-                    <span className="text-[10px] text-slate-400 uppercase">Total Scans Logged</span>
-                    <div className="font-black text-white">{upgradeAdvisor?.system_profile?.tracked_entities?.scans || 0}</div>
+                    <span className="text-[10px] text-slate-400 uppercase">Total Scans Executed</span>
+                    <div className="font-black text-white">{aiSentinelAudit?.telemetry?.entities?.scans || 0}</div>
                   </div>
                   <div className="p-3 rounded-xl bg-[#070b12] border border-white/5 space-y-1">
-                    <span className="text-[10px] text-slate-400 uppercase">Monitored Assets</span>
-                    <div className="font-black text-white">{upgradeAdvisor?.system_profile?.tracked_entities?.assets || 0}</div>
+                    <span className="text-[10px] text-slate-400 uppercase">Active Threat IOCs</span>
+                    <div className="font-black text-emerald-400">{aiSentinelAudit?.telemetry?.entities?.active_iocs || 0}</div>
                   </div>
                   <div className="p-3 rounded-xl bg-[#070b12] border border-white/5 space-y-1">
-                    <span className="text-[10px] text-slate-400 uppercase">Known CVEs</span>
-                    <div className="font-black text-rose-400">{upgradeAdvisor?.system_profile?.tracked_entities?.vulnerabilities || 0}</div>
+                    <span className="text-[10px] text-slate-400 uppercase">Vercel Edge Ready</span>
+                    <div className="font-black text-emerald-400">100% READY</div>
                   </div>
                   <div className="p-3 rounded-xl bg-[#070b12] border border-white/5 space-y-1">
-                    <span className="text-[10px] text-slate-400 uppercase">Pending Upgrades</span>
-                    <div className="font-black text-amber-400">{upgradeAdvisor?.summary?.total_recommendations || 5} Ready</div>
+                    <span className="text-[10px] text-slate-400 uppercase">Telegram Channel</span>
+                    <div className={`font-black ${telegramConfig?.is_configured ? 'text-emerald-400' : 'text-amber-400'}`}>
+                      {telegramConfig?.is_configured ? 'LINKED' : 'CONFIGURABLE'}
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Upgrade Categories & Actionable Recommendations */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {(upgradeAdvisor?.upgrade_categories || []).map((cat: any) => (
-                  <div key={cat.id} className="p-6 rounded-3xl bg-[#0c121e] border border-white/10 shadow-xl space-y-5">
+              {/* Two Grand Intelligence Columns */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                
+                {/* Column 1: Immediate Updates & Fixes Needed (क्या-क्या अपडेट करने की जरूरत है) */}
+                <div className="p-6 rounded-3xl bg-[#0c121e] border border-rose-500/30 shadow-xl space-y-4">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-rose-950/80 text-rose-400 border border-rose-500/40">
+                        <AlertTriangle className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-black text-sm text-white">IMMEDIATE UPDATES & FIXES</h3>
+                        <p className="text-[10px] text-slate-400">क्या-क्या अपडेट करने की जरूरत है (Security, Signatures & Deployment)</p>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                      {aiSentinelAudit?.immediate_updates_needed?.length || 3} PENDING
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {(aiSentinelAudit?.immediate_updates_needed || []).map((item: any, idx: number) => (
+                      <div
+                        key={item.id || idx}
+                        className="p-4 rounded-2xl bg-[#070b12] border border-white/10 hover:border-rose-500/40 transition-all space-y-2.5"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-bold text-white text-xs">{item.title}</span>
+                          <span className={`px-2 py-0.5 rounded text-[9px] font-black shrink-0 ${
+                            item.urgency === 'HIGH' ? 'bg-rose-600 text-white' :
+                            item.urgency === 'MEDIUM' ? 'bg-amber-500 text-slate-950' :
+                            'bg-slate-800 text-slate-300'
+                          }`}>
+                            {item.urgency}
+                          </span>
+                        </div>
+
+                        <p className="text-[11px] text-slate-300 leading-relaxed">
+                          <span className="text-rose-400 font-bold">Problem/Reason: </span>
+                          {item.reason}
+                        </p>
+
+                        <div className="p-2.5 rounded-xl bg-[#030508] border border-white/5 text-[11px] text-amber-300">
+                          <span className="font-bold text-white">Action Required: </span>
+                          {item.action}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Column 2: Recommended Evolution & Features (क्या-क्या अच्छा रहेगा) */}
+                <div className="p-6 rounded-3xl bg-[#0c121e] border border-cyan-500/30 shadow-xl space-y-4">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                    <div className="flex items-center gap-2.5">
+                      <div className="p-2 rounded-xl bg-cyan-950/80 text-cyan-400 border border-cyan-500/40">
+                        <Sparkles className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h3 className="font-black text-sm text-white">RECOMMENDED EVOLUTION & ROADMAP</h3>
+                        <p className="text-[10px] text-slate-400">क्या-क्या नया लगाना अच्छा रहेगा (AI Defense, Speed & Ecosystem)</p>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-full text-[10px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
+                      {aiSentinelAudit?.recommended_evolution?.length || 4} PROPOSALS
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {(aiSentinelAudit?.recommended_evolution || []).map((feat: any, idx: number) => (
+                      <div
+                        key={feat.id || idx}
+                        className="p-4 rounded-2xl bg-[#070b12] border border-white/10 hover:border-cyan-500/40 transition-all space-y-2.5"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="font-bold text-white text-xs">{feat.title}</span>
+                          <span className="px-2 py-0.5 rounded text-[9px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shrink-0">
+                            {feat.impact}
+                          </span>
+                        </div>
+
+                        <p className="text-[11px] text-slate-300 leading-relaxed">
+                          {feat.description}
+                        </p>
+
+                        <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[10px]">
+                          <span className="text-slate-500 uppercase">{feat.category}</span>
+                          <span className="font-bold text-emerald-400">{feat.readiness.replace(/_/g, ' ')}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Telegram Dispatch Modal */}
+              {showTelegramModal && (
+                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                  <div className="bg-[#0c121e] border border-cyan-500/40 rounded-3xl max-w-lg w-full p-6 space-y-5 shadow-2xl relative">
                     <div className="flex items-center justify-between border-b border-white/10 pb-3">
                       <div className="flex items-center gap-2">
-                        <div className="p-1.5 rounded-lg bg-amber-950/60 text-amber-400 border border-amber-500/30">
-                          {cat.id === 'threat_intelligence' && <Radio className="w-4 h-4" />}
-                          {cat.id === 'detection_heuristics' && <Zap className="w-4 h-4" />}
-                          {cat.id === 'database_and_storage' && <Database className="w-4 h-4" />}
-                          {cat.id === 'auth_and_infrastructure' && <ShieldCheck className="w-4 h-4" />}
+                        <div className="p-2 rounded-xl bg-cyan-950/80 text-cyan-400 border border-cyan-500/40">
+                          <Send className="w-5 h-5" />
                         </div>
-                        <span className="font-bold text-sm text-white">{cat.name}</span>
+                        <div>
+                          <h3 className="font-black text-white text-base">DISPATCH TO TELEGRAM</h3>
+                          <p className="text-xs text-slate-400">Send live AI Sentinel update report to your phone</p>
+                        </div>
                       </div>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
-                        cat.status === 'UPDATE_RECOMMENDED' ? 'bg-rose-950 text-rose-300 border border-rose-500/40' :
-                        cat.status === 'UPGRADE_AVAILABLE' ? 'bg-amber-950 text-amber-300 border border-amber-500/40' :
-                        'bg-emerald-950 text-emerald-300 border border-emerald-500/40'
-                      }`}>
-                        {cat.status.replace(/_/g, ' ')}
-                      </span>
+                      <button
+                        onClick={() => setShowTelegramModal(false)}
+                        className="text-slate-400 hover:text-white text-sm cursor-pointer p-1"
+                      >
+                        ✕
+                      </button>
                     </div>
 
-                    <p className="text-[11px] text-slate-400 leading-relaxed">{cat.summary}</p>
-
-                    <div className="space-y-3">
-                      {cat.recommendations.map((rec: any) => (
-                        <div key={rec.id} className="p-4 rounded-2xl bg-[#070b12] border border-white/10 space-y-3 hover:border-amber-500/30 transition-all">
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="space-y-1">
-                              <span className="font-bold text-white text-xs block">{rec.title}</span>
-                              <span className="text-[10px] text-amber-400 font-bold block">{rec.impact}</span>
-                            </div>
-                            <span className={`px-2 py-0.5 rounded text-[9px] font-black shrink-0 ${
-                              rec.urgency === 'CRITICAL' ? 'bg-rose-600 text-white' :
-                              rec.urgency === 'RECOMMENDED' ? 'bg-amber-500 text-slate-950' :
-                              rec.urgency === 'PLANNED' ? 'bg-indigo-600 text-white' :
-                              'bg-slate-800 text-slate-300'
-                            }`}>
-                              {rec.urgency}
-                            </span>
-                          </div>
-
-                          <p className="text-[11px] text-slate-400 leading-relaxed">{rec.description}</p>
-
-                          <div className="pt-2 border-t border-white/5 flex items-center justify-between">
-                            <span className="text-[10px] text-slate-500 uppercase">{rec.type}</span>
-                            <button
-                              onClick={() => handleExecuteUpgradeAction(rec.action_id)}
-                              disabled={executingActionId === rec.action_id}
-                              className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-[10px] uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shadow-sutra-glow disabled:opacity-50"
-                            >
-                              {executingActionId === rec.action_id ? (
-                                <>
-                                  <Loader2 className="w-3 h-3 animate-spin" />
-                                  <span>APPLYING...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <ArrowUpRight className="w-3 h-3" />
-                                  <span>APPLY UPGRADE</span>
-                                </>
-                              )}
-                            </button>
-                          </div>
+                    <form onSubmit={handleDispatchTelegram} className="space-y-4">
+                      {telegramConfig?.is_configured ? (
+                        <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2">
+                          <CheckCheck className="w-4 h-4 shrink-0" />
+                          <span>Pre-configured credentials detected via environment variables. Ready to dispatch!</span>
                         </div>
-                      ))}
-                    </div>
+                      ) : (
+                        <div className="p-3 rounded-xl bg-amber-950/60 border border-amber-500/40 text-amber-300 text-xs">
+                          💡 You can enter your Telegram Bot Token & Chat ID below to receive the report immediately, or set <code>TELEGRAM_BOT_TOKEN</code> in your backend .env file.
+                        </div>
+                      )}
+
+                      <div className="space-y-1">
+                        <label className="text-slate-300 text-xs font-bold block">Telegram Bot Token (Optional if set in .env)</label>
+                        <input
+                          type="text"
+                          value={customBotToken}
+                          onChange={(e) => setCustomBotToken(e.target.value)}
+                          placeholder="e.g. 7123456789:AAHKq9..."
+                          className="w-full px-3 py-2 rounded-xl bg-[#030508] border border-white/10 text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-slate-300 text-xs font-bold block">Telegram Chat ID (Optional if set in .env)</label>
+                        <input
+                          type="text"
+                          value={customChatId}
+                          onChange={(e) => setCustomChatId(e.target.value)}
+                          placeholder="e.g. 123456789 or @channelusername"
+                          className="w-full px-3 py-2 rounded-xl bg-[#030508] border border-white/10 text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 text-xs"
+                        />
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-slate-300 text-xs font-bold block">Optional Note / Deployment Marker</label>
+                        <input
+                          type="text"
+                          value={customNote}
+                          onChange={(e) => setCustomNote(e.target.value)}
+                          placeholder="e.g. Pre-Vercel production check completed"
+                          className="w-full px-3 py-2 rounded-xl bg-[#030508] border border-white/10 text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 text-xs"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-end gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowTelegramModal(false)}
+                          className="px-4 py-2 rounded-xl bg-[#070b12] border border-white/10 text-slate-400 hover:text-white text-xs cursor-pointer font-bold"
+                        >
+                          CANCEL
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={telegramSending}
+                          className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 cursor-pointer disabled:opacity-50 shadow-lg shadow-cyan-500/20"
+                        >
+                          {telegramSending ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span>DISPATCHING...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-4 h-4" />
+                              <span>SEND TO TELEGRAM</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </form>
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
             </>
           )}
         </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE, getAuthHeader } from '../services/api';
 import {
   Bell,
   Search,
@@ -33,7 +34,9 @@ export const AlertsCenterPage: React.FC = () => {
   const fetchAlerts = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/v1/alerts');
+      const res = await fetch(`${API_BASE}/alerts`, {
+        headers: getAuthHeader()
+      });
       if (res.ok) {
         const data = await res.json();
         setAlerts(data);
@@ -51,13 +54,9 @@ export const AlertsCenterPage: React.FC = () => {
 
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/alerts/${id}/status`, {
+      const res = await fetch(`${API_BASE}/alerts/${id}/status`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
+        headers: getAuthHeader(),
         body: JSON.stringify({ status: newStatus })
       });
       if (res.ok) {

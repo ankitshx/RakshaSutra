@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { API_BASE, getAuthHeader } from '../services/api';
 import {
   Globe,
   Plus,
@@ -52,7 +53,9 @@ export const AttackSurfacePage: React.FC = () => {
 
   const fetchAssets = useCallback(async () => {
     try {
-      const res = await fetch('/api/v1/assets');
+      const res = await fetch(`${API_BASE}/assets`, {
+        headers: getAuthHeader()
+      });
       if (res.ok) {
         const data = await res.json();
         setAssets(data);
@@ -71,13 +74,9 @@ export const AttackSurfacePage: React.FC = () => {
   const handleCreateAsset = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/assets', {
+      const res = await fetch(`${API_BASE}/assets`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
+        headers: getAuthHeader(),
         body: JSON.stringify({
           name: newAssetName,
           asset_type: newAssetType,
@@ -100,13 +99,9 @@ export const AttackSurfacePage: React.FC = () => {
     e.preventDefault();
     try {
       setDiscovering(true);
-      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/assets/discover', {
+      const res = await fetch(`${API_BASE}/assets/discover`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
+        headers: getAuthHeader(),
         body: JSON.stringify({ seed_domain: seedDomain })
       });
       if (res.ok) {
@@ -124,10 +119,9 @@ export const AttackSurfacePage: React.FC = () => {
   const handleDeleteAsset = async (id: string) => {
     if (!confirm('Are you sure you want to remove this asset from inventory?')) return;
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-      await fetch(`/api/v1/assets/${id}`, {
+      await fetch(`${API_BASE}/assets/${id}`, {
         method: 'DELETE',
-        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        headers: getAuthHeader()
       });
       fetchAssets();
       if (selectedAsset?.id === id) setSelectedAsset(null);

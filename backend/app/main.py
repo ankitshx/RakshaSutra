@@ -1,6 +1,7 @@
 import os
 import time
 import uuid
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +16,7 @@ from app.models.user import User
 from app.models.scan import Scan
 from app.core.security import get_password_hash
 from app.core.metrics import metrics
+from app.services.ai_sentinel_service import run_telegram_watchdog_loop
 
 from sqlalchemy import text
 
@@ -54,9 +56,9 @@ def seed_database():
             db.commit()
             logger.info(f"Configured primary Admin account from environment ({configured_admin_email}).")
         else:
-            if not configured_admin.is_active:
-                configured_admin.is_active = True
-                db.commit()
+            configured_admin.hashed_password = get_password_hash(configured_admin_pass)
+            configured_admin.is_active = True
+            db.commit()
 
         # 2. Seed Super Admin user (rakshasutra.org)
         super_email = os.getenv("SUPERADMIN_EMAIL", "superadmin@rakshasutra.org")
@@ -76,10 +78,11 @@ def seed_database():
             db.commit()
             logger.info("Configured default SuperAdmin account.")
         else:
+            super_admin.hashed_password = get_password_hash(super_pass)
             if not super_admin.is_active or super_admin.role != "super_admin":
                 super_admin.role = "super_admin"
                 super_admin.is_active = True
-                db.commit()
+            db.commit()
 
         # 3. Seed default admin user (rakshasutra.org) if different from configured
         admin_email = "admin@rakshasutra.org"
@@ -100,10 +103,11 @@ def seed_database():
                 db.commit()
                 logger.info("Configured default Admin account.")
             else:
+                admin.hashed_password = get_password_hash(admin_pass)
                 if not admin.is_active or admin.role != "admin":
                     admin.role = "admin"
                     admin.is_active = True
-                    db.commit()
+                db.commit()
         else:
             admin = configured_admin
 
@@ -365,8 +369,10 @@ async def lifespan(app: FastAPI):
     # Startup logic
     seed_database()
     logger.info("RakshaSutra engine initialized successfully.")
+    watchdog_task = asyncio.create_task(run_telegram_watchdog_loop())
     yield
     # Shutdown logic
+    watchdog_task.cancel()
     logger.info("RakshaSutra engine shutdown complete.")
 
 app = FastAPI(

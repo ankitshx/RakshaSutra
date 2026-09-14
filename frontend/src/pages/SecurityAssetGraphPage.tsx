@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE, getAuthHeader } from '../services/api';
 import {
   Network,
   Search,
@@ -41,7 +42,9 @@ export const SecurityAssetGraphPage: React.FC = () => {
   const fetchGraphData = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/v1/assets/graph');
+      const res = await fetch(`${API_BASE}/assets/graph`, {
+        headers: getAuthHeader()
+      });
       if (res.ok) {
         const data = await res.json();
         setNodes(data.nodes || []);

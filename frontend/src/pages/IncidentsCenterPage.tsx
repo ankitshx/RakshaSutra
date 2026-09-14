@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE, getAuthHeader } from '../services/api';
 import {
   Search,
   Plus,
@@ -60,7 +61,9 @@ export const IncidentsCenterPage: React.FC = () => {
   const fetchIncidents = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/v1/incidents');
+      const res = await fetch(`${API_BASE}/incidents`, {
+        headers: getAuthHeader()
+      });
       if (res.ok) {
         const data = await res.json();
         setIncidents(data);
@@ -78,7 +81,9 @@ export const IncidentsCenterPage: React.FC = () => {
 
   const fetchIncidentDetail = async (id: string) => {
     try {
-      const res = await fetch(`/api/v1/incidents/${id}`);
+      const res = await fetch(`${API_BASE}/incidents/${id}`, {
+        headers: getAuthHeader()
+      });
       if (res.ok) {
         const data = await res.json();
         setSelectedIncident(data);
@@ -91,13 +96,9 @@ export const IncidentsCenterPage: React.FC = () => {
   const handleDeclareIncident = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/incidents', {
+      const res = await fetch(`${API_BASE}/incidents`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
+        headers: getAuthHeader(),
         body: JSON.stringify({
           title: newTitle,
           classification: newClassification,
@@ -125,13 +126,9 @@ export const IncidentsCenterPage: React.FC = () => {
     if (!selectedIncident || !newNote.trim()) return;
     try {
       setActionLoading(true);
-      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/incidents/${selectedIncident.id}/notes`, {
+      const res = await fetch(`${API_BASE}/incidents/${selectedIncident.id}/notes`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
+        headers: getAuthHeader(),
         body: JSON.stringify({ note: newNote })
       });
       if (res.ok) {
@@ -148,13 +145,9 @@ export const IncidentsCenterPage: React.FC = () => {
   const handleUpdateStatus = async (newStatus: string) => {
     if (!selectedIncident) return;
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-      const res = await fetch(`/api/v1/incidents/${selectedIncident.id}/status`, {
+      const res = await fetch(`${API_BASE}/incidents/${selectedIncident.id}/status`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
+        headers: getAuthHeader(),
         body: JSON.stringify({ status: newStatus })
       });
       if (res.ok) {
@@ -162,7 +155,7 @@ export const IncidentsCenterPage: React.FC = () => {
         fetchIncidents();
       }
     } catch (err) {
-      console.error('Update incident status error:', err);
+      console.error('Update status error:', err);
     }
   };
 

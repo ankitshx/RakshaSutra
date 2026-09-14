@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { API_BASE, getAuthHeader } from '../services/api';
 import {
   FileText,
   Printer,
@@ -33,7 +34,9 @@ export const ReportsCenterPage: React.FC = () => {
   const fetchReports = async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/v1/reports');
+      const res = await fetch(`${API_BASE}/reports`, {
+        headers: getAuthHeader()
+      });
       if (res.ok) {
         const data = await res.json();
         setReports(data);
@@ -50,7 +53,9 @@ export const ReportsCenterPage: React.FC = () => {
 
   const fetchReportDetail = async (id: string) => {
     try {
-      const res = await fetch(`/api/v1/reports/${id}`);
+      const res = await fetch(`${API_BASE}/reports/${id}`, {
+        headers: getAuthHeader()
+      });
       if (res.ok) {
         const data = await res.json();
         setSelectedReport(data);
@@ -68,13 +73,9 @@ export const ReportsCenterPage: React.FC = () => {
     e.preventDefault();
     try {
       setGenerating(true);
-      const token = localStorage.getItem('token') || localStorage.getItem('access_token');
-      const res = await fetch('/api/v1/reports/generate', {
+      const res = await fetch(`${API_BASE}/reports/generate`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
+        headers: getAuthHeader(),
         body: JSON.stringify({
           title: newTitle,
           report_type: newType,

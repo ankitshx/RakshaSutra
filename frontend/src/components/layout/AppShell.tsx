@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { API_BASE } from '../../services/api';
 import { CommandPalette } from '../common/CommandPalette';
 import {
   Shield,
@@ -52,7 +53,7 @@ export const AppShell: React.FC<AppShellProps> = ({
     const checkPing = async () => {
       const t0 = performance.now();
       try {
-        const res = await fetch('/api/v1/health');
+        const res = await fetch(`${API_BASE}/health`);
         if (res.ok) {
           setLatencyMs(Math.round(performance.now() - t0));
           setIsOnline(true);

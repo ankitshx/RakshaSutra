@@ -98,42 +98,31 @@ def test_admin_ioc_rules_lifecycle(admin_headers):
     assert del_res.status_code == 200
     assert "deleted successfully" in del_res.json()["message"]
 
-def test_super_admin_upgrade_advisor_access_and_execution():
-    # 1. Non-super admin is rejected
-    admin_login = client.post("/api/v1/auth/login", json={
-        "email": "admin@rakshasutra.org",
-        "password": "Admin@12345"
-    })
-    admin_token = admin_login.json()["access_token"]
-    forbidden_res = client.get("/api/v1/admin/upgrade-advisor", headers={"Authorization": f"Bearer {admin_token}"})
-    assert forbidden_res.status_code == 403
-    assert "restricted exclusively to Super Administrators" in forbidden_res.json()["detail"]
+def test_ai_sentinel_audit_and_telegram_config(admin_headers):
+    # 1. Fetch live AI Sentinel Audit
+    audit_res = client.get("/api/v1/admin/ai-sentinel/audit", headers=admin_headers)
+    assert audit_res.status_code == 200
+    data = audit_res.json()
+    assert data["status"] == "HEALTHY"
+    assert "health_score" in data
+    assert "immediate_updates_needed" in data
+    assert len(data["immediate_updates_needed"]) >= 1
+    assert "recommended_evolution" in data
+    assert len(data["recommended_evolution"]) >= 1
+    assert "telemetry" in data
 
-    # 2. Super admin succeeds
-    super_login = client.post("/api/v1/auth/login", json={
-        "email": "superadmin@rakshasutra.org",
-        "password": "SuperAdmin@12345"
-    })
-    assert super_login.status_code == 200
-    super_token = super_login.json()["access_token"]
-    super_headers = {"Authorization": f"Bearer {super_token}"}
+    # 2. Check Telegram config status
+    cfg_res = client.get("/api/v1/admin/ai-sentinel/config", headers=admin_headers)
+    assert cfg_res.status_code == 200
+    cfg_data = cfg_res.json()
+    assert "is_configured" in cfg_data
 
-    advisor_res = client.get("/api/v1/admin/upgrade-advisor", headers=super_headers)
-    assert advisor_res.status_code == 200
-    adv_data = advisor_res.json()
-    assert adv_data["status"] == "UPGRADE_ADVISOR_ACTIVE"
-    assert adv_data["target_audience"] == "SUPER_ADMINISTRATOR_ONLY"
-    assert "readiness_score" in adv_data
-    assert "upgrade_categories" in adv_data
-    assert len(adv_data["upgrade_categories"]) >= 3
-
-    # 3. Super admin executes upgrade action
-    exec_res = client.post(
-        "/api/v1/admin/upgrade-advisor/execute",
-        headers=super_headers,
-        json={"action_id": "update_heuristics_dictionary"}
+    # 3. Test Telegram dispatch validation
+    dispatch_res = client.post(
+        "/api/v1/admin/ai-sentinel/dispatch-telegram",
+        headers=admin_headers,
+        json={"bot_token": "", "chat_id": ""}
     )
-    assert exec_res.status_code == 200
-    exec_data = exec_res.json()
-    assert exec_data["success"] is True
-    assert "Heuristics Dictionary" in exec_data["message"]
+    # When unconfigured, it returns 400 with helpful error message
+    assert dispatch_res.status_code == 400
+    assert "Telegram credentials not configured" in dispatch_res.json()["detail"]

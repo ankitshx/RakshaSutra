@@ -23,11 +23,11 @@ import type {
   WebhookDelivery
 } from '../types';
 
-const API_BASE = (import.meta.env.VITE_API_URL 
+export const API_BASE = (import.meta.env.VITE_API_URL 
   ? `${String(import.meta.env.VITE_API_URL).replace(/\/$/, '')}/api/v1` 
   : '/api/v1');
 
-function getAuthHeader(): Record<string, string> {
+export function getAuthHeader(): Record<string, string> {
   const token = localStorage.getItem('raksha_token');
   return {
     'Content-Type': 'application/json',
@@ -674,19 +674,26 @@ export const api = {
     return handleResponse<any>(res);
   },
 
-  // Super Admin Upgrade Advisor
-  getUpgradeAdvisor: async (): Promise<any> => {
-    const res = await fetch(`${API_BASE}/admin/upgrade-advisor`, {
+  // AI System Sentinel & Telegram Watchdog
+  getAiSentinelAudit: async (): Promise<any> => {
+    const res = await fetch(`${API_BASE}/admin/ai-sentinel/audit`, {
       headers: getAuthHeader()
     });
     return handleResponse<any>(res);
   },
 
-  executeUpgradeAction: async (actionId: string): Promise<any> => {
-    const res = await fetch(`${API_BASE}/admin/upgrade-advisor/execute`, {
+  dispatchAiSentinelTelegram: async (data?: { bot_token?: string; chat_id?: string; custom_note?: string }): Promise<any> => {
+    const res = await fetch(`${API_BASE}/admin/ai-sentinel/dispatch-telegram`, {
       method: 'POST',
       headers: getAuthHeader(),
-      body: JSON.stringify({ action_id: actionId })
+      body: JSON.stringify(data || {})
+    });
+    return handleResponse<any>(res);
+  },
+
+  getAiSentinelConfig: async (): Promise<{ is_configured: boolean; alerts_enabled: boolean; bot_token_preview: string; chat_id_preview: string }> => {
+    const res = await fetch(`${API_BASE}/admin/ai-sentinel/config`, {
+      headers: getAuthHeader()
     });
     return handleResponse<any>(res);
   }

@@ -191,7 +191,14 @@ def test_soc_incident_lifecycle(admin_headers):
     assert status_res.status_code == 200
 
 # 5. Universal Search Engine (Ctrl + K) Tests
-def test_universal_security_search():
+def test_universal_security_search(admin_headers):
+    client.post("/api/v1/assets", headers=admin_headers, json={
+        "name": "rakshasutra.org",
+        "asset_type": "domain",
+        "environment": "production",
+        "criticality": "CRITICAL",
+        "technologies": ["React", "FastAPI"]
+    })
     res = client.get("/api/v1/search?q=rakshasutra")
     assert res.status_code == 200
     data = res.json()

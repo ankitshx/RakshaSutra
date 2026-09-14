@@ -58,6 +58,12 @@ class Settings(BaseSettings):
     FEATURE_INCIDENT_RESPONSE: bool = True
     FEATURE_ENTERPRISE_BROWSER_MANAGEMENT: bool = True
     
+    # AI System Sentinel & Telegram Watchdog Alerts
+    TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
+    TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
+    TELEGRAM_ALERTS_ENABLED: bool = os.getenv("TELEGRAM_ALERTS_ENABLED", "false").lower() in ("true", "1", "yes")
+    GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
+
     # SSRF & Networking Limits
     HTTP_CONNECT_TIMEOUT: float = 3.5
     HTTP_READ_TIMEOUT: float = 5.0
