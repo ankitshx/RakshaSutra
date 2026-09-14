@@ -62,6 +62,7 @@ class Settings(BaseSettings):
     TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
     TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
     TELEGRAM_ALERTS_ENABLED: bool = os.getenv("TELEGRAM_ALERTS_ENABLED", "false").lower() in ("true", "1", "yes")
+    TELEGRAM_USER_BOT_TOKEN: str = os.getenv("TELEGRAM_USER_BOT_TOKEN", "")
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
 
     # SSRF & Networking Limits

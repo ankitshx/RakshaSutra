@@ -17,6 +17,7 @@ from app.models.scan import Scan
 from app.core.security import get_password_hash
 from app.core.metrics import metrics
 from app.services.ai_sentinel_service import run_telegram_watchdog_loop
+from app.services.user_telegram_bot_service import run_user_telegram_bot_loop
 
 from sqlalchemy import text
 
@@ -370,9 +371,11 @@ async def lifespan(app: FastAPI):
     seed_database()
     logger.info("RakshaSutra engine initialized successfully.")
     watchdog_task = asyncio.create_task(run_telegram_watchdog_loop())
+    user_bot_task = asyncio.create_task(run_user_telegram_bot_loop())
     yield
     # Shutdown logic
     watchdog_task.cancel()
+    user_bot_task.cancel()
     logger.info("RakshaSutra engine shutdown complete.")
 
 app = FastAPI(
