@@ -14,6 +14,7 @@ from app.threat_intel.registry import threat_intel_registry
 router = APIRouter(prefix="/dashboard", tags=["Security Dashboard"])
 
 @router.get("", response_model=DashboardStatsOut)
+@router.get("/stats", response_model=DashboardStatsOut)
 def get_dashboard_metrics(db: Session = Depends(get_db)):
     """
     Retrieve aggregated security metrics, risk distributions, threat categories,
