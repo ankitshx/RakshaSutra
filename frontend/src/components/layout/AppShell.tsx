@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE } from '../../services/api';
 import { CommandPalette } from '../common/CommandPalette';
@@ -6,26 +6,22 @@ import {
   Shield,
   Search,
   Activity,
-  Bell,
-  Network,
-  Eye,
-  Terminal,
-  ShieldAlert,
+  Globe,
+  MessageSquareWarning,
   Flame,
   FileText,
   Lock,
   PhoneCall,
-  ChevronLeft,
-  ChevronRight,
   LogOut,
-  Sliders,
-  Globe,
-  Compass,
-  LayoutGrid,
   Sparkles,
-  Radio,
   Bug,
-  Building2
+  Menu,
+  X,
+  ChevronDown,
+  Send,
+  Radio,
+  Sliders,
+  Network
 } from 'lucide-react';
 
 interface AppShellProps {
@@ -40,13 +36,12 @@ export const AppShell: React.FC<AppShellProps> = ({
   children
 }) => {
   const { user, isAuthenticated, isAdmin, logout } = useAuth();
-  const [isCollapsed, setIsCollapsed] = useState<boolean>(() => {
-    return localStorage.getItem('rs_sidebar_collapsed') === 'true';
-  });
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState<boolean>(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState<boolean>(false);
+  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
   const [isOnline, setIsOnline] = useState<boolean>(true);
+  const navRef = useRef<HTMLDivElement>(null);
 
   // Measure backend latency & connection heartbeat
   useEffect(() => {
@@ -69,14 +64,6 @@ export const AppShell: React.FC<AppShellProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  const toggleSidebar = () => {
-    setIsCollapsed(prev => {
-      const next = !prev;
-      localStorage.setItem('rs_sidebar_collapsed', String(next));
-      return next;
-    });
-  };
-
   // Global keyboard shortcut Ctrl + K / Cmd + K
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -89,375 +76,355 @@ export const AppShell: React.FC<AppShellProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  const navGroups = [
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(event.target as Node)) {
+        setActiveDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const navigateTo = (tab: string) => {
+    setActiveTab(tab);
+    setActiveDropdown(null);
+    setIsMobileNavOpen(false);
+  };
+
+  const navCategories = [
     {
-      title: 'COMMAND & POSTURE',
+      label: 'Scanners',
+      id: 'scanners',
       items: [
-        { id: 'landing', label: 'Command Overview', icon: LayoutGrid },
-        { id: 'security-posture', label: 'Security Posture 2.0', icon: Compass },
-        { id: 'monitoring', label: 'Continuous Watchlist', icon: Bell },
-        { id: 'dashboard', label: 'Telemetry Stream', icon: Activity },
-        { id: 'cyber-news', label: 'Cyber Threat News', icon: Radio, badge: 'Hourly' }
+        { id: 'landing', label: 'Website & URL Scanner', desc: 'Real-time phishing & malware engine', icon: Globe },
+        { id: 'message-scanner', label: 'SMS & Fraud Analyzer', desc: 'Detect UPI traps, lottery & fake APK baits', icon: MessageSquareWarning },
+        { id: 'scan-history', label: 'Scan Dossier History', desc: 'Review past security evaluations', icon: FileText }
       ]
     },
     {
-      title: 'DIGITAL DEFENSE OS',
+      label: 'Intelligence',
+      id: 'intel',
       items: [
-        { id: 'attack-surface', label: 'Attack Surface (ASM)', icon: Globe, badge: 'ASM' },
-        { id: 'security-graph', label: 'Security Asset Graph', icon: Network, badge: 'Graph' },
-        { id: 'vulnerabilities', label: 'Vulnerability Intel', icon: Bug, badge: 'CVE' },
-        { id: 'alerts', label: 'SOC Alerts Pipeline', icon: Bell, badge: 'SOC' },
-        { id: 'incidents', label: 'Incident Response', icon: Flame, badge: 'IR' },
-        { id: 'organization', label: 'Workspace & RBAC', icon: Building2 }
+        { id: 'cyber-news', label: 'Threat News & Advisories', desc: 'Live hourly feeds & CERT-In alerts', icon: Radio },
+        { id: 'dark-web', label: 'Dark Web Leak Monitor', desc: 'Check compromised corporate emails & credentials', icon: Lock },
+        { id: 'threat-intel', label: 'Live Global Threat Feeds', desc: 'Real-time malicious IOCs and C2 telemetry', icon: Flame },
+        { id: 'investigation-center', label: 'OSINT Forensic Desk', desc: 'Deep IP, DNS & infrastructure analysis', icon: Search }
       ]
     },
     {
-      title: 'THREAT INVESTIGATION',
+      label: 'Defense Ops',
+      id: 'defense',
       items: [
-        { id: 'investigation-center', label: 'Universal Threat Center', icon: Search, badge: 'Omni' },
-        { id: 'message-scanner', label: 'SMS & Phish Analyzer', icon: FileText },
-        { id: 'threat-intel', label: 'Threat Intelligence', icon: Radio }
-      ]
-    },
-    {
-      title: 'ACTIVE DEFENSE & OPS',
-      items: [
-        { id: 'emergency-mode', label: 'Emergency Defense (1930)', icon: ShieldAlert, highlight: true },
-        { id: 'darkweb', label: 'Dark Web Breach Radar', icon: Eye },
-        { id: 'deception', label: 'Honeytoken Deception', icon: Flame, roleGated: true },
-        { id: 'reports-center', label: 'Security Reports & Export', icon: FileText },
-        { id: 'api-access', label: 'Developer API & Keys', icon: Terminal },
-        { id: 'raksha-ai', label: 'RakshaAI Copilot', icon: Sparkles },
-        ...(isAdmin ? [{ id: 'admin', label: 'SOC Admin Operations', icon: Sliders }] : [])
+        { id: 'dashboard', label: 'Security Command Center', desc: 'SOC metrics & defensive posture scorecard', icon: Activity },
+        { id: 'security-posture', label: 'Security Posture Score', desc: 'Compliance hygiene & CERT-In scorecards', icon: Shield },
+        { id: 'attack-surface', label: 'Attack Surface Management', desc: 'Discover external subdomains & open ports', icon: Network },
+        { id: 'vulnerabilities', label: 'Vulnerability Intelligence', desc: 'CVE database, CVSS scores & remediations', icon: Bug },
+        { id: 'deception', label: 'Deception Honeytokens', desc: 'Plant decoy tokens to trap active attackers', icon: Sliders },
+        { id: 'emergency-defense', label: '1930 Emergency Defense', desc: 'National cyber helpline & incident playbooks', icon: PhoneCall }
       ]
     }
   ];
 
   return (
-    <div className="min-h-screen flex bg-[#030508] text-slate-100 font-sans selection:bg-amber-500 selection:text-slate-950">
+    <div className="min-h-screen bg-[#050608] text-zinc-100 flex flex-col font-sans selection:bg-white selection:text-black">
       
-      {/* 1. Left Docked Modular Navigation Rail (RDS 2.0) */}
-      <aside 
-        className={`fixed inset-y-0 left-0 z-40 bg-[#070b12]/95 border-r border-white/[0.07] backdrop-blur-2xl transition-all duration-300 flex flex-col justify-between ${
-          isCollapsed ? 'w-20' : 'w-64'
-        } hidden md:flex`}
-      >
-        {/* Brand Header with The Sutra Signature */}
-        <div>
-          <div className="h-16 flex items-center px-4 border-b border-white/[0.07] justify-between relative">
-            <div 
-              className="flex items-center gap-3 cursor-pointer overflow-hidden group"
-              onClick={() => setActiveTab('landing')}
-              title="RakhshaSutra Command Center"
-            >
-              <div className="w-10 h-10 rounded-2xl bg-amber-950/60 border border-amber-500/40 flex items-center justify-center text-amber-400 shrink-0 shadow-sutra-glow group-hover:scale-105 transition-transform">
-                <Shield className="w-5 h-5" />
-              </div>
-              {!isCollapsed && (
-                <div className="flex flex-col animate-in fade-in duration-200">
-                  <span className="text-sm font-black tracking-tight text-white font-mono leading-none flex items-center gap-1">
-                    RAKSHA<span className="text-amber-400">SUTRA</span>
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-mono tracking-tight mt-1 flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-                    Protective Intelligence
-                  </span>
-                </div>
-              )}
+      {/* 1. Top Floating Glassmorphic Navbar */}
+      <header className="sticky top-3 z-50 w-full px-3 sm:px-6 lg:px-8 pointer-events-none">
+        <div 
+          ref={navRef}
+          className="max-w-7xl mx-auto glass-navbar rounded-2xl px-4 sm:px-6 py-3 flex items-center justify-between gap-4 pointer-events-auto shadow-2xl transition-all duration-300"
+        >
+          {/* Brand Logo */}
+          <div 
+            onClick={() => navigateTo('landing')}
+            className="flex items-center gap-2.5 cursor-pointer group"
+          >
+            <div className="w-9 h-9 rounded-xl bg-white/[0.06] border border-white/[0.12] flex items-center justify-center transition-transform duration-200 group-hover:scale-105">
+              <Shield className="w-5 h-5 text-white" />
             </div>
-
-            <button
-              onClick={toggleSidebar}
-              className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 border border-transparent hover:border-white/10 transition-colors cursor-pointer"
-              title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-              aria-label={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-            >
-              {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-            </button>
-            {/* The Sutra Ambient Line */}
-            <div className="absolute bottom-0 left-0 right-0 h-[1px] bg-gradient-to-r from-transparent via-amber-500/20 to-transparent" />
-          </div>
-
-          {/* Navigation Groups List */}
-          <div className="overflow-y-auto max-h-[calc(100vh-140px)] py-4 px-3 space-y-6">
-            {navGroups.map((group) => (
-              <div key={group.title} className="space-y-1">
-                {!isCollapsed && (
-                  <span className="px-3 text-[9px] font-mono font-black tracking-widest text-slate-400 uppercase block">
-                    {group.title}
-                  </span>
-                )}
-                <div className="space-y-0.5">
-                  {group.items.map((item: any) => {
-                    const Icon = item.icon;
-                    const isActive = activeTab === item.id;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => setActiveTab(item.id)}
-                        className={`w-full flex items-center rounded-xl transition-all cursor-pointer group relative ${
-                          isCollapsed ? 'justify-center p-3' : 'justify-between px-3.5 py-2.5'
-                        } ${
-                          isActive
-                            ? 'bg-[#141d2e] text-amber-300 border-l-2 border-l-amber-500 border-y border-r border-white/10 shadow-sutra-glow font-bold'
-                            : item.highlight
-                            ? 'bg-rose-950/30 text-rose-300 border border-rose-500/30 hover:bg-rose-950/60'
-                            : 'text-slate-400 hover:text-slate-100 hover:bg-[#0c121e] border border-transparent'
-                        }`}
-                        title={isCollapsed ? item.label : undefined}
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <Icon className={`w-4 h-4 shrink-0 transition-transform group-hover:scale-110 ${
-                            isActive ? 'text-amber-400' : item.highlight ? 'text-rose-400' : 'text-slate-400'
-                          }`} />
-                          {!isCollapsed && (
-                            <span className="text-xs font-mono truncate">{item.label}</span>
-                          )}
-                        </div>
-
-                        {!isCollapsed && item.badge && (
-                          <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-black bg-amber-500 text-slate-950 shadow-sm">
-                            {item.badge}
-                          </span>
-                        )}
-
-                        {/* Collapsed Tooltip */}
-                        {isCollapsed && (
-                          <div className="absolute left-full ml-2 px-2.5 py-1 rounded-xl bg-[#141d2e] border border-white/10 text-white font-mono text-xs whitespace-nowrap opacity-0 pointer-events-none group-hover:opacity-100 transition-opacity z-50 shadow-2xl">
-                            {item.label}
-                          </div>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* User Account / Sign In Footer */}
-        <div className="p-3 border-t border-white/[0.07] bg-[#050810]">
-          {isAuthenticated && user ? (
-            <div className="flex items-center justify-between">
-              {!isCollapsed ? (
-                <div className="flex flex-col min-w-0 pr-2">
-                  <span className="text-xs font-mono font-bold text-white truncate">
-                    {user.full_name || user.email.split('@')[0]}
-                  </span>
-                  <span className="text-[10px] font-mono text-amber-400 uppercase font-black">
-                    {user.subscription_tier || 'ENTERPRISE'} TIER
-                  </span>
-                </div>
-              ) : null}
-              <button
-                onClick={() => logout()}
-                className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-950/30 transition-colors cursor-pointer shrink-0"
-                title="Sign Out"
-                aria-label="Sign Out"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-1.5">
-              {!isCollapsed ? (
-                <button
-                  onClick={() => setActiveTab('login')}
-                  className="w-full py-2 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-mono text-xs font-black transition-all cursor-pointer text-center shadow-sutra-glow"
-                >
-                  Access Terminal
-                </button>
-              ) : (
-                <button
-                  onClick={() => setActiveTab('login')}
-                  className="p-2 rounded-xl bg-amber-950/60 border border-amber-500/40 text-amber-400 hover:text-white transition-colors cursor-pointer flex justify-center shadow-sutra-glow"
-                  title="Sign In"
-                  aria-label="Sign In"
-                >
-                  <Lock className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-      </aside>
-
-      {/* 2. Main Content Stage */}
-      <div className={`flex-1 flex flex-col transition-all duration-300 min-w-0 ${
-        isCollapsed ? 'md:pl-20' : 'md:pl-64'
-      }`}>
-        
-        {/* Top Operational Command Bar (RDS 2.0) */}
-        <header className="sticky top-0 z-30 bg-[#070b12]/90 border-b border-white/[0.07] backdrop-blur-xl h-16 flex items-center justify-between px-4 sm:px-6 lg:px-8">
-          
-          {/* Left section: Mobile menu + Status ticker */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
-              className="md:hidden p-2 rounded-xl bg-[#0c121e] border border-white/10 text-slate-400 hover:text-white cursor-pointer"
-              aria-label="Open Mobile Menu"
-            >
-              <LayoutGrid className="w-5 h-5" />
-            </button>
-
-            {/* Live Security Telemetry Badge */}
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#0c121e] border border-white/10 text-[11px] font-mono">
-              <span className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
-              <span className="text-slate-400">DEFENSIVE STATUS:</span>
-              <span className={`font-bold ${isOnline ? 'text-emerald-300' : 'text-rose-400'}`}>
-                {isOnline ? '100% OPERATIONAL' : 'DEGRADED / OFFLINE'}
-              </span>
-              {latencyMs !== null && isOnline && (
-                <span className="text-[10px] text-amber-400/90 pl-1 border-l border-white/10">
-                  {latencyMs}ms
+            <div className="flex flex-col">
+              <span className="font-bold text-base tracking-tight text-white flex items-center gap-1.5 font-mono">
+                RakshaSutra
+                <span className="text-[10px] px-1.5 py-0.2 rounded bg-white/[0.08] text-zinc-400 font-sans border border-white/[0.08]">
+                  v3.4
                 </span>
-              )}
+              </span>
+              <span className="text-[10px] text-zinc-500 font-mono tracking-wide">Autonomous Cyber Defense</span>
             </div>
           </div>
 
-          {/* Center search trigger (Ctrl + K) */}
-          <div className="flex items-center gap-2 flex-1 max-w-md mx-4">
+          {/* Desktop Navigation Links & Dropdowns */}
+          <nav className="hidden lg:flex items-center gap-1">
+            <button
+              onClick={() => navigateTo('landing')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                activeTab === 'landing' ? 'bg-white/10 text-white' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
+              }`}
+            >
+              Home
+            </button>
+
+            <button
+              onClick={() => navigateTo('dashboard')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                activeTab === 'dashboard' ? 'bg-white/10 text-white' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
+              }`}
+            >
+              Dashboard
+            </button>
+
+            {/* Dropdown Menus */}
+            {navCategories.map(cat => {
+              const isCatActive = cat.items.some(i => i.id === activeTab);
+              const isOpen = activeDropdown === cat.id;
+
+              return (
+                <div key={cat.id} className="relative">
+                  <button
+                    onClick={() => setActiveDropdown(isOpen ? null : cat.id)}
+                    className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                      isCatActive ? 'text-white' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
+                    }`}
+                  >
+                    <span>{cat.label}</span>
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
+                  </button>
+
+                  {/* Dropdown Card */}
+                  {isOpen && (
+                    <div className="absolute top-full left-0 mt-2 w-72 rounded-xl bg-zinc-950/95 backdrop-blur-2xl border border-white/[0.1] shadow-2xl p-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                      <div className="space-y-1">
+                        {cat.items.map(item => {
+                          const Icon = item.icon;
+                          const isItemActive = activeTab === item.id;
+                          return (
+                            <button
+                              key={item.id}
+                              onClick={() => navigateTo(item.id)}
+                              className={`w-full flex items-start gap-3 p-2.5 rounded-lg text-left transition-all ${
+                                isItemActive 
+                                  ? 'bg-white/[0.08] text-white' 
+                                  : 'text-zinc-400 hover:text-zinc-100 hover:bg-white/[0.04]'
+                              }`}
+                            >
+                              <div className={`p-1.5 rounded-md mt-0.5 ${isItemActive ? 'bg-white text-black' : 'bg-white/[0.06] text-zinc-300'}`}>
+                                <Icon className="w-3.5 h-3.5" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-xs font-medium leading-tight">{item.label}</div>
+                                <div className="text-[10px] text-zinc-500 truncate mt-0.5">{item.desc}</div>
+                              </div>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Raksha AI Copilot Link */}
+            <button
+              onClick={() => navigateTo('raksha-ai')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                activeTab === 'raksha-ai' ? 'bg-white/10 text-white' : 'text-zinc-400 hover:text-zinc-200 hover:bg-white/[0.04]'
+              }`}
+            >
+              <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Raksha AI</span>
+            </button>
+
+            {/* Admin Console Link (if admin) */}
+            {isAdmin && (
+              <button
+                onClick={() => navigateTo('admin')}
+                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  activeTab === 'admin' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'text-amber-400/80 hover:text-amber-300 hover:bg-amber-500/10'
+                }`}
+              >
+                <Shield className="w-3.5 h-3.5" />
+                <span>Admin Sentinel</span>
+              </button>
+            )}
+          </nav>
+
+          {/* Right Action Icons & Controls */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            
+            {/* Command Palette Trigger Button */}
             <button
               onClick={() => setIsCommandPaletteOpen(true)}
-              className="w-full flex items-center justify-between px-4 py-2 rounded-2xl bg-[#030508] border border-white/10 hover:border-amber-500/40 text-slate-400 hover:text-slate-200 text-xs font-mono transition-all cursor-pointer shadow-inner group"
+              className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] text-xs text-zinc-400 transition-colors"
+              title="Quick Search (Ctrl + K)"
             >
-              <div className="flex items-center gap-2">
-                <Search className="w-3.5 h-3.5 text-amber-400 group-hover:scale-110 transition-transform" />
-                <span>Search forensics, tools, target...</span>
-              </div>
-              <kbd className="hidden sm:inline-flex px-2 py-0.5 rounded bg-[#0c121e] border border-white/10 text-[10px] text-amber-400/80 font-mono">
+              <Search className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-mono">Search</span>
+              <kbd className="text-[9px] bg-white/[0.08] px-1.5 py-0.5 rounded text-zinc-400 border border-white/[0.06]">
                 Ctrl K
               </kbd>
             </button>
-          </div>
 
-          {/* Right Action Icons */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Emergency Defense Button */}
-            <button
-              onClick={() => setActiveTab('emergency-mode')}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-rose-950/60 border border-rose-500/40 text-rose-300 font-mono text-xs font-bold hover:bg-rose-900/60 transition-colors cursor-pointer shadow-sm shadow-rose-950"
+            {/* Direct Telegram Bot Shortcut */}
+            <a
+              href="https://t.me/rakshasutra_bot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/25 text-xs text-sky-400 transition-all font-medium"
+              title="Open @rakshasutra_bot on Telegram"
             >
-              <ShieldAlert className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
-              <span className="hidden lg:inline">Emergency Mode</span>
-              <span className="lg:hidden">Emergency</span>
-            </button>
+              <Send className="w-3.5 h-3.5" />
+              <span className="hidden md:inline font-mono">@rakshasutra_bot</span>
+            </a>
 
-            {/* User Authentication Pill */}
-            {isAuthenticated && user ? (
-              <div className="flex items-center gap-2 bg-[#0c121e] px-3 py-1.5 rounded-xl border border-white/10 text-xs font-mono">
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                <span className="text-white font-bold max-w-[120px] sm:max-w-[180px] truncate">
-                  {user.email}
-                </span>
-                <span className={`text-[10px] px-1.5 py-0.2 rounded uppercase font-black ${
-                  isAdmin ? 'bg-rose-950 text-rose-300 border border-rose-600/40' : 'bg-amber-950 text-amber-300 border border-amber-500/40'
-                }`}>
-                  {user.role}
-                </span>
+            {/* Latency / Engine Status Badge */}
+            <div 
+              className="hidden md:flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.03] border border-white/[0.06] text-[10px] font-mono text-zinc-400"
+              title={`API Latency: ${latencyMs !== null ? `${latencyMs}ms` : 'Connecting...'}`}
+            >
+              <span className={`w-1.5 h-1.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`} />
+              <span>{latencyMs !== null ? `${latencyMs}ms` : 'online'}</span>
+            </div>
+
+            {/* Auth / Account Profile */}
+            {isAuthenticated ? (
+              <div className="flex items-center gap-2 pl-2 border-l border-white/[0.08]">
+                <div className="hidden sm:flex flex-col text-right">
+                  <span className="text-xs font-medium text-zinc-200 truncate max-w-[110px] leading-tight">
+                    {user?.full_name || user?.email?.split('@')[0]}
+                  </span>
+                  <span className="text-[10px] text-zinc-500 capitalize">{user?.role || 'User'}</span>
+                </div>
                 <button
                   onClick={logout}
-                  className="text-slate-400 hover:text-rose-400 p-1 cursor-pointer transition-colors"
-                  title="Sign Out"
-                  aria-label="Sign Out"
+                  className="p-1.5 rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                  title="Log Out"
                 >
-                  <LogOut className="w-3.5 h-3.5" />
+                  <LogOut className="w-4 h-4" />
                 </button>
               </div>
             ) : (
               <button
-                onClick={() => setActiveTab('login')}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-mono text-xs font-black uppercase tracking-wider transition-all cursor-pointer shadow-sutra-glow"
+                onClick={() => navigateTo('login')}
+                className="px-3 py-1.5 rounded-lg bg-white text-black hover:bg-zinc-200 text-xs font-semibold transition-all shadow-sm"
               >
-                <Lock className="w-3.5 h-3.5" />
-                <span>Sign In</span>
+                Sign In
               </button>
             )}
 
-            {/* Helpline 1930 */}
-            <a
-              href="tel:1930"
-              className="hidden xl:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0c121e] border border-white/10 text-slate-300 font-mono text-xs hover:border-amber-500/40 transition-colors"
-              title="National Cyber Financial Fraud Helpline (India)"
+            {/* Mobile Menu Hamburger Toggle */}
+            <button
+              onClick={() => setIsMobileNavOpen(!isMobileNavOpen)}
+              className="lg:hidden p-1.5 rounded-lg text-zinc-400 hover:text-white hover:bg-white/[0.08]"
             >
-              <PhoneCall className="w-3.5 h-3.5 text-amber-400" />
-              <span>1930 Helpline</span>
-            </a>
+              {isMobileNavOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
           </div>
+        </div>
 
-        </header>
+        {/* Mobile Navigation Drawer */}
+        {isMobileNavOpen && (
+          <div className="lg:hidden max-w-7xl mx-auto mt-2 rounded-2xl glass-navbar p-4 pointer-events-auto border border-white/[0.1] shadow-2xl animate-in fade-in duration-150">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+              <button
+                onClick={() => navigateTo('landing')}
+                className="p-2.5 rounded-lg bg-white/[0.04] text-left font-medium text-zinc-200"
+              >
+                🏠 Home / Scanner
+              </button>
+              <button
+                onClick={() => navigateTo('dashboard')}
+                className="p-2.5 rounded-lg bg-white/[0.04] text-left font-medium text-zinc-200"
+              >
+                📊 Security Dashboard
+              </button>
+              <button
+                onClick={() => navigateTo('message-scanner')}
+                className="p-2.5 rounded-lg bg-white/[0.04] text-left font-medium text-zinc-200"
+              >
+                📩 SMS & Fraud Check
+              </button>
+              <button
+                onClick={() => navigateTo('dark-web')}
+                className="p-2.5 rounded-lg bg-white/[0.04] text-left font-medium text-zinc-200"
+              >
+                🔒 Dark Web Leak Monitor
+              </button>
+              <button
+                onClick={() => navigateTo('cyber-news')}
+                className="p-2.5 rounded-lg bg-white/[0.04] text-left font-medium text-zinc-200"
+              >
+                📰 Breaking Cyber Alerts
+              </button>
+              <button
+                onClick={() => navigateTo('raksha-ai')}
+                className="p-2.5 rounded-lg bg-white/[0.04] text-left font-medium text-zinc-200"
+              >
+                ✨ Raksha AI Copilot
+              </button>
+              <button
+                onClick={() => navigateTo('emergency-defense')}
+                className="p-2.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-left font-medium text-rose-300"
+              >
+                🚨 Emergency 1930 Helpline
+              </button>
+              {isAdmin && (
+                <button
+                  onClick={() => navigateTo('admin')}
+                  className="p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-left font-medium text-amber-300"
+                >
+                  🛡️ Admin Sentinel Console
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </header>
 
-        {/* Main Body View */}
-        <main className="flex-1 min-w-0">
-          {children}
-        </main>
-      </div>
+      {/* 2. Full-Width Expansive Content Stage */}
+      <main className="flex-1 w-full pt-6 sm:pt-8 pb-16">
+        {children}
+      </main>
 
-      {/* Global Command Palette (Ctrl + K) */}
+      {/* 3. Global Command Palette Modal (Ctrl + K) */}
       <CommandPalette
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
-        onNavigate={(tab, extra) => {
-          setActiveTab(tab, extra);
-          setIsCommandPaletteOpen(false);
-        }}
+        onNavigate={setActiveTab}
       />
 
-      {/* Mobile Drawer Navigation */}
-      {isMobileNavOpen && (
-        <div className="fixed inset-0 z-50 md:hidden bg-[#030508]/95 backdrop-blur-2xl flex flex-col p-4">
-          <div className="flex items-center justify-between pb-4 border-b border-white/10">
-            <div className="flex items-center gap-2 font-mono font-black text-white">
-              <Shield className="w-5 h-5 text-amber-400" />
-              <span>RAKSHASUTRA</span>
-            </div>
-            <button
-              onClick={() => setIsMobileNavOpen(false)}
-              className="p-2 rounded-xl bg-[#0c121e] border border-white/10 text-slate-400"
+      {/* 4. Minimalist Modern Footer */}
+      <footer className="w-full border-t border-white/[0.06] bg-[#050608] py-8 text-xs text-zinc-500">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-zinc-400" />
+            <span className="font-semibold text-zinc-300 font-mono">RakshaSutra</span>
+            <span>— Autonomous Cyber Defense & Threat Intelligence OS</span>
+          </div>
+          <div className="flex items-center gap-6">
+            <a 
+              href="https://t.me/rakshasutra_bot" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-zinc-400 hover:text-white transition-colors flex items-center gap-1"
             >
-              ✕
+              <Send className="w-3.5 h-3.5 text-sky-400" />
+              <span>@rakshasutra_bot</span>
+            </a>
+            <button onClick={() => navigateTo('emergency-defense')} className="hover:text-white transition-colors">
+              National Helpline 1930
+            </button>
+            <button onClick={() => navigateTo('privacy')} className="hover:text-white transition-colors">
+              Privacy
+            </button>
+            <button onClick={() => navigateTo('terms')} className="hover:text-white transition-colors">
+              Terms
             </button>
           </div>
-
-          <div className="flex-1 overflow-y-auto py-4 space-y-4 font-mono text-xs">
-            {navGroups.map((group) => (
-              <div key={group.title} className="space-y-1">
-                <span className="text-[10px] text-slate-500 font-bold uppercase">{group.title}</span>
-                <div className="space-y-1">
-                  {group.items.map((item: any) => {
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          setActiveTab(item.id);
-                          setIsMobileNavOpen(false);
-                        }}
-                        className={`w-full flex items-center justify-between p-3 rounded-xl ${
-                          activeTab === item.id
-                            ? 'bg-[#141d2e] border-l-2 border-l-amber-500 border-y border-r border-white/10 text-amber-300 font-bold'
-                            : 'bg-[#0c121e] border border-white/10 text-slate-300'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2">
-                          <Icon className="w-4 h-4 text-amber-400" />
-                          <span>{item.label}</span>
-                        </div>
-                        {item.badge && (
-                          <span className="px-1.5 py-0.2 rounded text-[9px] bg-amber-500 text-slate-950 font-bold">
-                            {item.badge}
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
         </div>
-      )}
+      </footer>
 
     </div>
   );
